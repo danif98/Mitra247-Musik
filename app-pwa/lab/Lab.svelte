@@ -22,7 +22,7 @@
   let engine: MusikAudioEngine | null = null;
 
   let fileName = $state('');
-  let status = $state(t.loading);
+  let status = $state<string>(t.loading);
   let failed = $state(false);
   let playing = $state(false);
   let current = $state(0);

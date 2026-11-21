@@ -6,7 +6,7 @@ export default defineConfig({
     include: [
       'core/**/*.test.ts',
       'server/**/*.test.ts',
-      'scripts/**/*.test.ts',
+      'scripts/**/*.test.mjs',
       'ui/**/*.test.ts',
     ],
     testTimeout: 30_000,

@@ -5,6 +5,16 @@
     "moduleResolution": "Bundler",
     "types": ["node", "vite/client"]
   },
-  "include": ["core", "ui", "app-pwa", "ext-chrome", "scripts", "e2e", "*.ts"],
+  "include": [
+    "core",
+    "ui",
+    "app-pwa",
+    "ext-chrome",
+    "scripts",
+    "e2e",
+    "*.ts",
+    "ui/**/*.svelte",
+    "app-pwa/**/*.svelte"
+  ],
   "exclude": ["node_modules", "dist", "out", "server", ".scratch"]
 }
