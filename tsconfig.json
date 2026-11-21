@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node", "vite/client"]
+  },
+  "include": ["core", "ui", "app-pwa", "ext-chrome", "scripts", "e2e", "*.ts"],
+  "exclude": ["node_modules", "dist", "out", "server", ".scratch"]
+}

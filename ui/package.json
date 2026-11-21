@@ -1,0 +1,9 @@
+{
+  "name": "@musik/ui",
+  "version": "0.0.1",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "main": "./index.ts",
+  "dependencies": { "svelte": "^5.0.0" }
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+out
+.scratch
+package-lock.json
+docs/CLAUDE_CODE_PROMPT.md
+LICENSE
+e2e/artifacts
