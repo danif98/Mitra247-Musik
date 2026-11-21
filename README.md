@@ -5,15 +5,15 @@ Source of truth: [`docs/PRD.md`](docs/PRD.md). License: GPL-3.0.
 
 ## Layout
 
-| Folder | Purpose |
-|---|---|
-| `core/` | Audio engine (Web Audio + AudioWorklet + Rubber Band WASM) |
-| `ui/` | Shared Svelte components, theme, Indonesian strings (`ui/i18n/id.ts`) |
-| `app-pwa/` | PWA (Vite). Lab page for A23 testing: `app-pwa/lab` |
-| `ext-chrome/` | MV3 extension skeleton |
-| `server/` | Node service skeleton (`GET /api/health`) |
-| `scripts/` | Cross-platform build/deploy scripts (Node) |
-| `docs/` | PRD, FRONTEND, decisions, test checklists |
+| Folder        | Purpose                                                               |
+| ------------- | --------------------------------------------------------------------- |
+| `core/`       | Audio engine (Web Audio + AudioWorklet + Rubber Band WASM)            |
+| `ui/`         | Shared Svelte components, theme, Indonesian strings (`ui/i18n/id.ts`) |
+| `app-pwa/`    | PWA (Vite). Lab page for A23 testing: `app-pwa/lab`                   |
+| `ext-chrome/` | MV3 extension skeleton                                                |
+| `server/`     | Node service skeleton (`GET /api/health`)                             |
+| `scripts/`    | Cross-platform build/deploy scripts (Node)                            |
+| `docs/`       | PRD, FRONTEND, decisions, test checklists                             |
 
 ## Commands
 

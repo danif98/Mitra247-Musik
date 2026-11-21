@@ -5,7 +5,12 @@
   "license": "GPL-3.0-only",
   "type": "commonjs",
   "main": "dist/app.js",
-  "engines": { "node": ">=18" },
-  "scripts": { "build": "tsc -p tsconfig.json", "start": "node dist/app.js" },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/app.js"
+  },
   "dependencies": {}
 }

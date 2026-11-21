@@ -6,3 +6,5 @@ package-lock.json
 docs/CLAUDE_CODE_PROMPT.md
 LICENSE
 e2e/artifacts
+docs/PRD.md
+docs/FRONTEND.md
