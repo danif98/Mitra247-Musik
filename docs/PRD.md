@@ -269,6 +269,8 @@ Catatan: M2 berada sebelum M3 karena membuka alur utama di Android.
 | 2026-11-21 | Deploy `git pull` manual + restart via cPanel | Permintaan pemilik |
 | 2026-11-21 | Retensi MP3 di server 1 jam | Hemat ruang, kurangi jejak |
 | 2026-11-21 | Frontend: Vite + TypeScript + Svelte; tempo via `playbackRate` + koreksi nada Rubber Band | Bundle kecil; hemat CPU/memori di A23; perlu dibuktikan di M0 |
+| 2026-11-22 | M0: Rubber Band lewat `rubberband-wasm` 3.3.0 (R2+R3) dengan worklet sendiri; `rubberband-web` ditolak (tanpa R3/diagnostik) | Lihat `DECISIONS_M0.md`; lisensi wrapper perlu klarifikasi bila dibagikan |
+| 2026-11-22 | Server dikompilasi CommonJS, repo deploy = root aplikasi Node (`server/app.js`) + `app/` statis | Aman untuk Passenger/cPanel; lihat `DEPLOY.md` |
 
 ## 14. Glosarium
 
