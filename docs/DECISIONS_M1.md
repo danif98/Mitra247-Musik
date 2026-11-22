@@ -65,3 +65,25 @@ Bukti (Chromium 153 + ekstensi dimuat, `node e2e/ext.mjs`): halaman tanpa media 
 
 - `MusikAudioEngine`: `allowNoWorklet`, `pitchAvailable`, `workletError`, `setMinusOne`.
 - Ikon 128 px ditambahkan (`gen-icons`), `npm run build:ext`, `npm run test:e2e` kini menjalankan lab + aplikasi (ekstensi: `node e2e/ext.mjs`, terpisah karena butuh Chromium penuh).
+
+## 9. Hasil uji A23 untuk M1 (2026-11-22, build 3c16ac2)
+
+Sumber: log `musik-app-m1` (195 detik, satu sesi) dan laporan pengguna.
+
+Terbukti oleh log:
+
+- 3 lagu nyata (3-6 MB) tersimpan; durasi benar; waveform 600 titik; `persisted: true`; penyimpanan 14 MB.
+- 0 underrun sepanjang sesi (tempo 0.75/1.05/1.25/1, kunci +1/0, Minus One, seek).
+- Layar mati: dua periode, 25 dtk dan 67 dtk. Audio lanjut real-time (mediaTime maju sama dengan waktu nyata), konteks `running`, 0 underrun, termasuk saat mode shift (beban rata-rata 34%, puncak 96% sekali tanpa underrun).
+- Beban worklet: bypass 0,7-2%; shift 34-41%. Minus One tidak menambah beban terukur (bypass 0,8%).
+
+Dilaporkan pengguna (tidak bisa diverifikasi dari log):
+
+- Minus One: vokal berkurang 4 dari 5, bass hilang (sesuai desain mode Dasar).
+- Kontrol layar kunci muncul.
+
+Belum terbukti / perlu klarifikasi:
+
+- Layar mati 3 menit: log hanya menunjukkan maksimal 67 detik berurutan.
+- "Library hilang setelah Chrome ditutup": log ini berasal dari satu sesi yang sama dengan log sebelumnya (waktu mulai identik, 3 lagu masih ada, `persisted: true`), jadi tidak mendukung maupun membantah. Perlu kejelasan apakah ini hasil nyata.
+- Install PWA, mode pesawat, lagu > 10 menit, R3 di aplikasi.
