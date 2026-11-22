@@ -6,6 +6,17 @@ import {
   analyzeAudio,
   clampTempo,
   isSupportedAudio,
+  EQ_BANDS,
+  NO_LOOP,
+  clampBpm,
+  clampEqGain,
+  defaultPreset,
+  isDefaultPreset,
+  loopJumpTarget,
+  setA,
+  setB,
+  type LoopRange,
+  type Preset,
   nextIndex,
   previousAction,
   sortSongs,
@@ -19,6 +30,26 @@ import { id } from '@musik/ui';
 import { DiagLog } from '../lab/diag-log';
 
 const ENGINE_KEY = 'musik.engine';
+const METRO_KEY = 'musik.metronome';
+
+interface MetroSettings {
+  bpm: number;
+  beatsPerBar: number;
+  countIn: boolean;
+}
+
+function loadMetro(): MetroSettings {
+  try {
+    const raw = JSON.parse(localStorage.getItem(METRO_KEY) ?? '{}') as Partial<MetroSettings>;
+    return {
+      bpm: clampBpm(typeof raw.bpm === 'number' ? raw.bpm : 100),
+      beatsPerBar: Math.min(12, Math.max(1, Math.round(raw.beatsPerBar ?? 4))),
+      countIn: raw.countIn === true,
+    };
+  } catch {
+    return { bpm: 100, beatsPerBar: 4, countIn: false };
+  }
+}
 
 function loadEngine(): RubberBandEngine {
   try {
@@ -46,11 +77,23 @@ export class Player {
   semitone = $state(0);
   minusOne = $state(false);
   volume = $state(1);
+  loopA = $state<number | null>(null);
+  loopB = $state<number | null>(null);
+  eq = $state<number[]>(new Array<number>(EQ_BANDS).fill(0));
+  metroOn = $state(false);
+  bpm = $state(loadMetro().bpm);
+  beatsPerBar = $state(loadMetro().beatsPerBar);
+  countIn = $state(loadMetro().countIn);
+  countingIn = $state(false);
   engineKind = $state<RubberBandEngine>(loadEngine());
   engineState = $state<'loading' | 'ready' | 'error'>('loading');
   error = $state('');
   storageOk = $state(storageSupported());
   private currentUrl = '';
+  private loopTimer: ReturnType<typeof setInterval> | null = null;
+  private presetTimer: ReturnType<typeof setTimeout> | null = null;
+  private applyingPreset = false;
+  private countToken = 0;
   /** Files opened without saving them to the library (id "tmp:<n>"). */
   // Intentionally not reactive: only looked up by id, never rendered.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -75,8 +118,14 @@ export class Player {
     this.audio.addEventListener('durationchange', () => {
       if (Number.isFinite(this.audio.duration)) this.duration = this.audio.duration;
     });
-    this.audio.addEventListener('play', () => (this.playing = true));
-    this.audio.addEventListener('pause', () => (this.playing = false));
+    this.audio.addEventListener('play', () => {
+      this.playing = true;
+      this.startLoopWatch();
+    });
+    this.audio.addEventListener('pause', () => {
+      this.playing = false;
+      this.stopLoopWatch();
+    });
     this.audio.addEventListener('ended', () => void this.onEnded());
     this.audio.addEventListener('error', () => (this.error = id.player.loadError));
     for (const name of [
@@ -206,6 +255,7 @@ export class Player {
       this.tempFiles.delete(cur.id);
       await this.refresh();
       this.replaceItem(cur.id, saved);
+      this.schedulePresetSave();
       this.log.event('files:saved', { title: saved.title });
       return saved;
     } catch {
@@ -233,6 +283,7 @@ export class Player {
 
   /** Stop = pause and return to the start. */
   stop(): void {
+    this.cancelCountIn();
     this.audio.pause();
     this.seek(0);
   }
@@ -244,6 +295,7 @@ export class Player {
 
   private async load(song: SongMeta, autoplay: boolean): Promise<void> {
     this.error = '';
+    await this.flushPreset(); // save the previous song's settings before they are replaced
     let file: File | undefined = this.tempFiles.get(song.id);
     if (!file) {
       try {
@@ -267,6 +319,7 @@ export class Player {
       });
     }
     if (song.id.startsWith('tmp:') && song.peaks.length === 0) void this.analyzeTemp(song, file);
+    await this.applyPresetFor(song);
     if (autoplay) await this.play();
   }
 
@@ -289,13 +342,37 @@ export class Player {
     if (!this.current) return;
     try {
       await this.engine?.resume();
+      if (this.countIn && this.engine && this.audio.paused) {
+        const token = ++this.countToken;
+        const m = this.engine.metronome;
+        m.setBpm(this.bpm);
+        m.beatsPerBar = this.beatsPerBar;
+        const wasRunning = this.metroOn;
+        m.stop();
+        this.countingIn = true;
+        const { downbeat, done } = m.countIn(this.beatsPerBar);
+        await done;
+        if (token !== this.countToken) return; // cancelled by pause/stop
+        this.countingIn = false;
+        if (wasRunning) m.start({ startAt: downbeat }); // keep ticking in time with the song
+      }
       await this.audio.play();
     } catch {
+      this.countingIn = false;
       this.error = id.player.loadError;
     }
   }
 
+  private cancelCountIn(): void {
+    if (!this.countingIn) return;
+    this.countToken++;
+    this.countingIn = false;
+    this.engine?.metronome.stop();
+    if (this.metroOn) this.engine?.metronome.start();
+  }
+
   pause(): void {
+    this.cancelCountIn();
     this.audio.pause();
   }
 
@@ -319,18 +396,21 @@ export class Player {
     this.tempo = clampTempo(v);
     this.engine?.setTempo(this.tempo);
     this.log.event('tempo', this.tempo);
+    this.schedulePresetSave();
   }
 
   setSemitone(v: number): void {
     this.semitone = clampSemitone(v);
     this.engine?.setSemitone(this.semitone);
     this.log.event('semitone', this.semitone);
+    this.schedulePresetSave();
   }
 
   setMinusOne(on: boolean): void {
     this.minusOne = on;
     this.engine?.setMinusOne(on);
     this.log.event('minusOne', on);
+    this.schedulePresetSave();
   }
 
   setVolume(v: number): void {
@@ -348,6 +428,172 @@ export class Player {
     }
     this.engine?.setEngine(kind);
     this.log.event('engine', kind);
+  }
+
+  // --- loop A-B ---------------------------------------------------------------------------
+
+  get loop(): LoopRange {
+    return { a: this.loopA, b: this.loopB };
+  }
+
+  private setLoop(l: LoopRange): void {
+    this.loopA = l.a;
+    this.loopB = l.b;
+    this.log.event('loop', l);
+    this.schedulePresetSave();
+  }
+
+  setLoopA(): void {
+    this.setLoop(setA(this.loop, this.audio.currentTime));
+  }
+
+  setLoopB(): void {
+    this.setLoop(setB(this.loop, this.audio.currentTime));
+  }
+
+  clearLoop(): void {
+    this.setLoop(NO_LOOP);
+  }
+
+  private startLoopWatch(): void {
+    if (this.loopTimer) return;
+    this.loopTimer = setInterval(() => {
+      const target = loopJumpTarget(this.loop, this.audio.currentTime);
+      if (target !== null) this.audio.currentTime = target;
+    }, 25);
+  }
+
+  private stopLoopWatch(): void {
+    if (this.loopTimer) clearInterval(this.loopTimer);
+    this.loopTimer = null;
+  }
+
+  // --- equalizer --------------------------------------------------------------------------
+
+  setEqBand(band: number, db: number): void {
+    const next = [...this.eq];
+    next[band] = clampEqGain(Math.round(db));
+    this.eq = next;
+    this.engine?.setEq(next);
+    this.schedulePresetSave();
+  }
+
+  resetEq(): void {
+    this.eq = new Array<number>(EQ_BANDS).fill(0);
+    this.engine?.setEq(this.eq);
+    this.log.event('eq:reset');
+    this.schedulePresetSave();
+  }
+
+  // --- metronome --------------------------------------------------------------------------
+
+  private saveMetro(): void {
+    try {
+      localStorage.setItem(
+        METRO_KEY,
+        JSON.stringify({ bpm: this.bpm, beatsPerBar: this.beatsPerBar, countIn: this.countIn }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  toggleMetronome(): void {
+    const m = this.engine?.metronome;
+    if (!m) return;
+    this.metroOn = !this.metroOn;
+    this.log.event('metronome', this.metroOn);
+    if (this.metroOn) {
+      void this.engine?.resume();
+      m.setBpm(this.bpm);
+      m.beatsPerBar = this.beatsPerBar;
+      m.start();
+    } else {
+      m.stop();
+    }
+  }
+
+  setBpm(v: number): void {
+    this.bpm = clampBpm(v);
+    this.engine?.metronome.setBpm(this.bpm);
+    this.saveMetro();
+  }
+
+  setBeatsPerBar(v: number): void {
+    this.beatsPerBar = Math.min(12, Math.max(1, Math.round(v)));
+    if (this.engine) this.engine.metronome.beatsPerBar = this.beatsPerBar;
+    this.saveMetro();
+  }
+
+  setCountIn(on: boolean): void {
+    this.countIn = on;
+    this.saveMetro();
+  }
+
+  // --- per-song preset --------------------------------------------------------------------
+
+  private snapshot(): Preset {
+    return {
+      tempo: this.tempo,
+      semitone: this.semitone,
+      minusOne: this.minusOne,
+      loopA: this.loopA,
+      loopB: this.loopB,
+      eq: [...this.eq],
+    };
+  }
+
+  /** Settings of a library song are saved automatically a moment after every change. */
+  private schedulePresetSave(): void {
+    if (this.applyingPreset || !this.current || this.currentIsTemp) return;
+    if (this.presetTimer) clearTimeout(this.presetTimer);
+    const songId = this.current.id;
+    this.presetTimer = setTimeout(() => {
+      this.presetTimer = null;
+      void this.writePreset(songId, this.snapshot());
+    }, 600);
+  }
+
+  private async writePreset(songId: string, preset: Preset): Promise<void> {
+    try {
+      if (isDefaultPreset(preset)) await this.store.deletePreset(songId);
+      else await this.store.setPreset(songId, preset);
+      this.log.event('preset:saved', { songId: songId.slice(0, 8) });
+    } catch {
+      /* best effort: presets are a convenience */
+    }
+  }
+
+  private async flushPreset(): Promise<void> {
+    if (!this.presetTimer || !this.current) return;
+    clearTimeout(this.presetTimer);
+    this.presetTimer = null;
+    if (!this.currentIsTemp) await this.writePreset(this.current.id, this.snapshot());
+  }
+
+  /** Saved preset of the song, or defaults (also for temporary files, which never save one). */
+  private async applyPresetFor(song: SongMeta): Promise<void> {
+    let preset = defaultPreset();
+    if (!song.id.startsWith('tmp:')) {
+      try {
+        preset = (await this.store.getPreset(song.id)) ?? preset;
+      } catch {
+        /* use defaults */
+      }
+    }
+    this.applyingPreset = true;
+    try {
+      this.setTempo(preset.tempo);
+      this.setSemitone(preset.semitone);
+      this.setMinusOne(preset.minusOne);
+      this.loopA = preset.loopA;
+      this.loopB = preset.loopB;
+      this.eq = [...preset.eq];
+      this.engine?.setEq(this.eq);
+    } finally {
+      this.applyingPreset = false;
+    }
+    this.log.event('preset:applied', { song: song.title });
   }
 
   async rename(song: SongMeta, title: string): Promise<void> {

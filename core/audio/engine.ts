@@ -14,6 +14,8 @@ import {
   type RubberBandEngine,
 } from './pitch-math';
 import { MinusOne } from './minus-one';
+import { Equalizer } from './eq';
+import { Metronome } from './metronome';
 
 export interface EngineAssets {
   /** URL of the bundled AudioWorklet module. */
@@ -88,6 +90,8 @@ export class MusikAudioEngine {
   /** Last node of the graph; tests attach analysers here. */
   output!: GainNode;
   minusOne!: MinusOne;
+  eq!: Equalizer;
+  metronome!: Metronome;
   context!: AudioContext;
   renderCapacity: RenderCapacitySample | null = null;
   workletReady: WorkletReady | null = null;
@@ -143,7 +147,10 @@ export class MusikAudioEngine {
     } else {
       this.source.connect(this.minusOne.input);
     }
-    this.minusOne.output.connect(this.output);
+    this.eq = new Equalizer(this.context);
+    this.minusOne.output.connect(this.eq.input);
+    this.eq.output.connect(this.output);
+    this.metronome = new Metronome(this.context, this.output);
     this.output.connect(this.context.destination);
 
     this.applyNow();
@@ -193,6 +200,10 @@ export class MusikAudioEngine {
 
   setVolume(volume: number): void {
     this.output.gain.setTargetAtTime(clamp(volume, 0, 1), this.context.currentTime, 0.02);
+  }
+
+  setEq(gains: readonly number[]): void {
+    this.eq.setAll(gains);
   }
 
   setMinusOne(enabled: boolean): void {

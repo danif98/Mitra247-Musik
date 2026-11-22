@@ -4,9 +4,11 @@
  */
 import { analyzeAudio } from './peaks';
 import { titleFromFileName, type SongMeta } from './meta';
+import { normalizePreset, type Preset } from '../practice/preset';
 
 const DB_NAME = 'musik';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+const PRESETS = 'presets';
 const STORE = 'songs';
 const DIR = 'songs';
 
@@ -30,6 +32,10 @@ export class LibraryStore {
       open.onupgradeneeded = () => {
         if (!open.result.objectStoreNames.contains(STORE)) {
           open.result.createObjectStore(STORE, { keyPath: 'id' });
+        }
+        // v2: per-song practice presets
+        if (!open.result.objectStoreNames.contains(PRESETS)) {
+          open.result.createObjectStore(PRESETS, { keyPath: 'songId' });
         }
       };
       open.onsuccess = () => resolve(open.result);
@@ -85,6 +91,28 @@ export class LibraryStore {
     return handle.getFile();
   }
 
+  /** Saved practice preset of a song, or null when none was saved. */
+  async getPreset(songId: string): Promise<Preset | null> {
+    const db = await this.db();
+    const row = await req(db.transaction(PRESETS).objectStore(PRESETS).get(songId));
+    return row ? normalizePreset(row) : null;
+  }
+
+  async setPreset(songId: string, preset: Preset): Promise<void> {
+    const db = await this.db();
+    await req(
+      db
+        .transaction(PRESETS, 'readwrite')
+        .objectStore(PRESETS)
+        .put({ ...preset, songId, savedAt: Date.now() }),
+    );
+  }
+
+  async deletePreset(songId: string): Promise<void> {
+    const db = await this.db();
+    await req(db.transaction(PRESETS, 'readwrite').objectStore(PRESETS).delete(songId));
+  }
+
   async rename(id: string, title: string): Promise<void> {
     const db = await this.db();
     const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
@@ -97,6 +125,7 @@ export class LibraryStore {
   async remove(id: string): Promise<void> {
     const db = await this.db();
     await req(db.transaction(STORE, 'readwrite').objectStore(STORE).delete(id));
+    await this.deletePreset(id).catch(() => undefined);
     const dir = await this.dir();
     await dir.removeEntry(id).catch(() => undefined);
   }
@@ -105,6 +134,7 @@ export class LibraryStore {
   async clear(): Promise<void> {
     const db = await this.db();
     await req(db.transaction(STORE, 'readwrite').objectStore(STORE).clear());
+    await req(db.transaction(PRESETS, 'readwrite').objectStore(PRESETS).clear());
     const root = await navigator.storage.getDirectory();
     await root.removeEntry(DIR, { recursive: true }).catch(() => undefined);
   }

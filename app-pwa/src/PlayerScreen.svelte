@@ -3,7 +3,7 @@
   import Icon from '@musik/ui/components/Icon.svelte';
   import Stepper from '@musik/ui/components/Stepper.svelte';
   import Waveform from '@musik/ui/components/Waveform.svelte';
-  import { formatDuration, isSupportedAudio } from '@musik/core';
+  import { EQ_BAND_LABELS, formatDuration, isSupportedAudio } from '@musik/core';
   import type { Player } from './player.svelte';
 
   interface Props {
@@ -15,6 +15,8 @@
   const PRESETS = [0.5, 0.75, 1, 1.25];
 
   let infoOpen = $state(false);
+  let panel = $state<'eq' | 'metro' | null>(null);
+  const toggle = (name: 'eq' | 'metro') => (panel = panel === name ? null : name);
 
   async function onOpenFiles(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
@@ -63,6 +65,7 @@
           </button>
         {/if}
       </p>
+      {#if player.countingIn}<p class="muted" id="counting">{t.counting}</p>{/if}
     </header>
 
     <Waveform
@@ -70,6 +73,8 @@
       position={player.position}
       duration={player.duration}
       label={t.seek}
+      loopA={player.loopA}
+      loopB={player.loopB}
       onseek={(s) => player.seek(s)}
     />
     <p class="time">
@@ -145,6 +150,146 @@
         >
       {/each}
     </div>
+
+    <div class="tools" role="group" aria-label="Alat latihan">
+      <button
+        type="button"
+        id="loop-a"
+        class:on={player.loopA !== null}
+        aria-label={t.loopA}
+        title={t.loopA}
+        onclick={() => player.setLoopA()}
+      >
+        <Icon name="loopA" />
+      </button>
+      <button
+        type="button"
+        id="loop-b"
+        class:on={player.loopB !== null}
+        aria-label={t.loopB}
+        title={t.loopB}
+        onclick={() => player.setLoopB()}
+      >
+        <Icon name="loopB" />
+      </button>
+      <button
+        type="button"
+        id="loop-clear"
+        aria-label={t.loopClear}
+        title={t.loopClear}
+        disabled={player.loopA === null && player.loopB === null}
+        onclick={() => player.clearLoop()}
+      >
+        <Icon name="loopClear" />
+      </button>
+      <button
+        type="button"
+        id="eq-toggle"
+        class:on={panel === 'eq'}
+        aria-pressed={panel === 'eq'}
+        aria-label={t.eqToggle}
+        title={t.eqToggle}
+        onclick={() => toggle('eq')}
+      >
+        <Icon name="eq" />
+      </button>
+      <button
+        type="button"
+        id="metro-toggle"
+        class:on={panel === 'metro' || player.metroOn}
+        aria-pressed={panel === 'metro'}
+        aria-label={t.metroToggle}
+        title={t.metroToggle}
+        onclick={() => toggle('metro')}
+      >
+        <Icon name="metronome" />
+      </button>
+    </div>
+
+    {#if panel === 'eq'}
+      <section class="panel" id="eq-panel" aria-label={t.eqToggle}>
+        <div class="eq">
+          {#each EQ_BAND_LABELS as band, i (band)}
+            <div class="band">
+              <span class="gain">{(player.eq[i] ?? 0) > 0 ? '+' : ''}{player.eq[i] ?? 0}</span>
+              <input
+                type="range"
+                class="vslider"
+                min="-12"
+                max="12"
+                step="1"
+                value={player.eq[i] ?? 0}
+                aria-label="{t.eqBand} {band}"
+                oninput={(e) =>
+                  player.setEqBand(i, Number((e.currentTarget as HTMLInputElement).value))}
+              />
+              <span class="hz">{band}</span>
+            </div>
+          {/each}
+          <button
+            type="button"
+            id="eq-reset"
+            class="ghost eqreset"
+            aria-label={t.eqReset}
+            title={t.eqReset}
+            onclick={() => player.resetEq()}
+          >
+            <Icon name="reset" size={20} />
+          </button>
+        </div>
+      </section>
+    {/if}
+
+    {#if panel === 'metro'}
+      <section class="panel" id="metro-panel" aria-label={t.metroPanel}>
+        <div class="mrow">
+          <button
+            type="button"
+            id="metro-on"
+            class:on={player.metroOn}
+            aria-pressed={player.metroOn}
+            aria-label={t.metroOn}
+            title={t.metroOn}
+            onclick={() => player.toggleMetronome()}
+          >
+            <Icon name="metronome" />
+          </button>
+          <button
+            type="button"
+            id="count-in"
+            class:on={player.countIn}
+            aria-pressed={player.countIn}
+            aria-label={t.countIn}
+            title={t.countIn}
+            onclick={() => player.setCountIn(!player.countIn)}>1 2 3 4</button
+          >
+        </div>
+        <div class="grid">
+          <Stepper
+            label={t.bpm}
+            value={player.bpm}
+            min={30}
+            max={240}
+            step={1}
+            format={(v) => String(v)}
+            resetTo={100}
+            resetLabel={t.reset}
+            onchange={(v) => player.setBpm(v)}
+          />
+          <Stepper
+            label={t.beats}
+            value={player.beatsPerBar}
+            min={1}
+            max={12}
+            step={1}
+            format={(v) => String(v)}
+            resetTo={4}
+            resetLabel={t.reset}
+            onchange={(v) => player.setBeatsPerBar(v)}
+          />
+        </div>
+      </section>
+    {/if}
 
     <div class="bottom">
       <span class="vol-icon" aria-hidden="true"><Icon name="volume" /></span>
@@ -272,6 +417,71 @@
   }
   .play {
     min-height: 64px !important;
+  }
+  .tools {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .tools button,
+  .mrow button {
+    padding: 0;
+    min-width: 0;
+    display: grid;
+    place-items: center;
+    min-height: 52px;
+  }
+  .tools button.on,
+  .mrow button.on {
+    background: var(--accent);
+    color: #06121a;
+  }
+  .tools button:disabled {
+    opacity: 0.35;
+  }
+  .panel {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+  }
+  .eq {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr) var(--tap);
+    gap: 4px;
+    align-items: end;
+  }
+  .band {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+  }
+  .gain,
+  .hz {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .vslider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 44px;
+    height: 130px;
+    min-height: 0;
+  }
+  .eqreset {
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+  .mrow {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 8px;
+  }
+  .mrow button {
+    letter-spacing: 0.08em;
   }
   .grid {
     display: grid;

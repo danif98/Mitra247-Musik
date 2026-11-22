@@ -22,7 +22,7 @@ npm install
 npm run dev            # app at http://localhost:5173/ , lab at /lab/
 npm run lint && npm run typecheck && npm test
 npm run build          # -> out/
-npm run test:e2e       # Playwright: lab + app (library, player, minus one)
+npm run test:e2e       # Playwright: lab + app (library, player, minus one) + practice tools
 node e2e/m2.mjs        # YouTube to MP3 e2e (real server + fake yt-dlp)
 node e2e/ext.mjs       # extension e2e (needs Chromium from the Playwright cache)
 npm run build:ext      # unpacked extension -> ext-chrome/dist

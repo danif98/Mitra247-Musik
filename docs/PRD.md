@@ -274,6 +274,7 @@ Catatan: M2 berada sebelum M3 karena membuka alur utama di Android.
 | 2026-11-22 | M1: default jalur A + R2; library OPFS + IndexedDB; minus one Dasar `(L-R)/2`; ekstensi on-demand (`activeTab`) dengan mode terdegradasi bila worklet diblokir | Lihat `DECISIONS_M1.md`; peaks di-decode di main thread (decodeAudioData tidak ada di Worker) |
 | 2026-11-22 | M2: URL dibangun ulang dari ID video; tautan unduh HMAC 5 menit; penguncian IP setelah 5 token salah; ekstensi membuka PWA (`?url=`) alih-alih memanggil server | Lihat `DECISIONS_M2.md`; mencegah SSRF dan menghindari token/izin host di ekstensi |
 | 2026-11-22 | M3-A: layar Putar ringkas (ikon, transport prev/stop/play/next), antrean dasar, "Buka & putar" tanpa menyimpan | Lihat `DECISIONS_M3A.md`; PWA Android tidak bisa memindai folder, hanya pemilih berkas |
+| 2026-11-22 | M3-B: loop A-B, EQ 5 pita, metronom + hitung masuk, preset per lagu otomatis (tempo, kunci, minus one, loop, EQ); lagu tanpa preset mulai dari bawaan | Lihat `DECISIONS_M3B.md`; menggantikan "tempo dan kunci dipertahankan antar lagu" dari M3-A |
 
 ## 14. Glosarium
 

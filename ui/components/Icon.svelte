@@ -14,7 +14,12 @@
     | 'info'
     | 'volume'
     | 'folder'
-    | 'save';
+    | 'save'
+    | 'loopA'
+    | 'loopB'
+    | 'loopClear'
+    | 'eq'
+    | 'metronome';
 
   interface Props {
     name: IconName;
@@ -41,6 +46,12 @@
     folder:
       'M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z',
     save: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
+    loopA: '',
+    loopB: '',
+    loopClear:
+      'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+    eq: 'M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z',
+    metronome: 'M9.6 2h4.8l3.6 20H6L9.6 2zm1.4 2L8 20h8L13 4h-2z',
   };
 </script>
 
@@ -53,6 +64,26 @@
   focusable="false"
 >
   <path d={PATHS[name]} />
+  {#if name === 'loopA' || name === 'loopB'}
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+    <text
+      x="12"
+      y="16"
+      font-size="11"
+      font-weight="700"
+      text-anchor="middle"
+      font-family="system-ui, sans-serif">{name === 'loopA' ? 'A' : 'B'}</text
+    >
+  {/if}
+  {#if name === 'metronome'}
+    <path
+      d="M12 17 15.5 6"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      fill="none"
+    />
+  {/if}
   {#if name === 'back5' || name === 'fwd5'}
     <text
       x="12"

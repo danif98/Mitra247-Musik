@@ -208,3 +208,28 @@ Pakai build terbaru (cek baris Build di Setelan; hapus data situs bila build lam
 | Tidak masuk Library, hilang setelah ditutup |       |         |
 | Simpan ke Library dari lagu sementara       |       |         |
 | Kontrol layar kunci prev/next               |       |         |
+
+---
+
+# Uji manual M3-B di HP (loop, EQ, metronom, hitung masuk, preset)
+
+Pakai build terbaru (cek baris Build di Setelan). Isi tabel di bagian bawah dan kirim log (Setelan -> Unduh log) bila ada glitch.
+
+1. **Loop A-B**: putar lagu, ketuk **A** di awal frasa, **B** di akhir frasa. Frasa berulang tanpa celah/klik yang mengganggu? Coba tempo 0.5x dan 1.25x. Geser waveform ke luar loop: tidak terkurung. **x** menghapus.
+2. **Equalizer** (ikon penyetel): naikkan pita rendah (80) lalu pita tinggi (12k), turunkan pita tengah. Suara berubah sesuai? Ada distorsi atau berderak saat menggeser slider? Tombol reset mengembalikan suara.
+3. **Metronom** (ikon metronom -> tombol hidup): set 60, 100, 160 BPM. Ketukan stabil? Ketukan pertama berbeda nada? Matikan layar 1 menit dengan metronom hidup: ketukan tetap stabil atau tersendat?
+4. **Hitung masuk** ("1 2 3 4"): tekan Putar, satu birama klik lalu lagu mulai tepat di ketukan berikutnya. Tekan Stop saat menghitung: lagu tidak mulai.
+5. **Preset per lagu**: atur tempo 0.8x, kunci +2, loop, EQ pada lagu A; pindah ke lagu B (harus mulai dari bawaan); kembali ke lagu A (semua pulih). Tutup Chrome dari daftar aplikasi dan buka lagi: lagu A tetap memulihkan pengaturannya.
+6. **Beban**: dengan EQ + metronom + pergeseran nada aktif sekaligus, putar 3 menit. Adakah patah-patah? Unduh log dan lihat "Beban worklet" dan "Underrun".
+
+| Pemeriksaan                                    | Hasil | Catatan |
+| ---------------------------------------------- | ----- | ------- |
+| Loop berulang halus (tempo 0.5x / 1x / 1.25x)  |       |         |
+| Keluar dari loop dengan geser waveform         |       |         |
+| EQ: suara berubah sesuai, tanpa distorsi/derak |       |         |
+| Metronom stabil di 60 / 100 / 160 BPM          |       |         |
+| Metronom saat layar mati 1 menit               |       |         |
+| Hitung masuk dan pembatalannya                 |       |         |
+| Preset: pulih setelah pindah lagu              |       |         |
+| Preset: pulih setelah Chrome ditutup           |       |         |
+| Beban/underrun dengan semua fitur aktif        |       |         |

@@ -4,9 +4,11 @@
     position: number;
     duration: number;
     label: string;
+    loopA?: number | null;
+    loopB?: number | null;
     onseek: (seconds: number) => void;
   }
-  let { peaks, position, duration, label, onseek }: Props = $props();
+  let { peaks, position, duration, label, loopA = null, loopB = null, onseek }: Props = $props();
 
   let canvas: HTMLCanvasElement;
   let width = $state(300);
@@ -25,6 +27,11 @@
     const played = css.getPropertyValue('--accent').trim() || '#4cc2ff';
     const rest = css.getPropertyValue('--muted').trim() || '#9aa3b5';
     const progress = duration > 0 ? Math.min(1, position / duration) : 0;
+    const x = (t: number) => (duration > 0 ? Math.min(1, Math.max(0, t / duration)) * width : 0);
+    if (loopA !== null && loopB !== null && loopB > loopA) {
+      ctx.fillStyle = 'rgba(76, 194, 255, 0.18)';
+      ctx.fillRect(x(loopA), 0, x(loopB) - x(loopA), HEIGHT);
+    }
     const bars = Math.floor(width / 3);
     for (let i = 0; i < bars; i++) {
       const p = peaks.length ? (peaks[Math.floor((i / bars) * peaks.length)] ?? 0) : 0.08;
@@ -32,11 +39,15 @@
       ctx.fillStyle = i / bars <= progress ? played : rest;
       ctx.fillRect(i * 3, (HEIGHT - h) / 2, 2, h);
     }
+    ctx.fillStyle = played;
+    for (const t of [loopA, loopB]) {
+      if (t !== null) ctx.fillRect(Math.round(x(t)) - 1, 0, 2, HEIGHT);
+    }
   }
 
   $effect(() => {
     // Redraw whenever inputs change.
-    void [peaks, position, duration, width];
+    void [peaks, position, duration, width, loopA, loopB];
     draw();
   });
 

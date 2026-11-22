@@ -8,3 +8,7 @@ export * from './library/peaks';
 export * from './library/store';
 export * from './api/client';
 export * from './library/queue';
+export * from './audio/eq';
+export * from './audio/metronome';
+export * from './practice/loop';
+export * from './practice/preset';
