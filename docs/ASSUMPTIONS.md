@@ -12,3 +12,15 @@
 10. Playwright memakai Chrome sistem bila Chromium bawaan versi 1255 tidak terpasang (cache lokal berisi build 1243).
 11. Ikon PWA adalah placeholder yang dibangkitkan skrip (`scripts/gen-icons.mjs`).
 12. Teks UI hanya di `ui/i18n/id.ts`; label di `e2e/run.mjs` (selector) bergantung pada teks itu.
+
+## Asumsi tambahan (M1-M4 dan go-live)
+
+13. Library dan preset hanya ada di browser perangkat (OPFS + IndexedDB); tidak ada sinkronisasi antar perangkat dan tidak ada ekspor. Menghapus data situs menghapus semuanya (`navigator.storage.persist()` diminta, tetapi tidak dijamin).
+14. Peaks waveform didekode di main thread pada 8 kHz (`decodeAudioData` tidak ada di Worker); berkas > 80 MB tidak diberi waveform.
+15. "Buka & putar" memakai pemilih berkas sistem; PWA Android tidak bisa memindai folder (lihat `DECISIONS_M3A.md`).
+16. Metronom tidak mengikuti tempo lagu; BPM diatur manual.
+17. Lagu tanpa preset mulai dari nilai bawaan; preset disimpan otomatis per lagu Library.
+18. Server berjalan sebagai satu proses; status job disimpan di memori (restart menghapus status, berkas lama dibersihkan lewat umur folder).
+19. IP klien diambil dari entri terakhir `X-Forwarded-For` (`TRUST_PROXY=true`); belum diverifikasi terhadap proxy cPanel sebenarnya.
+20. Ekstensi dipasang manual (unpacked); tombol Simpan sebagai MP3 membuka PWA dan tidak menyimpan token.
+21. PWA dihosting di jalur apa pun (`base: './'`); API di URL terpisah dengan HTTPS dan `ALLOWED_ORIGINS` yang cocok dengan origin PWA.

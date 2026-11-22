@@ -2,6 +2,40 @@
 
 Alur: **build lokal -> siapkan repo `musik-deploy` -> push -> `git pull` manual di server -> restart**. Rahasia hanya di environment variable server.
 
+## 0. Membuat repo git (sekali saja)
+
+Dua repo terpisah. Keduanya sebaiknya **privat** (repo `musik` berisi seluruh sumber, repo `musik-deploy` hasil build). Tidak ada rahasia di keduanya: `.env`, `vendor.zip`, `data/` sudah masuk `.gitignore`.
+
+**Repo sumber `musik`** (folder proyek ini sudah berisi riwayat commit lokal):
+
+```powershell
+git status                      # harus bersih (folder .claude/ tidak ikut, sudah diabaikan)
+git remote add origin <url repo musik>
+git push -u origin main
+```
+
+**Repo deploy `musik-deploy`**: buat repo kosong di GitHub/GitLab, **tanpa** README. Folder lokalnya dibuat oleh `deploy:prepare` (bawaan `..\musik-deploy`, di samping folder proyek):
+
+```powershell
+npm run build
+npm run deploy:prepare          # mencetak perintah git berikutnya
+cd ..\musik-deploy
+git init -b main                # hanya pertama kali
+git remote add origin <url repo musik-deploy>
+git add -A
+git commit -m "build: 0.1.0"
+git tag v0.1.0
+git push -u origin main --tags
+```
+
+Server perlu bisa `git pull` dari repo deploy: pakai URL HTTPS dengan _deploy token_ read-only, atau kunci SSH khusus server (deploy key, read-only). Jangan menaruh token itu di repo.
+
+Periksa dulu sebelum push pertama:
+
+```powershell
+git ls-files | Select-String -Pattern "\.env$|vendor\.zip|\.pem$"   # harus kosong
+```
+
 ## 1. Build dan siapkan folder deploy (lokal, Windows/Linux/macOS)
 
 ```powershell
@@ -62,7 +96,7 @@ cPanel -> _Setup Node.js App_ -> Create: Application root `musik-deploy`, Applic
 
 `PORT` diatur Passenger. Server berjalan sebagai pengguna cPanel (bukan root). Token tidak pernah dicatat di log. Simpan token yang sama di perangkat (Setelan PWA); mengganti token = ubah variabel lalu restart, lalu perbarui PWA.
 
-Situs statis PWA: arahkan `public_html/<jalur>` ke `~/musik-deploy/app` (symlink atau salin). **PWA harus lewat HTTPS** dan API juga HTTPS (kalau tidak, browser memblokir panggilan campuran).
+Situs statis PWA: arahkan `public_html/<jalur>` ke `~/musik-deploy/app` (symlink atau salin). **PWA harus lewat HTTPS** dan API juga HTTPS (kalau tidak, browser memblokir panggilan campuran). Berkas `app/.htaccess` (ikut terbawa dari build) mengatur tipe MIME `.wasm` / `.webmanifest` dan `Cache-Control: no-cache` untuk HTML, `sw.js` dan manifest; pastikan hosting memakai Apache/LiteSpeed yang membaca `.htaccess`, lalu cek dengan `curl -sI`.
 
 ### 3.3 Perbarui versi
 
@@ -126,3 +160,21 @@ adb reverse tcp:3000 tcp:3000
 ```
 
 Di PWA (HP) buka `http://localhost:4173/`, Setelan -> **URL server `http://localhost:3000`** (tanpa `/musik-api`), isi token yang sama, Tes koneksi. Port 4173 adalah PWA, bukan API.
+
+## Daftar periksa go-live
+
+Urutan dari paling mendasar. Centang satu per satu; detail uji ada di `TEST_SERVER.md`.
+
+1. [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run check:pure-js` lulus di PC.
+2. [ ] Versi Node di _Setup Node.js App_ >= 18 (disarankan 20 atau 22); catat versinya.
+3. [ ] `~/ytvenv/bin/yt-dlp --version` dan `~/bin/ffmpeg -version` berjalan dari SSH; pilih runtime JS untuk yt-dlp.
+4. [ ] Environment variable terisi: `MUSIK_TOKEN`, `YTDLP_PATH`, `FFMPEG_PATH`, `DATA_DIR`, `ALLOWED_ORIGINS` (origin PWA yang persis, tanpa `/` di akhir), `YTDLP_JS_RUNTIME`.
+5. [ ] `curl -s https://<domain>/<api>/api/health` -> `configured:true`, `ytdlp` berisi versi, `ffmpegFound:true`.
+6. [ ] PWA terbuka lewat HTTPS; `curl -sI https://<domain>/<jalur>/sw.js` -> `Content-Type: text/javascript`, `Cache-Control: no-cache`; `.../assets/*.wasm` -> `application/wasm`.
+7. [ ] Di PWA: Setelan -> URL server + token -> Tes koneksi -> "Terhubung. Token benar."
+8. [ ] Satu konversi nyata (video pendek) sampai masuk Library dan bisa diputar.
+9. [ ] Pasang PWA di HP (Instal aplikasi), uji offline (mode pesawat) dan Share Target dari aplikasi YouTube.
+10. [ ] Setelah 1 jam: folder job di `DATA_DIR/jobs` terhapus.
+11. [ ] Tag git `v<versi>` ada di repo deploy (untuk rollback); catat hasil uji di `TEST_SERVER.md`.
+
+Bila ada galat: `ytdlpProblem` di health menjelaskan masalah yt-dlp; pesan di layar YouTube menjelaskan kode galat job; log server ada di Passenger/cPanel (tidak memuat token).

@@ -3,7 +3,7 @@
 Player, speed changer, transpose, minus one, dan YouTube→MP3 untuk latihan musik.
 
 > **Source of truth** produk. Perubahan scope/keputusan dicatat di *Decision Log* (bagian 13).
-> Status: **v1.0** · Diperbarui: 2026-11-21 · Owner: DF (PT Indomobil)
+> Status: **v1.0** · Diperbarui: 2026-11-22 · Owner: DF (PT Indomobil)
 
 **Dokumen terkait:** [`FRONTEND.md`](./FRONTEND.md) (UI, arsitektur audio, PWA, extension) · [`CLAUDE_CODE_PROMPT.md`](./CLAUDE_CODE_PROMPT.md) (instruksi eksekusi di Claude Code)
 
@@ -239,6 +239,8 @@ Loop A-B dengan penanda bagian, equalizer 3–5 band, metronom/count-in, preset 
 | **M5 — Opsional** | Capacitor/APK, deteksi kunci, R3 bila A23 kuat | Sesuai kebutuhan |
 
 Catatan: M2 berada sebelum M3 karena membuka alur utama di Android.
+
+**Status implementasi (2026-11-22):** M0-M4 selesai di kode dan uji otomatis (rilis 0.1.0, lihat `CHANGELOG.md`). Terbukti di A23: M0, M1, konversi YouTube nyata lewat server di PC. Belum teruji: server di cPanel, M3 dan M4 di A23, ekstensi di YouTube asli. M5 belum dikerjakan.
 
 ## 12. Pertanyaan Terbuka
 

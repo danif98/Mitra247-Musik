@@ -1,0 +1,16 @@
+# Hints for static hosting of the PWA on Apache / LiteSpeed (cPanel). Harmless elsewhere.
+# After deploying, verify with: curl -sI https://<domain>/<path>/sw.js
+
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+  AddType application/manifest+json .webmanifest
+  AddType text/javascript .js .mjs
+</IfModule>
+
+<IfModule mod_headers.c>
+  # HTML, the service worker and the manifest must be revalidated on every load so a new build
+  # is picked up; hashed files under assets/ never change and may be cached by the browser.
+  <FilesMatch "(^sw\.js|^workbox-.*\.js|\.html|\.webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
