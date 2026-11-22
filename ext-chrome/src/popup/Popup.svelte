@@ -2,12 +2,28 @@
   import { onMount } from 'svelte';
   import { id } from '@musik/ui';
   import Stepper from '@musik/ui/components/Stepper.svelte';
+  import { buildAppLink, extractYoutubeUrl } from '@musik/core/api/client';
   import type { ExtRequest, ExtResponse, ExtStatus } from '../messages';
 
   const t = id.ext;
   let status = $state<ExtStatus | null>(null);
   let message = $state<string>(t.loading);
   let tabId: number | null = null;
+  let tabUrl = $state('');
+  let appUrl = $state('');
+  let saveMsg = $state('');
+  const APP_KEY = 'musikAppUrl';
+  const youtubeUrl = $derived(extractYoutubeUrl(tabUrl));
+
+  async function saveAsMp3() {
+    const link = buildAppLink(appUrl, tabUrl);
+    if (!link) {
+      saveMsg = t.saveNeedApp;
+      return;
+    }
+    await chrome.storage.local.set({ [APP_KEY]: appUrl.trim() });
+    await chrome.tabs.create({ url: link });
+  }
 
   /** Active tab; the `?target=<substring>` override exists for automated tests only. */
   async function findTab(): Promise<chrome.tabs.Tab | undefined> {
@@ -44,6 +60,8 @@
       return;
     }
     tabId = tab.id;
+    tabUrl = tab.url ?? '';
+    appUrl = ((await chrome.storage.local.get(APP_KEY))[APP_KEY] as string | undefined) ?? '';
     try {
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
     } catch {
@@ -119,6 +137,22 @@
     </section>
     <p class="muted">{t.shortcuts}</p>
   {/if}
+
+  {#if youtubeUrl}
+    <section class="panel" id="save-panel">
+      <h3>{t.saveTitle}</h3>
+      <input
+        id="app-url"
+        type="url"
+        placeholder={t.appUrlPlaceholder}
+        aria-label={t.appUrl}
+        bind:value={appUrl}
+      />
+      <button type="button" class="primary" id="save-mp3" onclick={saveAsMp3}>{t.save}</button>
+      {#if saveMsg}<p class="warn">{saveMsg}</p>{/if}
+      <p class="muted">{t.saveHint}</p>
+    </section>
+  {/if}
 </main>
 
 <style>
@@ -147,6 +181,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  input {
+    min-height: var(--tap);
+    padding: 0 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--panel-2);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
   }
   .warn {
     color: var(--warn);

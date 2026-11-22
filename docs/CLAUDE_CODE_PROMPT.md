@@ -8,7 +8,8 @@ Cara pakai: buka Claude Code di folder proyek `D:\xampp\htdocs\musik`, lalu temp
 |---|---|---|
 | M0 | Selesai | `DECISIONS_M0.md`; uji A23 jalan (0 underrun, layar mati 53 dtk lanjut, R2 ~46% beban worklet saat menggeser nada, ~1% saat bypass) |
 | M1 | Selesai di kode dan uji otomatis | `DECISIONS_M1.md`; **belum diuji di A23 dan di YouTube asli** |
-| M2-M4 | Belum | gunakan prompt di bawah, sudah disesuaikan |
+| M2 | Selesai di kode dan uji otomatis | `DECISIONS_M2.md`, `TEST_SERVER.md`; **belum diuji di server cPanel nyata dan HP** |
+| M3-M4 | Belum | gunakan prompt di bawah, sudah disesuaikan |
 
 **Tambahkan blok ini ke awal setiap prompt lanjutan** (pelajaran M0-M1 yang tidak ada di prompt asli):
 
@@ -138,7 +139,7 @@ Bukti wajib: uji unit + e2e lulus; uji numerik DSP minus one pada sinyal sinteti
 [tempel hasil uji A23 / log diagnostik di sini]
 ````
 
-### M2 — YouTube→MP3
+### M2 — YouTube→MP3 (SELESAI; prompt di bawah untuk arsip, jangan dijalankan ulang)
 
 ````text
 Lanjutkan ke M2 sesuai docs/PRD.md 6.7 dan 5.5. Baca ulang docs/.

@@ -272,6 +272,7 @@ Catatan: M2 berada sebelum M3 karena membuka alur utama di Android.
 | 2026-11-22 | M0: Rubber Band lewat `rubberband-wasm` 3.3.0 (R2+R3) dengan worklet sendiri; `rubberband-web` ditolak (tanpa R3/diagnostik) | Lihat `DECISIONS_M0.md`; lisensi wrapper perlu klarifikasi bila dibagikan |
 | 2026-11-22 | Server dikompilasi CommonJS, repo deploy = root aplikasi Node (`server/app.js`) + `app/` statis | Aman untuk Passenger/cPanel; lihat `DEPLOY.md` |
 | 2026-11-22 | M1: default jalur A + R2; library OPFS + IndexedDB; minus one Dasar `(L-R)/2`; ekstensi on-demand (`activeTab`) dengan mode terdegradasi bila worklet diblokir | Lihat `DECISIONS_M1.md`; peaks di-decode di main thread (decodeAudioData tidak ada di Worker) |
+| 2026-11-22 | M2: URL dibangun ulang dari ID video; tautan unduh HMAC 5 menit; penguncian IP setelah 5 token salah; ekstensi membuka PWA (`?url=`) alih-alih memanggil server | Lihat `DECISIONS_M2.md`; mencegah SSRF dan menghindari token/izin host di ekstensi |
 
 ## 14. Glosarium
 

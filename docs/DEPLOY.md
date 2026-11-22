@@ -29,19 +29,48 @@ git push origin HEAD --tags
 npm run vendor:zip       # menghasilkan out\vendor.zip (di luar repo deploy), mencetak ukuran dan versi Node
 ```
 
-Unggah manual (File Manager/SFTP) ke root aplikasi di server dan ekstrak sekali sehingga `node_modules/` berada di samping `package.json`. Versi Node saat build harus sama dengan versi di _Setup Node.js App_. Saat ini server tanpa dependensi runtime, jadi berkasnya hanya berisi penanda.
+Server M2 **tidak punya dependensi runtime** (hanya modul bawaan Node), jadi `vendor.zip` hanya berisi berkas penanda dan tidak perlu diunggah ulang. Bila kelak ada dependensi pure JS: unggah manual ke root aplikasi, ekstrak sehingga `node_modules/` berada di samping `package.json`. Versi Node saat build harus sama dengan versi di _Setup Node.js App_ (server mendukung Node >= 18).
 
-## 3. Di server (SSH)
+## 3. Di server
+
+### 3.1 Prasyarat (sudah terverifikasi di PRD 5.5)
+
+- ffmpeg statis: `~/bin/ffmpeg`.
+- yt-dlp lewat venv Python: `~/ytvenv/bin/yt-dlp`. **Perbarui rutin** (`~/ytvenv/bin/pip install -U yt-dlp`); YouTube sering berubah dan unduhan bisa gagal sampai pembaruan keluar. Versi tampil di `GET /api/health`.
+- yt-dlp memerlukan _JavaScript runtime_ untuk sebagian format. Pilih salah satu dan uji (lihat `TEST_SERVER.md`):
+  - Node dari cPanel: `YTDLP_JS_RUNTIME=node:/home/<user>/nodevenv/<app>/<versi>/bin/node`
+  - atau pasang `deno` di `~/bin` dan `YTDLP_JS_RUNTIME=deno:/home/<user>/bin/deno`
+
+### 3.2 Setup pertama
 
 ```bash
-cd ~/musik-deploy        # repo deploy = root aplikasi Node
-git pull
+cd ~
+git clone <url musik-deploy> musik-deploy
 ```
 
-Setup pertama kali:
+cPanel -> _Setup Node.js App_ -> Create: Application root `musik-deploy`, Application URL (mis. `domain-anda.com/musik-api`), **Startup file `server/app.js`**, pilih versi Node. Tambahkan _Environment variables_ (daftar lengkap di `.env.example`):
 
-- cPanel -> _Setup Node.js App_: Application root `musik-deploy`, Startup file `server/app.js`, pilih versi Node, tambahkan environment variable (lihat `.env.example`): `MUSIK_TOKEN` (acak, >= 32 byte; contoh `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`), `YTDLP_PATH` (mis. `~/ytvenv/bin/yt-dlp`, path absolut), `FFMPEG_PATH` (mis. `~/bin/ffmpeg`), `DATA_DIR`. `PORT` diatur Passenger.
-- Situs statis: arahkan `public_html/<jalur>` ke `~/musik-deploy/app` (symlink atau salin). PWA harus lewat HTTPS.
+| Variabel           | Isi                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `MUSIK_TOKEN`      | wajib; 32 byte acak hex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`                    |
+| `YTDLP_PATH`       | `/home/<user>/ytvenv/bin/yt-dlp` (path absolut)                                                                        |
+| `FFMPEG_PATH`      | `/home/<user>/bin/ffmpeg`                                                                                              |
+| `DATA_DIR`         | folder kerja di luar `public_html`, mis. `/home/<user>/musik-data`                                                     |
+| `ALLOWED_ORIGINS`  | origin PWA, mis. `https://domain-anda.com` (tanpa path); tambahkan `chrome-extension://<id>` bila memakai ekstensi     |
+| `YTDLP_JS_RUNTIME` | lihat 3.1                                                                                                              |
+| opsional           | `MAX_ACTIVE` (1-2), `MAX_QUEUE`, `MAX_DURATION_SEC` (1200), `RETENTION_MINUTES` (60), `JOB_TIMEOUT_SEC`, `TRUST_PROXY` |
+
+`PORT` diatur Passenger. Server berjalan sebagai pengguna cPanel (bukan root). Token tidak pernah dicatat di log. Simpan token yang sama di perangkat (Setelan PWA); mengganti token = ubah variabel lalu restart, lalu perbarui PWA.
+
+Situs statis PWA: arahkan `public_html/<jalur>` ke `~/musik-deploy/app` (symlink atau salin). **PWA harus lewat HTTPS** dan API juga HTTPS (kalau tidak, browser memblokir panggilan campuran).
+
+### 3.3 Perbarui versi
+
+```bash
+cd ~/musik-deploy && git pull
+```
+
+lalu restart (bagian 4).
 
 ## 4. Restart
 
@@ -50,7 +79,23 @@ Pilih salah satu:
 - cPanel -> _Setup Node.js App_ -> **Restart**.
 - `touch ~/musik-deploy/tmp/restart.txt` lalu buka URL aplikasi sekali.
 
-Cek: `GET <url>/api/health` mengembalikan `{"status":"ok","version":...}`. Endpoint lain tanpa token yang benar menolak (401/503).
+Cek cepat:
+
+```bash
+curl -s https://domain-anda.com/musik-api/api/health
+# {"status":"ok","version":"...","ytdlp":"2026.x.x","configured":true,...}
+```
+
+`configured:false` berarti `MUSIK_TOKEN` belum ada / terlalu pendek. `ytdlp:null` berarti `YTDLP_PATH` salah atau tidak bisa dijalankan.
+
+## 5. Perilaku layanan yang perlu diketahui
+
+- Satu URL per permintaan, MP3 saja (V2 / 192k). Playlist ditolak; URL dibangun ulang dari ID video sehingga hanya youtube.com / youtu.be / music.youtube.com yang bisa dijangkau.
+- Antrean: `MAX_ACTIVE` aktif + `MAX_QUEUE` menunggu; sisanya ditolak `429 busy`.
+- Berkas MP3 dihapus `RETENTION_MINUTES` setelah selesai (default 1 jam) dan saat layanan start.
+- 5 token salah dari satu IP dalam 10 menit = IP diblokir 15 menit. Batas laju: 10 permintaan konversi/menit per IP, 20/menit per token.
+- IP klien diambil dari entri terakhir `X-Forwarded-For` (`TRUST_PROXY=true`, bawaan). Bila server tidak di belakang proxy, set `TRUST_PROXY=false`.
+- Data job ada di memori: restart server menghapus status job (berkas lama tetap dibersihkan lewat umur folder).
 
 ## Rollback
 

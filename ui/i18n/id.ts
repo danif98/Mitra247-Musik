@@ -90,6 +90,12 @@ export const id = {
     degraded:
       'Pergeseran nada diblokir halaman ini. Tempo tetap berfungsi (nada dijaga), minus one tetap bisa dipakai.',
     shortcuts: 'Pintasan: [ ] tempo, Shift+↑/↓ kunci.',
+    saveTitle: 'Simpan sebagai MP3',
+    appUrl: 'URL aplikasi Musik Tools',
+    appUrlPlaceholder: 'https://domain-anda.com/musik/',
+    save: 'Simpan sebagai MP3',
+    saveNeedApp: 'Isi URL aplikasi Musik Tools (alamat PWA) dulu.',
+    saveHint: 'Membuka aplikasi dengan URL video terisi; tekan Simpan di sana.',
   },
   youtube: {
     title: 'YouTube ke MP3',

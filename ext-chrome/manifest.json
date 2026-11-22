@@ -9,7 +9,7 @@
     "default_title": "Musik Tools",
     "default_popup": "popup.html"
   },
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "web_accessible_resources": [
     {
       "resources": ["worklet.js", "rubberband.wasm"],

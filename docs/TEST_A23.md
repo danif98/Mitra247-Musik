@@ -159,3 +159,27 @@ Belum pernah diuji di YouTube asli; ini uji terpenting untuk ekstensi.
 | Pintasan keyboard               |       |         |
 | Ganti video / iklan             |       |         |
 | Halaman tanpa media / chrome:// |       |         |
+
+---
+
+# Uji manual M2 di HP (YouTube ke MP3)
+
+Prasyarat: server sudah berjalan (lihat `DEPLOY.md` dan `TEST_SERVER.md` bagian A), PWA dibuka lewat HTTPS dari domain Anda (bukan IP LAN).
+
+1. **Setelan** -> Server YouTube ke MP3: isi URL server (mis. `https://domain-anda.com/musik-api`) dan token -> **Tes koneksi**. Harus muncul "Terhubung. Token benar." dan versi yt-dlp. Coba juga token salah: pesan "Token salah".
+2. **YouTube**: tempel URL satu video pendek -> **Simpan sebagai MP3**. Catat langkah yang tampil dan waktu sampai selesai.
+3. Lagu muncul di Library (sumber "YouTube"). Putar, ubah tempo/kunci, matikan layar 1 menit.
+4. **Share Target**: pasang PWA (menu Chrome -> Instal aplikasi). Buka aplikasi YouTube -> Bagikan -> pilih "Musik". PWA harus terbuka di layar YouTube dengan URL terisi; tekan Simpan.
+5. Coba kasus galat: URL playlist, URL non-YouTube, video privat, video > 20 menit. Pesan harus jelas dan bahasa Indonesia.
+6. Matikan data seluler/Wi-Fi lalu tekan Simpan: pesan "Tidak bisa terhubung ke server...".
+7. Setelah 1 jam, tekan tautan lama / ulangi: berkas di server sudah dihapus, tetapi lagu di Library HP tetap ada.
+
+| Pemeriksaan                                           | Hasil | Catatan |
+| ----------------------------------------------------- | ----- | ------- |
+| Tes koneksi: benar / token salah                      |       |         |
+| Konversi lagu pendek: waktu total                     |       |         |
+| Lagu masuk Library, bisa diputar, tempo/kunci OK      |       |         |
+| Share Target dari aplikasi YouTube                    |       |         |
+| Pesan galat (playlist, non-YouTube, privat, > 20 mnt) |       |         |
+| Offline: pesan jaringan                               |       |         |
+| Lagu tetap ada setelah berkas server kedaluwarsa      |       |         |

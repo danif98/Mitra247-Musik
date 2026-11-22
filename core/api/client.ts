@@ -85,6 +85,13 @@ export function extractYoutubeUrl(...candidates: (string | null | undefined)[]):
   return null;
 }
 
+/** Link that opens the PWA on its YouTube screen with the video URL prefilled (used by the extension). */
+export function buildAppLink(appUrl: string, videoUrl: string): string | null {
+  const base = normalizeBaseUrl(appUrl);
+  if (!base || !extractYoutubeUrl(videoUrl)) return null;
+  return `${base}/?url=${encodeURIComponent(videoUrl)}`;
+}
+
 export interface ClientOptions {
   baseUrl: string;
   token: string;

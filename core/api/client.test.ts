@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ApiClient, ApiError, extractYoutubeUrl, normalizeBaseUrl, type JobView } from './client';
+import {
+  ApiClient,
+  ApiError,
+  buildAppLink,
+  extractYoutubeUrl,
+  normalizeBaseUrl,
+  type JobView,
+} from './client';
 
 function reply(status: number, body: unknown, headers: Record<string, string> = {}) {
   return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
@@ -54,6 +61,18 @@ describe('helpers', () => {
     expect(extractYoutubeUrl('https://example.com/watch?v=dQw4w9WgXcQ')).toBeNull();
     expect(extractYoutubeUrl('https://youtube.com.evil.com/x', undefined)).toBeNull();
     expect(extractYoutubeUrl('tidak ada link')).toBeNull();
+  });
+});
+
+describe('buildAppLink', () => {
+  it('builds the app URL with the encoded video URL', () => {
+    expect(
+      buildAppLink('https://app.example/musik/', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=5'),
+    ).toBe(
+      'https://app.example/musik/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ%26t%3D5',
+    );
+    expect(buildAppLink('not a url', 'https://youtu.be/dQw4w9WgXcQ')).toBeNull();
+    expect(buildAppLink('https://app.example', 'https://example.com/x')).toBeNull();
   });
 });
 
