@@ -42,6 +42,7 @@ export interface WorkletStats {
   budgetMs: number;
   loadPct: number;
   slowBlocks: number;
+  mode: 'shift' | 'bypass' | 'warm';
   pitchRatio: number;
   contextTime: number;
 }

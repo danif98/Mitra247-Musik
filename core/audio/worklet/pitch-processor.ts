@@ -118,6 +118,9 @@ class PitchProcessor extends AudioWorkletProcessor {
     this.smoothed = Math.exp(
       Math.log(this.smoothed) + (Math.log(target) - Math.log(this.smoothed)) * alpha,
     );
+    // Snap to the target once close: avoids an endless tail of tiny updates (each one costs CPU) and
+    // lets the core enter bypass at exactly 1.0.
+    if (Math.abs(Math.log(target / this.smoothed)) < 1e-3) this.smoothed = target;
 
     const core = this.core;
     if (!core || !input || input.length === 0) {
@@ -159,6 +162,7 @@ class PitchProcessor extends AudioWorkletProcessor {
         budgetMs,
         loadPct: (avgMs / budgetMs) * 100,
         slowBlocks: this.slowBlocks,
+        mode: s.mode,
         pitchRatio: this.smoothed,
         contextTime: currentTime,
       });

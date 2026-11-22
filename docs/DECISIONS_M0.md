@@ -18,7 +18,7 @@ Batas/risiko:
 - `@echogarden/rubberband-wasm` (GPL-2.0-only) tidak dipakai: tidak kompatibel dengan GPL-3.0.
 - Versi dikunci tepat (`3.3.0`) agar WASM tidak berubah diam-diam.
 
-Opsi R2 dan R3 (`engineOptions`): keduanya `ProcessRealTime | ThreadingNever | ChannelsTogether`. R2 menambah `EngineFaster | PitchHighConsistency` (konsisten saat rasio berubah terus). R3 menambah `EngineFiner`.
+Opsi R2 dan R3 (`engineOptions`): keduanya `ProcessRealTime | ThreadingNever | ChannelsTogether`. R2 menambah `EngineFaster | PitchHighSpeed` (sebelumnya `PitchHighConsistency`; diganti setelah uji A23 pertama, lihat bagian 8). R3 menambah `EngineFiner`.
 
 ## 2. Jalur A vs jalur B
 
@@ -58,3 +58,22 @@ Sesuai PRD 5.1 / FRONTEND 2, dengan penyesuaian:
 ## 7. Asumsi dan ketidakpastian
 
 Lihat `ASSUMPTIONS.md`. Hal yang belum pasti: perilaku `AudioContext` dan Media Session saat layar mati di A23, beban CPU nyata R2/R3 di A23, kualitas jalur A pada 0.5×, ketersediaan `renderCapacity` di Android.
+
+## 8. Optimasi CPU setelah uji A23 pertama (2026-11-22)
+
+Log A23: beban worklet R2 ~45% (target PRD < 30%), R3 57-63%, 2 underrun saat tempo diubah. Benchmark Node (µs per blok 128 frame, PC pengembang, bukan A23):
+
+| Varian             | rasio 1 tetap | rasio 1.26 tetap | rasio berubah tiap blok |
+| ------------------ | ------------- | ---------------- | ----------------------- |
+| R2 HighConsistency | 5.6%          | 10.6%            | 24%                     |
+| R2 HighSpeed       | 1.2%          | 7.0%             | 33%                     |
+| R3                 | 12.3%         | 18.4%            | 32%                     |
+
+Temuan: mengubah skala nada tiap blok melipatgandakan biaya 2-5x. Perubahan yang dibuat:
+
+1. R2 memakai `PitchHighSpeed` (lebih murah pada rasio tetap).
+2. Worklet "snap" ke target saat selisih < 0.1% (tidak ada ekor pembaruan tak berujung); core mengabaikan perubahan < 0.01% (`set_pitch_scale` mahal).
+3. **Bypass pada rasio tepat 1.0:** Rubber Band dihentikan, sinyal kering diberi tunda sama dengan tunda Rubber Band, dengan crossfade satu blok saat masuk dan keluar (Rubber Band di-reset saat keluar). Penyelarasan diukur dengan korelasi silang derau (selisih 0 frame, R2 dan R3) dan diuji tanpa klik pada seam (test `bypass.test.ts`). Konstanta `LAG_OFFSET` empiris dan hanya berlaku untuk sample rate <= 48 kHz; di atas itu bypass mati.
+4. Prebuffer R2 dinaikkan 256 -> 512 frame (underrun di tes ramp 3 -> 0; +5 ms latensi).
+
+Harga: pada rasio besar (tempo 0.5x, +12 semitone, rasio 4) bias frekuensi R2 naik menjadi -1.9% (sebelumnya ~0%). **Perlu dinilai dengan telinga di A23**; bila mengganggu, kembalikan `PitchHighConsistency` untuk rasio non-1.

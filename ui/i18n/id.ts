@@ -49,6 +49,7 @@ export const id = {
       renderPeak: 'Beban render puncak (%)',
       renderUnderrun: 'Rasio underrun render',
       slowBlocks: 'Blok melebihi anggaran',
+      mode: 'Mode (shift/bypass)',
     },
   },
 } as const;

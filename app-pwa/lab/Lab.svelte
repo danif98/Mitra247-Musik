@@ -58,6 +58,7 @@
       [L.blocks]: w ? String(w.blocks) : '–',
       [L.load]: w ? w.loadPct.toFixed(1) : '–',
       [L.slowBlocks]: w ? String(w.slowBlocks) : '–',
+      [L.mode]: w ? w.mode : '–',
       [L.renderLoad]: rc ? (rc.averageLoad * 100).toFixed(1) : 'n/a',
       [L.renderPeak]: rc ? (rc.peakLoad * 100).toFixed(1) : 'n/a',
       [L.renderUnderrun]: rc ? rc.underrunRatio.toFixed(4) : 'n/a',
