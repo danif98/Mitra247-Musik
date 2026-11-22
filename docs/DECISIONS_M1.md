@@ -82,8 +82,9 @@ Dilaporkan pengguna (tidak bisa diverifikasi dari log):
 - Minus One: vokal berkurang 4 dari 5, bass hilang (sesuai desain mode Dasar).
 - Kontrol layar kunci muncul.
 
-Belum terbukti / perlu klarifikasi:
+Belum terbukti:
 
 - Layar mati 3 menit: log hanya menunjukkan maksimal 67 detik berurutan.
-- "Library hilang setelah Chrome ditutup": log ini berasal dari satu sesi yang sama dengan log sebelumnya (waktu mulai identik, 3 lagu masih ada, `persisted: true`), jadi tidak mendukung maupun membantah. Perlu kejelasan apakah ini hasil nyata.
+- Ekstensi di YouTube asli: ditunda atas keputusan pengguna (prioritas PWA/HP dulu).
+- Library setelah Chrome ditutup: pengguna mengonfirmasi library **tidak hilang** (laporan pengguna; log yang diunduh berasal dari satu sesi).
 - Install PWA, mode pesawat, lagu > 10 menit, R3 di aplikasi.
