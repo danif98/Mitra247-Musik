@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { configProblems, loadConfig } from './config';
+import fs from 'node:fs';
+import path from 'node:path';
+import { configProblems, loadConfig, loadDotEnv } from './config';
 import { safeEqual } from './auth';
-import { TOKEN, auth, json, startApp, type Started } from '../test/helpers';
+import { TOKEN, auth, json, removeDir, startApp, tempDir, type Started } from '../test/helpers';
 
 let s: Started | undefined;
 afterEach(async () => {
@@ -40,6 +42,35 @@ describe('config', () => {
     expect(safeEqual('abc', 'abc')).toBe(true);
     expect(safeEqual('abc', 'abd')).toBe(false);
     expect(safeEqual('abc', 'abcd')).toBe(false);
+  });
+});
+
+describe('loadDotEnv', () => {
+  it('reads KEY=VALUE lines, ignores comments/empty values, never overrides existing variables', () => {
+    const dir = tempDir();
+    const file = path.join(dir, '.env');
+    fs.writeFileSync(
+      file,
+      [
+        '# comment',
+        'MUSIK_TOKEN="abc def"',
+        "PORT='3001'",
+        'EMPTY=',
+        'KEEP=from-file',
+        'bad line',
+        '1BAD=x',
+        '',
+      ].join('\r\n'),
+    );
+    const env: NodeJS.ProcessEnv = { KEEP: 'from-shell' };
+    const loaded = loadDotEnv(file, env);
+    expect(loaded.sort()).toEqual(['MUSIK_TOKEN', 'PORT']);
+    expect(env['MUSIK_TOKEN']).toBe('abc def');
+    expect(env['PORT']).toBe('3001');
+    expect(env['KEEP']).toBe('from-shell');
+    expect(env['EMPTY']).toBeUndefined();
+    expect(loadDotEnv(path.join(dir, 'missing.env'), {})).toEqual([]);
+    removeDir(dir);
   });
 });
 

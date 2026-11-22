@@ -100,3 +100,29 @@ curl -s https://domain-anda.com/musik-api/api/health
 ## Rollback
 
 `git checkout v<versi-lama>` di server, lalu restart.
+
+## Uji lokal: PC + HP lewat USB (tanpa cPanel)
+
+Server membaca `.env` di folder tempat ia dijalankan (hanya untuk uji lokal; variabel yang sudah ada di lingkungan tidak ditimpa, dan di cPanel `.env` tidak dipakai). Buat `.env` di akar proyek dari `.env.example`:
+
+```
+MUSIK_TOKEN=<token >= 32 karakter>
+PORT=3000
+ALLOWED_ORIGINS=http://localhost:4173
+TRUST_PROXY=false
+# opsional, bila yt-dlp/ffmpeg terpasang di PC:
+# YTDLP_PATH=C:\path\yt-dlp.exe
+# FFMPEG_PATH=C:\path\ffmpeg.exe
+```
+
+Tiga proses/perintah (terminal terpisah):
+
+```powershell
+npm run build
+node e2e/static-server.mjs out/app 4173    # PWA
+node out/server/app.js                      # API di port 3000
+adb reverse tcp:4173 tcp:4173
+adb reverse tcp:3000 tcp:3000
+```
+
+Di PWA (HP) buka `http://localhost:4173/`, Setelan -> **URL server `http://localhost:3000`** (tanpa `/musik-api`), isi token yang sama, Tes koneksi. Port 4173 adalah PWA, bukan API.

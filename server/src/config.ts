@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 export interface Config {
@@ -64,4 +65,38 @@ export function configProblems(config: Config): string[] {
     );
   }
   return problems;
+}
+
+/**
+ * Minimal .env reader for local runs (KEY=VALUE per line, # comments, optional quotes).
+ * Never overrides variables that are already set, so cPanel / shell values always win.
+ * Returns the names that were loaded.
+ */
+export function loadDotEnv(file: string, env: NodeJS.ProcessEnv = process.env): string[] {
+  let text: string;
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch {
+    return [];
+  }
+  const loaded: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || value === '' || env[key] !== undefined) continue;
+    env[key] = value;
+    loaded.push(key);
+  }
+  return loaded;
 }

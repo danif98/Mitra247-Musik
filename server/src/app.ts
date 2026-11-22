@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import http from 'node:http';
+import path from 'node:path';
 import { hasValidBearer } from './auth';
 import { readBuildInfo, type BuildInfo } from './build-info';
-import { configProblems, loadConfig, type Config } from './config';
+import { configProblems, loadConfig, loadDotEnv, type Config } from './config';
 import { JOB_ID, JobManager, type Job } from './jobs';
 import { AuthLockout, SlidingWindowLimiter, type Clock } from './limits';
 import { LINK_TTL_MS, signLink, verifyLink } from './signing';
@@ -378,6 +379,9 @@ export function createApp(
 }
 
 function main(): void {
+  // Local runs: read ./.env if present (existing environment variables win; none on cPanel).
+  const loaded = loadDotEnv(path.join(process.cwd(), '.env'));
+  if (loaded.length) console.log(`[musik] loaded from .env: ${loaded.join(', ')}`);
   const config = loadConfig();
   for (const p of configProblems(config)) console.warn(`[musik] WARNING: ${p}`);
   const { server } = createApp(config);
