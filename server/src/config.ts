@@ -7,6 +7,24 @@ export interface Config {
   ytdlpPath: string | undefined;
   ffmpegPath: string | undefined;
   dataDir: string;
+  /** Origins allowed by CORS (PWA origin, chrome-extension://<id>). Empty = no cross-origin access. */
+  allowedOrigins: string[];
+  /** Take the client IP from the last X-Forwarded-For entry (set by the cPanel proxy). */
+  trustProxy: boolean;
+  /** Concurrent conversions (1-2). */
+  maxActive: number;
+  /** Jobs allowed to wait behind the active ones. */
+  maxQueue: number;
+  maxDurationSec: number;
+  retentionMs: number;
+  jobTimeoutMs: number;
+  /** Value for yt-dlp --js-runtimes, e.g. "node:/home/user/nodevenv/.../bin/node". */
+  jsRuntime: string | undefined;
+}
+
+function intIn(value: string | undefined, fallback: number, min: number, max: number): number {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= min && n <= max ? n : fallback;
 }
 
 /** Minimum token length (the PRD asks for >= 32 random bytes; hex/base64 of that is >= 43 chars). */
@@ -21,6 +39,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ytdlpPath: env['YTDLP_PATH']?.trim() || undefined,
     ffmpegPath: env['FFMPEG_PATH']?.trim() || undefined,
     dataDir: path.resolve(env['DATA_DIR']?.trim() || path.join(process.cwd(), 'data')),
+    allowedOrigins: (env['ALLOWED_ORIGINS'] ?? '')
+      .split(',')
+      .map((o) => o.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+    trustProxy: (env['TRUST_PROXY'] ?? 'true').toLowerCase() !== 'false',
+    maxActive: intIn(env['MAX_ACTIVE'], 1, 1, 2),
+    maxQueue: intIn(env['MAX_QUEUE'], 3, 0, 10),
+    maxDurationSec: intIn(env['MAX_DURATION_SEC'], 20 * 60, 30, 3 * 3600),
+    retentionMs: intIn(env['RETENTION_MINUTES'], 60, 1, 24 * 60) * 60_000,
+    jobTimeoutMs: intIn(env['JOB_TIMEOUT_SEC'], 300, 10, 1800) * 1000,
+    jsRuntime: env['YTDLP_JS_RUNTIME']?.trim() || undefined,
   };
 }
 
