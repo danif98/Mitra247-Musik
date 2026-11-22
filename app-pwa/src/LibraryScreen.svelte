@@ -2,6 +2,7 @@
   import { id } from '@musik/ui';
   import { formatBytes, formatDuration, isSupportedAudio, matchesQuery } from '@musik/core';
   import type { SongMeta } from '@musik/core';
+  import Icon from '@musik/ui/components/Icon.svelte';
   import type { Player } from './player.svelte';
 
   interface Props {
@@ -32,6 +33,18 @@
     const { added, rejected } = await player.addFiles(files);
     busy = false;
     message = `${added} ${t.added}${skipped + rejected ? `, ${skipped + rejected} ${t.unsupported.toLowerCase()}` : ''}`;
+  }
+
+  async function onOpenPlay(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const files = Array.from(input.files ?? []).filter(isSupportedAudio);
+    input.value = '';
+    if (files.length === 0) {
+      message = t.unsupported;
+      return;
+    }
+    await player.playFiles(files);
+    onplay();
   }
 
   async function open(song: SongMeta) {
@@ -65,6 +78,17 @@
           multiple
           onchange={onFiles}
           disabled={busy}
+        />
+      </label>
+      <label class="btn file">
+        <Icon name="folder" size={20} />
+        {t.openPlay}
+        <input
+          type="file"
+          id="open-play"
+          accept="audio/*,.flac,.m4a,.opus"
+          multiple
+          onchange={onOpenPlay}
         />
       </label>
     </div>
@@ -130,7 +154,12 @@
   .error {
     color: var(--bad);
   }
+  .bar {
+    display: grid;
+    gap: 8px;
+  }
   .file {
+    gap: 8px;
     position: relative;
     display: flex;
     align-items: center;

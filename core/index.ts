@@ -7,3 +7,4 @@ export * from './library/meta';
 export * from './library/peaks';
 export * from './library/store';
 export * from './api/client';
+export * from './library/queue';

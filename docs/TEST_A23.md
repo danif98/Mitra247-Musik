@@ -183,3 +183,28 @@ Prasyarat: server sudah berjalan (lihat `DEPLOY.md` dan `TEST_SERVER.md` bagian 
 | Pesan galat (playlist, non-YouTube, privat, > 20 mnt) |       |         |
 | Offline: pesan jaringan                               |       |         |
 | Lagu tetap ada setelah berkas server kedaluwarsa      |       |         |
+
+---
+
+# Uji manual M3-A di HP (layar Putar ringkas, antrean, Buka & putar)
+
+Pakai build terbaru (cek baris Build di Setelan; hapus data situs bila build lama masih termuat).
+
+1. **Tampilan**: tab Putar hanya berisi judul, waveform, transport ikon, TEMPO/KUNCI dengan ikon reset, chip tempo, speaker, ikon Minus One, ikon info. Semua tombol mudah ditekan dengan ibu jari? Catat bila ada yang terlalu kecil atau terlalu rapat.
+2. **Transport**: ±5 detik, prev, stop, play/pause, next. Stop kembali ke 0:00. Prev setelah > 3 detik mengulang lagu; di awal pindah ke lagu sebelumnya. Lagu selesai -> lanjut otomatis; lagu terakhir berhenti.
+3. **Reset**: ubah tempo dan kunci, tekan ikon reset di masing-masing. Ikon redup saat sudah bawaan.
+4. **Minus One**: ketuk ikon mikrofon (berubah coret dan berwarna saat aktif). Ketuk ikon info: keterangan muncul.
+5. **Buka & putar**: Library -> "Buka & putar (tanpa simpan)" -> pilih 1-3 berkas dari penyimpanan HP (coba MP3 dan M4A, juga yang besar). Lagu langsung diputar; tidak muncul di daftar Library; ada "Belum disimpan" + "Simpan ke Library". Tutup aplikasi lalu buka lagi: lagu sementara hilang (benar), Library tidak berubah.
+6. **Simpan ke Library** dari lagu sementara: lagu muncul di Library.
+7. **Layar kunci / notifikasi**: tombol prev, play/pause, next, geser berfungsi.
+
+| Pemeriksaan                                 | Hasil | Catatan |
+| ------------------------------------------- | ----- | ------- |
+| Ukuran dan jarak tombol nyaman              |       |         |
+| Stop / prev / next / lanjut otomatis        |       |         |
+| Ikon reset tempo dan kunci                  |       |         |
+| Ikon Minus One + info                       |       |         |
+| Buka & putar: MP3 / M4A / berkas besar      |       |         |
+| Tidak masuk Library, hilang setelah ditutup |       |         |
+| Simpan ke Library dari lagu sementara       |       |         |
+| Kontrol layar kunci prev/next               |       |         |

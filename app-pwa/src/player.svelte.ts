@@ -3,8 +3,13 @@ import {
   LibraryStore,
   MusikAudioEngine,
   clampSemitone,
+  analyzeAudio,
   clampTempo,
+  isSupportedAudio,
+  nextIndex,
+  previousAction,
   sortSongs,
+  titleFromFileName,
   storageSupported,
   type RubberBandEngine,
   type SongMeta,
@@ -31,6 +36,9 @@ export class Player {
 
   songs = $state<SongMeta[]>([]);
   current = $state<SongMeta | null>(null);
+  /** Playback queue (library order, or the files picked with "Buka & putar") and the current index. */
+  queue = $state<SongMeta[]>([]);
+  queueIndex = $state(-1);
   playing = $state(false);
   position = $state(0);
   duration = $state(0);
@@ -43,6 +51,20 @@ export class Player {
   error = $state('');
   storageOk = $state(storageSupported());
   private currentUrl = '';
+  /** Files opened without saving them to the library (id "tmp:<n>"). */
+  // Intentionally not reactive: only looked up by id, never rendered.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  private readonly tempFiles = new Map<string, File>();
+  private tempCounter = 0;
+
+  get hasNext(): boolean {
+    return nextIndex(this.queue.length, this.queueIndex) !== null;
+  }
+
+  /** True when the current track is a picked file that is not stored in the library. */
+  get currentIsTemp(): boolean {
+    return !!this.current && this.current.id.startsWith('tmp:');
+  }
 
   constructor() {
     this.audio.preload = 'auto';
@@ -55,7 +77,7 @@ export class Player {
     });
     this.audio.addEventListener('play', () => (this.playing = true));
     this.audio.addEventListener('pause', () => (this.playing = false));
-    this.audio.addEventListener('ended', () => (this.playing = false));
+    this.audio.addEventListener('ended', () => void this.onEnded());
     this.audio.addEventListener('error', () => (this.error = id.player.loadError));
     for (const name of [
       'play',
@@ -135,9 +157,102 @@ export class Player {
     return { added, rejected };
   }
 
+  /** Play a library song; the queue becomes the library list in its current order. */
   async select(song: SongMeta, autoplay = true): Promise<void> {
+    this.queue = [...this.songs];
+    const at = this.queue.findIndex((s) => s.id === song.id);
+    if (at < 0) this.queue = [song];
+    this.queueIndex = at < 0 ? 0 : at;
+    await this.load(song, autoplay);
+  }
+
+  /**
+   * Play files straight from the device (system file picker) without copying them into the
+   * library. The picked files become the queue; they are gone after the app is closed.
+   */
+  async playFiles(files: File[]): Promise<number> {
+    const picked = files.filter(isSupportedAudio);
+    if (picked.length === 0) return 0;
+    this.tempFiles.clear();
+    const items = picked.map((file): SongMeta => {
+      const tmpId = `tmp:${++this.tempCounter}`;
+      this.tempFiles.set(tmpId, file);
+      return {
+        id: tmpId,
+        title: titleFromFileName(file.name),
+        fileName: file.name,
+        size: file.size,
+        duration: 0,
+        addedAt: Date.now(),
+        source: 'local',
+        mime: file.type || 'audio/mpeg',
+        peaks: new Float32Array(0),
+      };
+    });
+    this.queue = items;
+    this.queueIndex = 0;
+    this.log.event('files:open', { count: items.length });
+    await this.load(items[0]!, true);
+    return items.length;
+  }
+
+  /** Store the current temporary track in the library; it then behaves like any library song. */
+  async saveCurrent(): Promise<SongMeta | null> {
+    const cur = this.current;
+    const file = cur ? this.tempFiles.get(cur.id) : undefined;
+    if (!cur || !file) return null;
+    try {
+      const saved = await this.store.add(file);
+      this.tempFiles.delete(cur.id);
+      await this.refresh();
+      this.replaceItem(cur.id, saved);
+      this.log.event('files:saved', { title: saved.title });
+      return saved;
+    } catch {
+      this.error = id.library.storageError;
+      return null;
+    }
+  }
+
+  async next(): Promise<void> {
+    const ni = nextIndex(this.queue.length, this.queueIndex);
+    if (ni === null) return;
+    this.queueIndex = ni;
+    await this.load(this.queue[ni]!, true);
+  }
+
+  async prev(): Promise<void> {
+    const action = previousAction(this.queueIndex, this.audio.currentTime);
+    if (action.kind === 'restart') {
+      this.seek(0);
+      return;
+    }
+    this.queueIndex = action.index;
+    await this.load(this.queue[action.index]!, true);
+  }
+
+  /** Stop = pause and return to the start. */
+  stop(): void {
+    this.audio.pause();
+    this.seek(0);
+  }
+
+  private async onEnded(): Promise<void> {
+    if (this.hasNext) await this.next();
+    else this.playing = false;
+  }
+
+  private async load(song: SongMeta, autoplay: boolean): Promise<void> {
     this.error = '';
-    const file = await this.store.getFile(song.id);
+    let file: File | undefined = this.tempFiles.get(song.id);
+    if (!file) {
+      try {
+        file = await this.store.getFile(song.id);
+      } catch {
+        this.error = id.player.loadError;
+        return;
+      }
+    }
     if (this.currentUrl) URL.revokeObjectURL(this.currentUrl);
     this.currentUrl = URL.createObjectURL(file);
     this.audio.src = this.currentUrl;
@@ -151,7 +266,23 @@ export class Player {
         artist: id.appName,
       });
     }
+    if (song.id.startsWith('tmp:') && song.peaks.length === 0) void this.analyzeTemp(song, file);
     if (autoplay) await this.play();
+  }
+
+  /** Waveform and duration for a picked file are computed after playback has started. */
+  private async analyzeTemp(song: SongMeta, file: File): Promise<void> {
+    const { peaks, duration } = await analyzeAudio(file);
+    this.replaceItem(song.id, { ...song, peaks, duration: duration || song.duration });
+  }
+
+  /** Swap a queue item (and `current` when it is that item) for an updated/saved version. */
+  private replaceItem(oldId: string, item: SongMeta): void {
+    this.queue = this.queue.map((q) => (q.id === oldId ? item : q));
+    if (this.current?.id === oldId) {
+      this.current = item;
+      if (item.duration > 0 && !Number.isFinite(this.audio.duration)) this.duration = item.duration;
+    }
   }
 
   async play(): Promise<void> {
@@ -174,6 +305,7 @@ export class Player {
   }
 
   seek(seconds: number): void {
+    if (!Number.isFinite(seconds)) return;
     const max = Number.isFinite(this.audio.duration) ? this.audio.duration : this.duration;
     this.audio.currentTime = Math.min(Math.max(0, seconds), max || 0);
     this.position = this.audio.currentTime;
@@ -232,6 +364,8 @@ export class Player {
       this.position = 0;
       this.duration = 0;
     }
+    this.queue = this.queue.filter((q) => q.id !== song.id);
+    this.queueIndex = this.current ? this.queue.findIndex((q) => q.id === this.current!.id) : -1;
     await this.store.remove(song.id);
     await this.refresh();
   }
@@ -240,6 +374,9 @@ export class Player {
     this.audio.pause();
     this.audio.removeAttribute('src');
     this.current = null;
+    this.queue = [];
+    this.queueIndex = -1;
+    this.tempFiles.clear();
     await this.store.clear();
     this.songs = [];
     try {
@@ -299,6 +436,9 @@ export class Player {
     const ms = navigator.mediaSession;
     ms.setActionHandler('play', () => void this.play());
     ms.setActionHandler('pause', () => this.pause());
+    ms.setActionHandler('previoustrack', () => void this.prev());
+    ms.setActionHandler('nexttrack', () => void this.next());
+    ms.setActionHandler('stop', () => this.stop());
     ms.setActionHandler('seekbackward', () => this.skip(-5));
     ms.setActionHandler('seekforward', () => this.skip(5));
     ms.setActionHandler('seekto', (d) => {

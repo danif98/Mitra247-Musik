@@ -196,6 +196,95 @@ try {
   const chip = await page.evaluate(() => window.__musik.player.tempo);
   check('tempo preset chip 0.75x', Math.abs(chip - 0.75) < 1e-6, String(chip));
 
+  // 6a. Reset icons (no text buttons)
+  await page.click('button[aria-label="TEMPO: Reset"]');
+  await page.click('button[aria-label="KUNCI: Reset"]');
+  await page.waitForTimeout(300);
+  const reset = await page.evaluate(() => ({
+    t: window.__musik.player.tempo,
+    k: window.__musik.player.semitone,
+  }));
+  check(
+    'reset icons restore tempo 1.00x and key 0',
+    reset.t === 1 && reset.k === 0,
+    JSON.stringify(reset),
+  );
+  check(
+    'reset icons disabled at default values',
+    (await page.isDisabled('button[aria-label="TEMPO: Reset"]')) === true,
+  );
+  check(
+    'no "Tahan untuk reset" text left',
+    !(await page.textContent('body')).includes('Tahan untuk reset'),
+  );
+
+  // 6b. Info popover for minus one
+  await page.click('#mo-info');
+  check(
+    'minus one info shows the "results vary" note',
+    /Hasil bervariasi/.test((await page.textContent('#mo-note')) ?? ''),
+  );
+  await page.click('#mo-info');
+
+  // 6c. Queue: stop, previous, next, auto-advance
+  const title = () => page.textContent('#song-title');
+  check('next is disabled on the last track', await page.isDisabled('#next'));
+  await page.click('#stop');
+  await page.waitForFunction(
+    () => !window.__musik.player.playing && window.__musik.player.position < 0.3,
+    null,
+    { timeout: 5000 },
+  );
+  check('stop pauses and returns to 0:00', true);
+  await page.click('#prev');
+  await page.waitForFunction(
+    () => document.getElementById('song-title')?.textContent === 'nada-220',
+    null,
+    { timeout: 8000 },
+  );
+  check('previous (near the start) goes to the previous track and plays', true);
+  check(
+    'queue position shown (1 / 2)',
+    ((await page.textContent('#queue-pos')) ?? '').trim() === '1 / 2',
+  );
+  await page.click('#next');
+  await page.waitForFunction(
+    () => document.getElementById('song-title')?.textContent === 'Lagu Uji Stereo',
+    null,
+    { timeout: 8000 },
+  );
+  check('next goes to the next track', true);
+  await page.evaluate(() => window.__musik.player.seek(5));
+  await page.waitForTimeout(300);
+  await page.click('#prev');
+  await page.waitForFunction(() => window.__musik.player.audio.currentTime < 1, null, {
+    timeout: 5000,
+  });
+  check('previous after 3 s restarts the current track', (await title()) === 'Lagu Uji Stereo');
+  await page.click('#prev');
+  await page.waitForFunction(
+    () => document.getElementById('song-title')?.textContent === 'nada-220',
+    null,
+    { timeout: 8000 },
+  );
+  await page.waitForFunction(() => Number.isFinite(window.__musik.player.audio.duration), null, {
+    timeout: 8000,
+  });
+  await page.evaluate(() => {
+    const p = window.__musik.player;
+    p.seek(p.audio.duration - 0.8);
+  });
+  await page.waitForFunction(
+    () => document.getElementById('song-title')?.textContent === 'Lagu Uji Stereo',
+    null,
+    { timeout: 10000 },
+  );
+  check('track end advances to the next track automatically', true);
+  await page.evaluate(() => {
+    window.__musik.player.audio.loop = true; // keep the tone going for the numeric checks below
+    window.__musik.player.seek(0);
+  });
+
   // 7. Numeric: pitch through the real app pipeline (tempo 1, +12 -> 880 Hz from the 440 vocal).
   const capture = async () => {
     const data = await page.evaluate(async () => {
@@ -228,7 +317,11 @@ try {
   const lOff = levels(off);
 
   // 8. Minus one: centred vocal drops, side instruments stay.
-  await page.click('#mo-on');
+  await page.click('#mo');
+  check(
+    'minus one toggle shows pressed state',
+    (await page.getAttribute('#mo', 'aria-pressed')) === 'true',
+  );
   await page.waitForTimeout(500);
   const on = await capture();
   const lOn = levels(on);
@@ -248,7 +341,7 @@ try {
     guitarChange > -9 && guitarChange < 3 && keysChange > -9 && keysChange < 3,
     `330: ${guitarChange.toFixed(1)} dB, 550: ${keysChange.toFixed(1)} dB`,
   );
-  await page.click('#mo-off');
+  await page.click('#mo');
   await page.waitForTimeout(500);
   const back = levels(await capture());
   check(
@@ -268,6 +361,65 @@ try {
     `880: ${db(f880).toFixed(1)} dBFS, 440: ${db(f440).toFixed(1)} dBFS`,
   );
   await page.evaluate(() => window.__musik.player.setSemitone(0));
+
+  // 8b. Open & play without saving
+  await page.click('#tab-library');
+  const libBefore = await page.evaluate(() => window.__musik.player.songs.length);
+  await page.setInputFiles('#open-play', [tonePath, songPath]);
+  await page.waitForSelector('#save-temp');
+  await page.waitForFunction(() => window.__musik.player.position > 0.5, null, { timeout: 15000 });
+  const opened = await page.evaluate(async () => {
+    const p = window.__musik.player;
+    const root = await navigator.storage.getDirectory();
+    const dir = await root.getDirectoryHandle('songs');
+    let files = 0;
+    for await (const _e of dir.keys()) files++;
+    return {
+      songs: p.songs.length,
+      queue: p.queue.length,
+      temp: p.currentIsTemp,
+      title: p.current.title,
+      opfs: files,
+    };
+  });
+  check(
+    'open & play: plays the picked file as a temporary queue',
+    opened.temp && opened.queue === 2 && opened.title === 'nada-220',
+    JSON.stringify(opened),
+  );
+  check(
+    'open & play: nothing is copied to the library or OPFS',
+    opened.songs === libBefore && opened.opfs === libBefore,
+    JSON.stringify(opened),
+  );
+  await page.waitForFunction(() => window.__musik.player.current.peaks.length === 600, null, {
+    timeout: 15000,
+  });
+  check('open & play: waveform is computed after playback starts', true);
+  await page.click('#next');
+  await page.waitForFunction(
+    () => document.getElementById('song-title')?.textContent === 'Lagu Uji Stereo',
+  );
+  await page.click('#save-temp');
+  await page.waitForFunction((n) => window.__musik.player.songs.length === n + 1, libBefore, {
+    timeout: 15000,
+  });
+  check(
+    'temporary track can be saved to the library',
+    (await page.locator('#save-temp').count()) === 0,
+  );
+  await page.evaluate(async () => {
+    const p = window.__musik.player;
+    const extra =
+      p.songs.find(
+        (s) => s.title === 'Lagu Uji Stereo' && s.id !== p.songs[p.songs.length - 1]?.id,
+      ) ?? null;
+    const saved = p.current;
+    void extra;
+    await p.remove(saved);
+  });
+  await page.waitForFunction((n) => window.__musik.player.songs.length === n, libBefore);
+  check('library back to its previous size after removing the saved copy', true);
 
   // 9. Rename + delete.
   await page.click('#tab-library');
