@@ -118,6 +118,11 @@ export class MusikAudioEngine {
     this.context.addEventListener('statechange', () =>
       this.events.stateChange?.(this.context.state),
     );
+    if (!this.context.audioWorklet) {
+      throw new Error(
+        'AudioWorklet unavailable: page is not a secure context (use HTTPS or http://localhost via adb reverse).',
+      );
+    }
     await this.context.audioWorklet.addModule(assets.workletUrl);
     const wasm = await (await fetch(assets.wasmUrl)).arrayBuffer();
 
