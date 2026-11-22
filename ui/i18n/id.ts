@@ -59,6 +59,10 @@ export const id = {
     requestPersist: 'Minta perlindungan',
     clearData: 'Hapus semua data lokal',
     clearConfirm: 'Hapus semua lagu dan setelan dari perangkat ini?',
+    diag: 'Diagnostik',
+    diagHint:
+      'Catat underrun, status audio, layar mati dan perubahan tempo/kunci. Unduh dan kirim bila ada masalah.',
+    downloadLog: 'Unduh log diagnostik (JSON)',
     about: 'Tentang',
     lab: 'Buka halaman lab audio',
     build: 'Build',

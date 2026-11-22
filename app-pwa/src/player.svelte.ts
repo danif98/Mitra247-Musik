@@ -11,6 +11,7 @@ import {
 } from '@musik/core';
 import { engineAssets } from '@musik/core/audio/assets';
 import { id } from '@musik/ui';
+import { DiagLog } from '../lab/diag-log';
 
 const ENGINE_KEY = 'musik.engine';
 
@@ -26,6 +27,7 @@ export class Player {
   readonly store = new LibraryStore();
   readonly audio = new Audio();
   engine: MusikAudioEngine | null = null;
+  readonly log = new DiagLog();
 
   songs = $state<SongMeta[]>([]);
   current = $state<SongMeta | null>(null);
@@ -55,6 +57,23 @@ export class Player {
     this.audio.addEventListener('pause', () => (this.playing = false));
     this.audio.addEventListener('ended', () => (this.playing = false));
     this.audio.addEventListener('error', () => (this.error = id.player.loadError));
+    for (const name of [
+      'play',
+      'pause',
+      'waiting',
+      'stalled',
+      'ended',
+      'seeked',
+      'error',
+    ] as const) {
+      this.audio.addEventListener(name, () =>
+        this.log.event(`media:${name}`, { time: this.audio.currentTime }),
+      );
+    }
+    document.addEventListener('visibilitychange', () =>
+      this.log.event('visibilitychange', document.visibilityState),
+    );
+    window.addEventListener('error', (e) => this.log.event('window:error', e.message));
     this.setupMediaSession();
   }
 
@@ -69,14 +88,21 @@ export class Player {
         engine: this.engineKind,
       });
       try {
+        this.engine.events.stateChange = (st) => this.log.event('audiocontext:state', st);
+        this.engine.events.ready = (r) => this.log.event('worklet:ready', r);
+        this.engine.events.error = (m) => this.log.event('worklet:error', m);
         await this.engine.init();
         this.engineState = 'ready';
+        this.log.event('engine:init', { state: this.engine.context.state });
       } catch (err) {
         this.engineState = 'error';
         this.error = `${id.player.engineError}: ${err instanceof Error ? err.message : String(err)}`;
+        this.log.event('engine:error', this.error);
       }
     }
     await this.refresh();
+    this.log.event('library:loaded', { songs: this.songs.length });
+    setInterval(() => this.sampleLog(), 1000);
     try {
       await navigator.storage?.persist?.();
     } catch {
@@ -105,6 +131,7 @@ export class Player {
       }
     }
     await this.refresh();
+    this.log.event('library:add', { added, rejected });
     return { added, rejected };
   }
 
@@ -115,6 +142,7 @@ export class Player {
     this.currentUrl = URL.createObjectURL(file);
     this.audio.src = this.currentUrl;
     this.current = song;
+    this.log.event('song', { title: song.title, size: song.size, duration: song.duration });
     this.position = 0;
     this.duration = song.duration;
     if ('mediaSession' in navigator) {
@@ -158,16 +186,19 @@ export class Player {
   setTempo(v: number): void {
     this.tempo = clampTempo(v);
     this.engine?.setTempo(this.tempo);
+    this.log.event('tempo', this.tempo);
   }
 
   setSemitone(v: number): void {
     this.semitone = clampSemitone(v);
     this.engine?.setSemitone(this.semitone);
+    this.log.event('semitone', this.semitone);
   }
 
   setMinusOne(on: boolean): void {
     this.minusOne = on;
     this.engine?.setMinusOne(on);
+    this.log.event('minusOne', on);
   }
 
   setVolume(v: number): void {
@@ -184,6 +215,7 @@ export class Player {
       /* ignore */
     }
     this.engine?.setEngine(kind);
+    this.log.event('engine', kind);
   }
 
   async rename(song: SongMeta, title: string): Promise<void> {
@@ -215,6 +247,51 @@ export class Player {
     } catch {
       /* ignore */
     }
+  }
+
+  private sampleLog(): void {
+    if (!this.engine?.context) return;
+    this.log.sample({
+      ...this.engine.snapshot(),
+      visibility: document.visibilityState,
+      mediaTime: this.audio.currentTime,
+      paused: this.audio.paused,
+      song: this.current?.title ?? null,
+      minusOne: this.minusOne,
+    });
+  }
+
+  /** Download the diagnostic log (same JSON format as the lab page) plus library/storage facts. */
+  async downloadLog(): Promise<void> {
+    let storage: Record<string, unknown> = {};
+    try {
+      const est = await navigator.storage?.estimate?.();
+      storage = {
+        usage: est?.usage ?? null,
+        quota: est?.quota ?? null,
+        persisted: (await navigator.storage?.persisted?.()) ?? null,
+      };
+    } catch {
+      /* ignore */
+    }
+    this.log.download({
+      app: 'musik-app-m1',
+      build: __BUILD__,
+      settings: {
+        tempo: this.tempo,
+        semitone: this.semitone,
+        minusOne: this.minusOne,
+        engine: this.engineKind,
+        path: 'A',
+      },
+      library: this.songs.map((s) => ({
+        title: s.title,
+        size: s.size,
+        duration: s.duration,
+        peaks: s.peaks.length,
+      })),
+      storage,
+    });
   }
 
   private setupMediaSession(): void {

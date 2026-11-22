@@ -1,7 +1,7 @@
 // E2E for the M1 PWA (library, player, minus one, persistence, offline) in Chromium via Playwright.
 // Requires `npm run build`. Usage: node e2e/app.mjs
 import { chromium } from 'playwright-core';
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startStaticServer } from './static-server.mjs';
@@ -302,6 +302,22 @@ try {
     JSON.stringify(eng),
   );
   await page.click('#set-r2');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#download-log')]);
+  const logFile = path.join(artifacts, 'app-log.json');
+  await dl.saveAs(logFile);
+  const logJson = JSON.parse(readFileSync(logFile, 'utf8'));
+  const kinds = new Set(logJson.events.map((e) => e.kind));
+  check(
+    'settings: diagnostic log downloads (events, samples, library, storage)',
+    logJson.app === 'musik-app-m1' &&
+      logJson.samples.length > 0 &&
+      kinds.has('song') &&
+      kinds.has('minusOne') &&
+      kinds.has('semitone') &&
+      Array.isArray(logJson.library) &&
+      logJson.storage.quota > 0,
+    `events=${logJson.events.length} samples=${logJson.samples.length}`,
+  );
   const usage = await page.textContent('#usage');
   check('settings: storage usage shown', /\d/.test(usage ?? ''), usage ?? '');
   await page.screenshot({ path: path.join(artifacts, 'app-settings.png'), fullPage: true });

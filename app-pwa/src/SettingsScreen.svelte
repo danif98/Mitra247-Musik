@@ -69,6 +69,14 @@
   </div>
 
   <div class="panel">
+    <h3>{t.diag}</h3>
+    <p class="muted">{t.diagHint}</p>
+    <button type="button" class="primary" id="download-log" onclick={() => player.downloadLog()}
+      >{t.downloadLog}</button
+    >
+  </div>
+
+  <div class="panel">
     <h3>{t.about}</h3>
     <p class="muted">{t.build}: {__BUILD__}</p>
     <a class="btn" href="./lab/">{t.lab}</a>
