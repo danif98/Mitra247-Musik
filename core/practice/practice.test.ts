@@ -60,8 +60,17 @@ describe('preset', () => {
     expect(p.loopA).toBeNull();
     expect(p.loopB).toBeNull();
     expect(p.eq).toEqual([12, -12, 0, 1.5, 0]);
+    expect(p.mo).toEqual({ mode: 'basic', strength: 1, cutoff: 150, width: 0.5 });
     const ok = normalizePreset({ tempo: 0.8, semitone: -2.4, minusOne: true, loopA: 3, loopB: 9 });
     expect(ok).toMatchObject({ tempo: 0.8, semitone: -2, minusOne: true, loopA: 3, loopB: 9 });
+  });
+  it('stores and repairs the Minus One mode and manual controls; old presets get defaults', () => {
+    const p = normalizePreset({ mo: { mode: 'focus', strength: 0.7, cutoff: 5, width: 0.9 } });
+    expect(p.mo).toEqual({ mode: 'focus', strength: 0.7, cutoff: 80, width: 0.9 });
+    expect(normalizePreset({ tempo: 0.9 }).mo).toEqual(defaultPreset().mo);
+    expect(
+      isDefaultPreset({ ...defaultPreset(), mo: { ...defaultPreset().mo, mode: 'bass' } }),
+    ).toBe(false);
   });
   it('presetsEqual compares every field', () => {
     const a = defaultPreset();

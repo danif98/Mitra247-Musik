@@ -24,7 +24,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json && tsc -p server/tsconfig.json --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs",
+    "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs && node e2e/minusone.mjs",
     "check:pure-js": "node scripts/check-pure-js.mjs",
     "deploy:prepare": "node scripts/deploy-prepare.mjs",
     "vendor:zip": "node scripts/vendor-zip.mjs"

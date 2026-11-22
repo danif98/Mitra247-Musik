@@ -13,7 +13,7 @@ import {
   type PitchPath,
   type RubberBandEngine,
 } from './pitch-math';
-import { MinusOne } from './minus-one';
+import { MinusOne, type MinusOneParams } from './minus-one';
 import { Equalizer } from './eq';
 import { Metronome } from './metronome';
 
@@ -208,6 +208,11 @@ export class MusikAudioEngine {
 
   setMinusOne(enabled: boolean): void {
     this.minusOne.setEnabled(enabled);
+  }
+
+  /** Mode and manual controls of Minus One (see core/audio/minus-one.ts). */
+  setMinusOneParams(p: Partial<MinusOneParams>): void {
+    this.minusOne.apply(p);
   }
 
   /** Smoothly move to a new tempo (0.25..2.0). */

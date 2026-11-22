@@ -6,7 +6,10 @@ import {
   analyzeAudio,
   clampTempo,
   isSupportedAudio,
+  DEFAULT_MINUS_ONE,
   EQ_BANDS,
+  clampMinusOneParams,
+  type MinusOneParams,
   NO_LOOP,
   clampBpm,
   clampEqGain,
@@ -76,6 +79,7 @@ export class Player {
   tempo = $state(1);
   semitone = $state(0);
   minusOne = $state(false);
+  moParams = $state<MinusOneParams>({ ...DEFAULT_MINUS_ONE });
   volume = $state(1);
   loopA = $state<number | null>(null);
   loopB = $state<number | null>(null);
@@ -406,6 +410,14 @@ export class Player {
     this.schedulePresetSave();
   }
 
+  /** Minus One mode and manual controls (strength, bass cutoff, vocal band width). */
+  setMinusOneParams(patch: Partial<MinusOneParams>): void {
+    this.moParams = clampMinusOneParams({ ...this.moParams, ...patch });
+    this.engine?.setMinusOneParams(this.moParams);
+    this.log.event('minusOne:params', this.moParams);
+    this.schedulePresetSave();
+  }
+
   setMinusOne(on: boolean): void {
     this.minusOne = on;
     this.engine?.setMinusOne(on);
@@ -540,6 +552,7 @@ export class Player {
       loopA: this.loopA,
       loopB: this.loopB,
       eq: [...this.eq],
+      mo: { ...this.moParams },
     };
   }
 
@@ -590,6 +603,8 @@ export class Player {
       this.loopB = preset.loopB;
       this.eq = [...preset.eq];
       this.engine?.setEq(this.eq);
+      this.moParams = { ...preset.mo };
+      this.engine?.setMinusOneParams(this.moParams);
     } finally {
       this.applyingPreset = false;
     }

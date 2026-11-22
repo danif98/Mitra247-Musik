@@ -16,6 +16,12 @@
 
   let infoOpen = $state(false);
   let panel = $state<'eq' | 'metro' | null>(null);
+  const MODES = [
+    { key: 'basic', label: t.moBasic, hint: t.moHintBasic },
+    { key: 'bass', label: t.moBass, hint: t.moHintBass },
+    { key: 'focus', label: t.moFocus, hint: t.moHintFocus },
+  ] as const;
+  const hint = $derived(MODES.find((m) => m.key === player.moParams.mode)?.hint ?? '');
   const toggle = (name: 'eq' | 'metro') => (panel = panel === name ? null : name);
 
   async function onOpenFiles(e: Event) {
@@ -324,6 +330,73 @@
         <Icon name="info" size={20} />
       </button>
     </div>
+    {#if player.minusOne}
+      <section class="panel" id="mo-panel" aria-label={t.moModes}>
+        <div class="modes" role="group" aria-label={t.moModes}>
+          {#each MODES as m (m.key)}
+            <button
+              type="button"
+              id="mo-mode-{m.key}"
+              aria-pressed={player.moParams.mode === m.key}
+              onclick={() => player.setMinusOneParams({ mode: m.key })}>{m.label}</button
+            >
+          {/each}
+        </div>
+        <p class="muted" id="mo-hint">{hint}</p>
+        <label class="slider">
+          <span>{t.moStrength}</span>
+          <input
+            type="range"
+            id="mo-strength"
+            min="0"
+            max="100"
+            step="5"
+            value={Math.round(player.moParams.strength * 100)}
+            oninput={(e) =>
+              player.setMinusOneParams({
+                strength: Number((e.currentTarget as HTMLInputElement).value) / 100,
+              })}
+          />
+          <output>{Math.round(player.moParams.strength * 100)}%</output>
+        </label>
+        {#if player.moParams.mode === 'bass'}
+          <label class="slider">
+            <span>{t.moCutoff}</span>
+            <input
+              type="range"
+              id="mo-cutoff"
+              min="80"
+              max="300"
+              step="10"
+              value={player.moParams.cutoff}
+              oninput={(e) =>
+                player.setMinusOneParams({
+                  cutoff: Number((e.currentTarget as HTMLInputElement).value),
+                })}
+            />
+            <output>{player.moParams.cutoff} Hz</output>
+          </label>
+        {/if}
+        {#if player.moParams.mode === 'focus'}
+          <label class="slider">
+            <span>{t.moWidth}</span>
+            <input
+              type="range"
+              id="mo-width"
+              min="0"
+              max="100"
+              step="5"
+              value={Math.round(player.moParams.width * 100)}
+              oninput={(e) =>
+                player.setMinusOneParams({
+                  width: Number((e.currentTarget as HTMLInputElement).value) / 100,
+                })}
+            />
+            <output>{Math.round(player.moParams.width * 100)}%</output>
+          </label>
+        {/if}
+      </section>
+    {/if}
     {#if infoOpen}
       <p class="muted note" id="mo-note">{t.minusOneNotes}</p>
     {/if}
@@ -515,6 +588,24 @@
   .vol-icon {
     color: var(--muted);
     padding-left: 4px;
+  }
+  .modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .slider {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr 4rem;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .slider output {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
   }
   .note {
     background: var(--panel);

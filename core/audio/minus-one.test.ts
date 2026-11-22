@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { dominantFrequency, generateSine, rms } from './analysis';
-import { centerCancel } from './minus-one';
+import {
+  CUTOFF_MAX,
+  CUTOFF_MIN,
+  DEFAULT_MINUS_ONE,
+  centerCancel,
+  clampMinusOneParams,
+  focusBand,
+  paramsEqual,
+} from './minus-one';
 
 const SR = 44100;
 
@@ -33,5 +41,41 @@ describe('centerCancel (minus one, basic)', () => {
   it('turns a mono recording into silence', () => {
     const mono = generateSine(440, SR, 1);
     expect(rms(centerCancel(mono, mono))).toBe(0);
+  });
+});
+
+describe('minus one parameters', () => {
+  it('defaults to basic mode at full strength', () => {
+    expect(DEFAULT_MINUS_ONE).toEqual({ mode: 'basic', strength: 1, cutoff: 150, width: 0.5 });
+  });
+
+  it('clamps out-of-range values and repairs junk', () => {
+    expect(clampMinusOneParams(null)).toEqual(DEFAULT_MINUS_ONE);
+    expect(clampMinusOneParams({ strength: 5, cutoff: 10, width: -3 })).toMatchObject({
+      strength: 1,
+      cutoff: CUTOFF_MIN,
+      width: 0,
+    });
+    expect(clampMinusOneParams({ cutoff: 9999 }).cutoff).toBe(CUTOFF_MAX);
+    expect(clampMinusOneParams({ mode: 'nope' as never }).mode).toBe('basic');
+    expect(clampMinusOneParams({ mode: 'focus', strength: Number.NaN }).strength).toBe(1);
+    expect(clampMinusOneParams({ cutoff: 149.6 }).cutoff).toBe(150);
+  });
+
+  it('keeps valid values and compares parameter sets', () => {
+    const p = clampMinusOneParams({ mode: 'bass', strength: 0.4, cutoff: 200, width: 0.9 });
+    expect(p).toEqual({ mode: 'bass', strength: 0.4, cutoff: 200, width: 0.9 });
+    expect(paramsEqual(p, { ...p })).toBe(true);
+    expect(paramsEqual(p, { ...p, mode: 'focus' })).toBe(false);
+  });
+
+  it('vocal band widens with width and matches the PRD range around the default', () => {
+    expect(focusBand(0)).toEqual({ low: 600, high: 2000 });
+    expect(focusBand(1)).toEqual({ low: 200, high: 5000 });
+    const mid = focusBand(0.5);
+    expect(mid.low).toBeGreaterThanOrEqual(300);
+    expect(mid.low).toBeLessThanOrEqual(500);
+    expect(mid.high).toBeGreaterThanOrEqual(3400);
+    expect(focusBand(0.7).high - focusBand(0.7).low).toBeGreaterThan(mid.high - mid.low);
   });
 });

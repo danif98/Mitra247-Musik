@@ -8,7 +8,7 @@
   import YoutubeScreen from './YoutubeScreen.svelte';
   import { ServerSettings } from './server.svelte';
   import { YoutubeFlow } from './youtube.svelte';
-  import { extractYoutubeUrl } from '@musik/core';
+  import { Equalizer, MinusOne, extractYoutubeUrl } from '@musik/core';
 
   type Tab = 'play' | 'library' | 'youtube' | 'settings';
   const player = new Player();
@@ -19,7 +19,14 @@
   onMount(() => {
     // Test hook (Playwright): /?test
     if (new URLSearchParams(location.search).has('test')) {
-      (window as unknown as { __musik: unknown }).__musik = { player, server, flow };
+      (window as unknown as { __musik: unknown }).__musik = {
+        player,
+        server,
+        flow,
+        // classes exposed so e2e can render them offline and measure the DSP
+        MinusOne,
+        Equalizer,
+      };
     }
     // Share Target / extension: ?url=...&text=... carries a YouTube link.
     const params = new URLSearchParams(location.search);

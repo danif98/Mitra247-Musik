@@ -1,5 +1,11 @@
 /** Per-song practice preset (tempo, key, loop, minus one, EQ). Pure helpers, unit-tested. */
 import { clampSemitone, clampTempo } from '../audio/pitch-math';
+import {
+  DEFAULT_MINUS_ONE,
+  clampMinusOneParams,
+  paramsEqual,
+  type MinusOneParams,
+} from '../audio/minus-one';
 
 export const EQ_BANDS = 5;
 export const EQ_MAX_DB = 12;
@@ -12,6 +18,8 @@ export interface Preset {
   loopB: number | null;
   /** Gain in dB for each EQ band (length EQ_BANDS). */
   eq: number[];
+  /** Minus One mode and manual controls. */
+  mo: MinusOneParams;
 }
 
 export function defaultPreset(): Preset {
@@ -22,6 +30,7 @@ export function defaultPreset(): Preset {
     loopA: null,
     loopB: null,
     eq: new Array<number>(EQ_BANDS).fill(0),
+    mo: { ...DEFAULT_MINUS_ONE },
   };
 }
 
@@ -49,6 +58,9 @@ export function normalizePreset(raw: unknown): Preset {
     loopA: validLoop ? loopA : null,
     loopB: validLoop ? loopB : null,
     eq: d.eq.map((_, i) => Math.min(EQ_MAX_DB, Math.max(-EQ_MAX_DB, num(eqIn[i], 0)))),
+    mo: clampMinusOneParams(
+      typeof r['mo'] === 'object' && r['mo'] !== null ? (r['mo'] as Partial<MinusOneParams>) : null,
+    ),
   };
 }
 
@@ -60,7 +72,8 @@ export function isDefaultPreset(p: Preset): boolean {
     p.minusOne === d.minusOne &&
     p.loopA === null &&
     p.loopB === null &&
-    p.eq.every((g) => g === 0)
+    p.eq.every((g) => g === 0) &&
+    paramsEqual(p.mo, d.mo)
   );
 }
 
@@ -72,6 +85,7 @@ export function presetsEqual(a: Preset, b: Preset): boolean {
     a.loopA === b.loopA &&
     a.loopB === b.loopB &&
     a.eq.length === b.eq.length &&
-    a.eq.every((g, i) => g === b.eq[i])
+    a.eq.every((g, i) => g === b.eq[i]) &&
+    paramsEqual(a.mo, b.mo)
   );
 }

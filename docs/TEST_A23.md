@@ -233,3 +233,28 @@ Pakai build terbaru (cek baris Build di Setelan). Isi tabel di bagian bawah dan 
 | Preset: pulih setelah pindah lagu              |       |         |
 | Preset: pulih setelah Chrome ditutup           |       |         |
 | Beban/underrun dengan semua fitur aktif        |       |         |
+
+---
+
+# Uji manual M4 di HP (Minus One lanjutan)
+
+Pakai build terbaru (cek baris Build di Setelan). Siapkan 2-3 lagu stereo yang Anda kenal baik: satu dengan vokal jelas di tengah, satu dengan bass/kick kuat, satu dengan vokal di-double atau banyak reverb. Ketuk ikon mikrofon untuk menyalakan Minus One; panel mode muncul di bawah.
+
+1. **Dasar**: vokal berkurang berapa (0-5)? Bass/kick ikut hilang (seharusnya ya)?
+2. **Jaga bass**: bass/kick tetap terdengar? Geser **Batas bass** 80 -> 300 Hz: bagian bawah yang tetap terdengar berubah? Vokal berkurang seperti Dasar?
+3. **Fokus vokal**: stereo tetap terdengar lebar? Vokal berkurang berapa (0-5)? Instrumen di pita vokal (gitar, piano) terdengar tipis? Geser **Lebar pita vokal** dan **Kekuatan**: efeknya terdengar halus dan bisa dikontrol?
+4. Ganti mode saat lagu diputar: ada derak/klik? Geser slider cepat: ada derak?
+5. Simpan: atur mode dan slider pada lagu A, pindah ke lagu B dan kembali; tutup Chrome dan buka lagi: pengaturan lagu A pulih?
+6. Lagu mono: Dasar dan Jaga bass menjadi senyap atau sangat tipis (benar); Fokus vokal tetap terdengar.
+7. Beban: Minus One mode Fokus vokal + pergeseran nada aktif 3 menit, tanpa patah-patah? Unduh log (Setelan) dan lihat "Beban worklet" dan "Underrun".
+
+| Pemeriksaan                                           | Hasil | Catatan |
+| ----------------------------------------------------- | ----- | ------- |
+| Dasar: vokal berkurang (0-5) / bass hilang            |       |         |
+| Jaga bass: bass terjaga / pengaruh batas bass         |       |         |
+| Fokus vokal: stereo terjaga / vokal berkurang (0-5)   |       |         |
+| Instrumen di pita vokal terdengar tipis?              |       |         |
+| Derak saat ganti mode atau geser slider               |       |         |
+| Pengaturan pulih per lagu (pindah lagu, tutup Chrome) |       |         |
+| Lagu mono                                             |       |         |
+| Beban/underrun dengan Fokus vokal + pergeseran nada   |       |         |

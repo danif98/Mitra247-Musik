@@ -11,7 +11,8 @@ Cara pakai: buka Claude Code di folder proyek `D:\xampp\htdocs\musik`, lalu temp
 | M2 | Selesai di kode dan uji otomatis | `DECISIONS_M2.md`, `TEST_SERVER.md`; **belum diuji di server cPanel nyata dan HP** |
 | M3-A | Selesai di kode dan uji otomatis | `DECISIONS_M3A.md`: layar Putar ringkas, antrean prev/next, Buka & putar; **belum diuji di A23** |
 | M3-B | Selesai di kode dan uji otomatis | `DECISIONS_M3B.md`: loop A-B, EQ, metronom/count-in, preset per lagu; **belum diuji di A23** |
-| M4 | Belum | gunakan prompt di bawah, sudah disesuaikan |
+| M4 | Selesai di kode dan uji otomatis | `DECISIONS_M4.md`: Minus One Dasar/Jaga bass/Fokus vokal + kontrol manual; **belum didengar di A23** |
+| M5 | Belum (opsional: APK Capacitor, deteksi kunci, R3) | | gunakan prompt di bawah, sudah disesuaikan |
 
 **Tambahkan blok ini ke awal setiap prompt lanjutan** (pelajaran M0-M1 yang tidak ada di prompt asli):
 
