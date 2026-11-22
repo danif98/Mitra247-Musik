@@ -50,9 +50,15 @@ Tombol **Simpan sebagai MP3** di popup (muncul pada tab YouTube) tidak memanggil
 - Klien: 20 tes `ApiClient` dan fungsi bantu.
 - E2E (`node e2e/m2.mjs`, 27 cek): server terbangun asli + yt-dlp palsu, PWA di origin berbeda: pesan tanpa konfigurasi, tes koneksi (URL salah, token salah, token benar + versi), token tidak tampil penuh, konversi sukses masuk Library dengan durasi dan waveform lalu diputar, enam kasus galat, Share Target, pengaturan bertahan setelah muat ulang, galat saat offline, tanpa galat konsol.
 
-## 6. Belum teruji
+## 6. Hasil uji nyata pertama (2026-11-22)
 
-- yt-dlp dan ffmpeg **nyata** di server cPanel (konversi lagu penuh, runtime JS, dua konversi bersamaan di bawah proses Node cPanel, batas LVE): `TEST_SERVER.md`.
+Server dijalankan di PC Windows pengembang (`node out/server/app.js`, `.env`, yt-dlp 2026.10.26 dan ffmpeg dari winget, build `496ba33`), PWA di A23 lewat USB (`adb reverse` port 4173 dan 3000). **Konversi YouTube nyata berhasil**: URL `youtu.be`, semua langkah (mengantre, mengunduh, mengonversi, menyimpan) selesai, judul video asli tampil dan lagu masuk Library (bukti: tangkapan layar pengguna dan `/api/health` dengan `ytdlp: "2026.10.26"`).
+
+Catatan dari sesi ini: server awalnya melaporkan `ytdlp: null` walau `yt-dlp.exe --version` berfungsi di cmd; sebab pastinya tidak terekam (dugaan: isi `.env` belum tepat atau server lama). Untuk diagnosis berikutnya, `/api/health` kini memuat `ytdlpProblem` dan `ffmpegFound`. Server juga kini membaca `.env` untuk uji lokal.
+
+## 7. Belum teruji
+
+- yt-dlp dan ffmpeg **nyata di server cPanel**; konversi di PC Windows sudah terbukti (bagian 6) (konversi lagu penuh, runtime JS, dua konversi bersamaan di bawah proses Node cPanel, batas LVE): `TEST_SERVER.md`.
 - Alur lengkap di HP (Share Target dari aplikasi YouTube, install PWA, HTTPS ke server): bagian M2 di `TEST_A23.md`.
 - Header `X-Forwarded-For` dari proxy cPanel sebenarnya (apakah entri terakhir memang IP klien).
 - Popup ekstensi pada YouTube asli.
