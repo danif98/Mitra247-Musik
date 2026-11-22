@@ -3,6 +3,7 @@ export const id = {
   appName: 'Musik Tools',
   lab: {
     title: 'Lab Audio (M0)',
+    build: 'Build',
     intro: 'Halaman uji pipeline audio. Pilih berkas, putar, lalu ubah tempo dan nada.',
     pickFile: 'Pilih berkas audio',
     makeTone: 'Buat nada uji 440 Hz',

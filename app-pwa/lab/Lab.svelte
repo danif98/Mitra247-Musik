@@ -220,6 +220,7 @@
 
 <main>
   <h1>{t.title}</h1>
+  <p class="muted" id="build">{t.build}: {__BUILD__}</p>
   <p class="muted">{t.intro}</p>
   <p class={failed ? 'bad' : 'muted'} id="status" role="status">{status}</p>
 
@@ -320,7 +321,11 @@
         type="button"
         class="primary"
         id="download"
-        onclick={() => log.download({ settings: { tempo, semitone, path, engine: engineSel } })}
+        onclick={() =>
+          log.download({
+            build: __BUILD__,
+            settings: { tempo, semitone, path, engine: engineSel },
+          })}
       >
         {t.downloadLog}
       </button>

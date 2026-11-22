@@ -2,9 +2,21 @@ import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+/** Build label shown in the lab page so stale cached builds are easy to spot. */
+function buildLabel(): string {
+  const git = (args: string[]) => {
+    const r = spawnSync('git', args, { cwd: here, encoding: 'utf8', shell: false });
+    return r.status === 0 ? r.stdout.trim() : '';
+  };
+  const commit = git(['rev-parse', '--short', 'HEAD']) || 'nogit';
+  const dirty = git(['status', '--porcelain']) ? '-dirty' : '';
+  return `${commit}${dirty} ${new Date().toISOString().slice(0, 16).replace('T', ' ')}Z`;
+}
 
 /** vite-plugin-pwa injects a root-relative manifest href; fix it for pages in sub folders (lab/). */
 function fixManifestHref(): Plugin {
@@ -29,6 +41,7 @@ export default defineConfig({
   root: here,
   // Relative base: the PWA can be hosted under any path on the server.
   base: './',
+  define: { __BUILD__: JSON.stringify(buildLabel()) },
   plugins: [
     svelte(),
     VitePWA({

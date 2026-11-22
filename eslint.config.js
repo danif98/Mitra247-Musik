@@ -12,7 +12,7 @@ export default tseslint.config(
   prettier,
   ...svelte.configs['flat/prettier'],
   {
-    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+    languageOptions: { globals: { ...globals.browser, ...globals.node, __BUILD__: 'readonly' } },
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
