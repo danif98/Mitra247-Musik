@@ -13,6 +13,7 @@ import {
   type PitchPath,
   type RubberBandEngine,
 } from './pitch-math';
+import { MinusOne } from './minus-one';
 
 export interface EngineAssets {
   /** URL of the bundled AudioWorklet module. */
@@ -84,6 +85,7 @@ export class MusikAudioEngine {
   readonly events: EngineEvents = {};
   /** Last node of the graph; tests attach analysers here. */
   output!: GainNode;
+  minusOne!: MinusOne;
   context!: AudioContext;
   renderCapacity: RenderCapacitySample | null = null;
   workletReady: WorkletReady | null = null;
@@ -151,7 +153,9 @@ export class MusikAudioEngine {
     this.source = this.context.createMediaElementSource(this.media);
     this.output = this.context.createGain();
     this.source.connect(this.node);
-    this.node.connect(this.output);
+    this.minusOne = new MinusOne(this.context);
+    this.node.connect(this.minusOne.input);
+    this.minusOne.output.connect(this.output);
     this.output.connect(this.context.destination);
 
     this.applyNow();
@@ -165,6 +169,10 @@ export class MusikAudioEngine {
 
   setVolume(volume: number): void {
     this.output.gain.setTargetAtTime(clamp(volume, 0, 1), this.context.currentTime, 0.02);
+  }
+
+  setMinusOne(enabled: boolean): void {
+    this.minusOne.setEnabled(enabled);
   }
 
   /** Smoothly move to a new tempo (0.25..2.0). */
