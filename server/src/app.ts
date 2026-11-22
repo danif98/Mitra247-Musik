@@ -7,7 +7,7 @@ import { configProblems, loadConfig, loadDotEnv, type Config } from './config';
 import { JOB_ID, JobManager, type Job } from './jobs';
 import { AuthLockout, SlidingWindowLimiter, type Clock } from './limits';
 import { LINK_TTL_MS, signLink, verifyLink } from './signing';
-import { getYtdlpVersion } from './ytdlp';
+import { getYtdlpInfo } from './ytdlp';
 import { parseYoutubeUrl, type UrlRejection } from './youtube-url';
 
 export interface AppDeps {
@@ -194,7 +194,7 @@ export function createApp(
 
     // Public: health only.
     if (method === 'GET' && url.pathname === '/api/health') {
-      const ytdlp = await getYtdlpVersion(config.ytdlpPath);
+      const ytdlpInfo = await getYtdlpInfo(config.ytdlpPath);
       sendJson(
         res,
         200,
@@ -204,7 +204,9 @@ export function createApp(
           commit: build.commit,
           builtAt: build.builtAt,
           node: process.version,
-          ytdlp,
+          ytdlp: ytdlpInfo.version,
+          ytdlpProblem: ytdlpInfo.problem,
+          ffmpegFound: config.ffmpegPath ? fs.existsSync(config.ffmpegPath) : null,
           configured,
         },
         corsHeaders,

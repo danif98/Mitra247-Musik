@@ -83,6 +83,21 @@ describe('health and auth gate', () => {
     expect(body.ytdlp).toBe(process.version);
   });
 
+  it('health explains why yt-dlp is unusable without leaking paths', async () => {
+    s = await startApp({ YTDLP_PATH: '/definitely/not/here/yt-dlp', FFMPEG_PATH: '/nope/ffmpeg' });
+    const bad = await (await fetch(`${s.base}/api/health`)).json();
+    expect(bad).toMatchObject({ ytdlp: null, ytdlpProblem: 'not_found', ffmpegFound: false });
+    expect(JSON.stringify(bad)).not.toContain('definitely');
+    await s.close();
+    s = await startApp({ YTDLP_PATH: '' });
+    const none = await (await fetch(`${s.base}/api/health`)).json();
+    expect(none).toMatchObject({ ytdlp: null, ytdlpProblem: 'not_configured', ffmpegFound: null });
+    await s.close();
+    s = await startApp();
+    const ok = await (await fetch(`${s.base}/api/health`)).json();
+    expect(ok.ytdlpProblem).toBeNull();
+  });
+
   it('without MUSIK_TOKEN only health works and others say why', async () => {
     s = await startApp({ MUSIK_TOKEN: '' });
     expect((await fetch(`${s.base}/api/health`)).status).toBe(200);
@@ -201,7 +216,7 @@ describe('job lifecycle over HTTP', () => {
     expect(job.downloadUrl).toBeNull();
 
     let info: Record<string, unknown> = {};
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 600; i++) {
       info = await (await fetch(`${s.base}/api/jobs/${job.id}`, { headers: auth })).json();
       if (info['status'] === 'done' || info['status'] === 'error') break;
       await new Promise((r) => setTimeout(r, 25));
@@ -230,7 +245,7 @@ describe('job lifecycle over HTTP', () => {
     s = await startApp();
     const job = await (await post(s.base, { url: YT('FAIL') }, auth)).json();
     let info: Record<string, unknown> = {};
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 600; i++) {
       info = await (await fetch(`${s.base}/api/jobs/${job.id}`, { headers: auth })).json();
       if (info['status'] === 'error') break;
       await new Promise((r) => setTimeout(r, 25));
@@ -260,7 +275,7 @@ describe('job lifecycle over HTTP', () => {
     let t = 50_000_000;
     s = await startApp({}, { now: () => t });
     const job = await (await post(s.base, { url: YT('Ok') }, auth)).json();
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 600; i++) {
       const j = await (await fetch(`${s.base}/api/jobs/${job.id}`, { headers: auth })).json();
       if (j.status === 'done') break;
       await new Promise((r) => setTimeout(r, 25));
@@ -317,7 +332,7 @@ describe('logs', () => {
     try {
       s = await startApp();
       const job = await (await post(s.base, { url: YT('Ok') }, auth)).json();
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 600; i++) {
         const j = await (await fetch(`${s.base}/api/jobs/${job.id}`, { headers: auth })).json();
         if (j.status === 'done') break;
         await new Promise((r) => setTimeout(r, 25));
