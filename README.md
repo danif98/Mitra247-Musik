@@ -19,10 +19,12 @@ Source of truth: [`docs/PRD.md`](docs/PRD.md). License: GPL-3.0.
 
 ```
 npm install
-npm run dev            # lab at http://localhost:5173/lab/
+npm run dev            # app at http://localhost:5173/ , lab at /lab/
 npm run lint && npm run typecheck && npm test
 npm run build          # -> out/
-npm run test:e2e       # Playwright (Chromium) lab + numeric tests
+npm run test:e2e       # Playwright: lab + app (library, player, minus one)
+node e2e/ext.mjs       # extension e2e (needs Chromium from the Playwright cache)
+npm run build:ext      # unpacked extension -> ext-chrome/dist
 npm run deploy:prepare # -> ../musik-deploy (or MUSIK_DEPLOY_DIR)
 ```
 

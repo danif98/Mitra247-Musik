@@ -2,6 +2,27 @@
 
 Cara pakai: buka Claude Code di folder proyek `D:\xampp\htdocs\musik`, lalu tempel **seluruh isi blok di bawah** sebagai pesan pertama. Prompt ini mengerjakan **M0** saja. Setelah M0 disetujui, pakai prompt lanjutan di bagian akhir berkas ini.
 
+## Status dan pelajaran (diperbarui 2026-11-22)
+
+| Fase | Status | Catatan |
+|---|---|---|
+| M0 | Selesai | `DECISIONS_M0.md`; uji A23 jalan (0 underrun, layar mati 53 dtk lanjut, R2 ~46% beban worklet saat menggeser nada, ~1% saat bypass) |
+| M1 | Selesai di kode dan uji otomatis | `DECISIONS_M1.md`; **belum diuji di A23 dan di YouTube asli** |
+| M2-M4 | Belum | gunakan prompt di bawah, sudah disesuaikan |
+
+**Tambahkan blok ini ke awal setiap prompt lanjutan** (pelajaran M0-M1 yang tidak ada di prompt asli):
+
+````text
+KONTEKS TETAP (dari M0-M1)
+- Baca docs/DECISIONS_M0.md dan DECISIONS_M1.md dulu. Default audio: jalur A + R2 (R3 hanya pilihan di Setelan).
+- Perintah: npm run lint | typecheck | test | build | test:e2e (lab + app) ; node e2e/ext.mjs (ekstensi) ; npm run build:ext.
+- Uji di HP: audio butuh secure context. Pakai HTTPS atau Chrome flag unsafely-treat-insecure-origin-as-secure untuk http://IP:4173 (npm run preview -w app-pwa), atau adb reverse bila adb ada. Halaman lab dan Setelan menampilkan "Build: <commit> <waktu>"; minta pengguna memeriksanya dan menghapus data situs bila build lama masih termuat (service worker).
+- Playwright: aplikasi diuji dengan Chrome sistem; ekstensi harus Chromium dari cache Playwright (Chrome bermerk menonaktifkan --load-extension; path bisa diatur dengan CHROMIUM_EXE). Lingkungan pengembangan tidak punya akses internet ke YouTube: pakai stub/halaman lokal dan nyatakan jelas bagian yang hanya bisa diuji manual.
+- Ukur sebelum mengoptimalkan; tulis angka sebelum/sesudah. Analisis log A23 dengan skrip, jangan membaca JSON mentah.
+- Skrip deploy/vendor jangan dijalankan ke folder di luar proyek saat verifikasi: set MUSIK_DEPLOY_DIR ke folder di dalam proyek lalu hapus.
+- Commit kecil Conventional Commits dengan baris Co-Authored-By; jangan push.
+````
+
 ---
 
 ````text
@@ -105,7 +126,7 @@ Berhenti setelah laporan; jangan mulai M1.
 
 Pakai setelah fase sebelumnya disetujui. Tempel di sesi Claude Code yang sama (atau sesi baru; di sesi baru, minta ia membaca `docs/` dan `docs/DECISIONS_M0.md` dulu).
 
-### M1 — MVP
+### M1 — MVP (SELESAI; prompt di bawah untuk arsip, jangan dijalankan ulang)
 
 ````text
 Lanjutkan ke M1 sesuai docs/PRD.md (6.1–6.4 P0, 6.6 subset) dan docs/FRONTEND.md. Baca ulang docs/ dan hasil uji A23 yang kulampirkan di bawah; sesuaikan keputusan audio (jalur A/B, R2/R3) berdasarkan data itu dan catat di docs/DECISIONS_M1.md.
@@ -122,7 +143,9 @@ Bukti wajib: uji unit + e2e lulus; uji numerik DSP minus one pada sinyal sinteti
 ````text
 Lanjutkan ke M2 sesuai docs/PRD.md 6.7 dan 5.5. Baca ulang docs/.
 
-Server (Node, pure JS): POST /api/jobs {url}, GET /api/jobs/{id}, GET /api/files/{id}.mp3 (tautan bertoken berumur singkat), GET /api/health. Autentikasi Bearer dengan crypto.timingSafeEqual; penundaan/pemblokiran sementara per IP untuk token salah; batas laju per IP/token; validasi URL ketat (hanya youtube.com, youtu.be, music.youtube.com; tolak playlist/skema/host lain); maksimal 1–2 konversi aktif dengan antrian; batas durasi 20 menit; retensi 1 jam (pembersihan periodik dan saat start); CORS dibatasi ke origin PWA; spawn dengan array argumen: yt-dlp -f ba -x --audio-format mp3 --audio-quality 2 --ffmpeg-location <FFMPEG_PATH> dan --js-runtimes sesuai konfigurasi; path yt-dlp/ffmpeg dari env (server nyata: ~/ytvenv/bin/yt-dlp dan ~/bin/ffmpeg). Log tidak boleh memuat token. Sediakan simulasi yt-dlp (stub) agar tes otomatis tidak memanggil YouTube.
+Yang sudah ada dan harus dipakai ulang (jangan dibuat ulang): server/src (CommonJS, ditulis ke out/server, startup file server/app.js di repo deploy) dengan config.ts (env), auth.ts (safeEqual, hasValidBearer), app.ts (gerbang: health publik, lainnya 503 tanpa token / 401 salah token / 501 placeholder yang diganti di M2), ytdlp.ts (spawn array argumen), server.test.ts; scripts/build.mjs, deploy-prepare.mjs, vendor-zip.mjs, check-pure-js.mjs; LibraryStore.add(file, 'youtube'); layar Setelan (tambahkan URL server + token + tes koneksi di sana, token disimpan di localStorage); service worker sudah mengabaikan query string (siap untuk Share Target, tinggal menambah share_target di manifest vite.config.ts). Ekstensi: ID stabil, izin hanya activeTab + scripting; tombol "Simpan sebagai MP3" butuh izin akses ke URL server (gunakan optional_host_permissions + chrome.permissions.request dari klik pengguna, jangan host_permissions luas). CORS server dibatasi ke origin PWA dan ke chrome-extension://<id ekstensi>.
+
+Server (Node, pure JS): POST /api/jobs {url}, GET /api/jobs/{id}, GET /api/files/{id}.mp3 (tautan bertoken berumur singkat), GET /api/health. Autentikasi Bearer dengan crypto.timingSafeEqual; penundaan/pemblokiran sementara per IP untuk token salah; batas laju per IP/token; validasi URL ketat (hanya youtube.com, youtu.be, music.youtube.com; tolak playlist/skema/host lain); maksimal 1–2 konversi aktif dengan antrian; batas durasi 20 menit; retensi 1 jam (pembersihan periodik dan saat start); CORS dibatasi ke origin PWA; spawn dengan array argumen: yt-dlp -f ba -x --audio-format mp3 --audio-quality 2 --ffmpeg-location <FFMPEG_PATH> dan --js-runtimes sesuai konfigurasi; path yt-dlp/ffmpeg dari env (server nyata: ~/ytvenv/bin/yt-dlp dan ~/bin/ffmpeg). Log tidak boleh memuat token. Sediakan simulasi yt-dlp (stub, skrip Node yang mencetak berkas MP3 kecil) agar tes otomatis tidak memanggil YouTube; di lingkungan pengembangan YouTube memang tidak bisa dijangkau.
 
 Klien: Layar YouTube (satu URL, Share Target, status bertahap, galat jelas), simpan MP3 ke library setelah selesai, Layar Setelan (URL server, token, tes koneksi), tombol "Simpan sebagai MP3" di extension untuk tab YouTube.
 
@@ -132,5 +155,7 @@ Bukti wajib: tes unit/integrasi server (auth, validasi URL termasuk kasus SSRF d
 ### M3 / M4
 
 ````text
+Catatan teknis: graph audio saat ini = <audio> -> worklet Rubber Band -> MinusOne (core/audio/minus-one.ts, kelas dengan input/output GainNode) -> GainNode volume; sisipkan EQ (BiquadFilterNode) di antara MinusOne dan volume. Preset per lagu masuk IndexedDB (naikkan DB_VERSION di core/library/store.ts, siapkan migrasi). Loop A-B memakai waveform di ui/components/Waveform.svelte (tambah penanda). Tambahkan uji e2e di e2e/app.mjs dan, bila menyentuh ekstensi, e2e/ext.mjs.
+
 Lanjutkan ke M3 (Alat Latihan: loop A-B, EQ, metronom/count-in, preset per lagu, antrian lagu lokal) / M4 (Minus One lanjutan: Terjaga Bass, Fokus Vokal, kontrol manual, preset per lagu) sesuai docs/PRD.md dan docs/FRONTEND.md. Baca ulang docs/ dan catatan keputusan fase sebelumnya. Sertakan uji unit untuk logika murni dan uji numerik untuk DSP, perbarui docs/TEST_A23.md, dan ikuti aturan serta format laporan yang sama. Berhenti setelah laporan.
 ````

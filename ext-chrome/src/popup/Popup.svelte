@@ -6,7 +6,7 @@
 
   const t = id.ext;
   let status = $state<ExtStatus | null>(null);
-  let message = $state(t.loading);
+  let message = $state<string>(t.loading);
   let tabId: number | null = null;
 
   /** Active tab; the `?target=<substring>` override exists for automated tests only. */

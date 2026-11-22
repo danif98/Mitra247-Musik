@@ -105,3 +105,57 @@ Skala kualitas: 1 = buruk, 3 = cukup, 5 = tidak ada artefak. Glitch: jumlah keja
 | PWA terpasang & berjalan offline (mode pesawat)?           |       |
 
 Kriteria lulus M0 (PRD): putar + speed + transpose (R2) tanpa patah-patah, CPU rata-rata < 30%, audio tetap jalan (atau perilakunya jelas) saat layar mati.
+
+---
+
+# Uji manual M1
+
+Pakai build terbaru (lihat baris **Build** di Setelan atau halaman lab; harus berisi commit terbaru). Cara membuka halaman di HP sama seperti bagian A di atas, tetapi buka `/` (bukan `/lab/`). Bila HP masih memuat versi lama: Setelan situs -> Hapus data, lalu buka lagi.
+
+## G. Aplikasi (di A23)
+
+1. **Library**: Tambah berkas -> pilih 2-3 lagu (satu panjang, > 10 menit bila ada). Catat: apakah muncul di daftar, durasi benar, waktu sampai selesai, ada galat? Tutup Chrome dari daftar aplikasi, buka lagi: lagu masih ada?
+2. **Putar**: ketuk lagu. Waveform tampil; ketuk waveform untuk pindah posisi; tombol -5/+5; putar/jeda.
+3. **Tempo/Kunci**: tombol +/- , slider, chip preset, tekan lama nilai untuk reset. Dengarkan berderak atau tidak saat mengubah. Isi tabel kualitas (bagian C) untuk 0.5x, 0.75x, +-2, +-4 pada lagu nyata.
+4. **Minus One**: hidupkan pada lagu stereo berpenyanyi. Catat seberapa vokal berkurang (0-5), apakah bass/kick hilang, dan apakah lagu mono menjadi senyap.
+5. **Layar mati 3 menit** saat memutar: audio lanjut? Layar kunci menampilkan judul dan tombol putar/jeda/geser? Coba jeda dan putar dari layar kunci.
+6. **Install PWA** (menu Chrome -> Instal aplikasi), buka dari ikon, mode pesawat: buka Library dan putar lagu.
+7. **Setelan**: pemakaian penyimpanan tampil; "Dilindungi dari pembersihan otomatis"?; pilih R3 lalu putar lagi, catat beban/glitch; kembali ke R2.
+8. Unduh log dari halaman lab bila ada glitch (lab memakai pipeline yang sama).
+
+| Pemeriksaan                                    | Hasil | Catatan |
+| ---------------------------------------------- | ----- | ------- |
+| Tambah 3 lagu / waktu                          |       |         |
+| Lagu > 10 menit: waveform, memori, galat       |       |         |
+| Lagu tetap ada setelah Chrome ditutup          |       |         |
+| Ganti nama / hapus                             |       |         |
+| Seek lewat waveform / +-5 s                    |       |         |
+| Berderak saat ubah tempo/kunci (ya/tidak)      |       |         |
+| Minus One: vokal berkurang (0-5) / bass hilang |       |         |
+| Layar mati 3 menit: lanjut?                    |       |         |
+| Kontrol layar kunci (judul, putar/jeda, geser) |       |         |
+| PWA terpasang + offline: library + putar       |       |         |
+| R3 di Setelan: glitch?                         |       |         |
+
+## H. Ekstensi di YouTube (Chrome desktop)
+
+Belum pernah diuji di YouTube asli; ini uji terpenting untuk ekstensi.
+
+1. `npm run build:ext`; Chrome -> `chrome://extensions` -> Developer mode -> **Load unpacked** -> `ext-chrome/dist`.
+2. Buka video YouTube biasa, putar. Klik ikon ekstensi.
+3. Ubah tempo 0.75x: kecepatan berubah dan nada tetap? Kunci +2: nada naik, tempo tetap? Catat apakah ada suara senyap, pecah, atau pesan peringatan oranye di popup ("Pergeseran nada diblokir...").
+4. Minus One on/off pada video musik stereo.
+5. Pintasan `[` `]` dan `Shift+Up/Down` saat fokus di video (bukan di kolom komentar).
+6. Ganti video (klik video lain, atau iklan muncul): popup masih mengontrol video yang benar?
+7. Buka halaman tanpa media dan halaman `chrome://extensions`: pesan jelas, tanpa galat?
+8. Setelah mengubah kode: tombol **Reload** di kartu ekstensi + muat ulang tab.
+
+| Pemeriksaan                     | Hasil | Catatan |
+| ------------------------------- | ----- | ------- |
+| Tempo 0.75x, nada tetap         |       |         |
+| Kunci +2, tempo tetap           |       |         |
+| Peringatan "diblokir" muncul?   |       |         |
+| Minus One                       |       |         |
+| Pintasan keyboard               |       |         |
+| Ganti video / iklan             |       |         |
+| Halaman tanpa media / chrome:// |       |         |

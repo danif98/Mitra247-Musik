@@ -5,14 +5,25 @@ import svelte from 'eslint-plugin-svelte';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/out/**', 'node_modules/**', '.scratch/**', 'e2e/artifacts/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/dist-test/**',
+      '**/out/**',
+      'node_modules/**',
+      '.scratch/**',
+      'e2e/artifacts/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...svelte.configs['flat/recommended'],
   prettier,
   ...svelte.configs['flat/prettier'],
   {
-    languageOptions: { globals: { ...globals.browser, ...globals.node, __BUILD__: 'readonly' } },
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node, __BUILD__: 'readonly', chrome: 'readonly' },
+    },
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
