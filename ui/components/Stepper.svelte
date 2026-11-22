@@ -12,6 +12,18 @@
   }
   let { label, value, min, max, step, format, resetTo, onchange, resetLabel }: Props = $props();
 
+  let pressTimer: ReturnType<typeof setTimeout> | null = null;
+  function pressStart() {
+    pressTimer = setTimeout(() => {
+      set(resetTo);
+      pressTimer = null;
+    }, 600);
+  }
+  function pressEnd() {
+    if (pressTimer) clearTimeout(pressTimer);
+    pressTimer = null;
+  }
+
   function set(v: number) {
     const clamped = Math.min(max, Math.max(min, Math.round(v / step) * step));
     onchange(Math.round(clamped * 1e6) / 1e6);
@@ -22,7 +34,14 @@
   <h3>{label}</h3>
   <div class="row">
     <button type="button" aria-label="{label} −" onclick={() => set(value - step)}>−</button>
-    <output class="value" aria-live="polite">{format(value)}</output>
+    <output
+      class="value"
+      aria-live="polite"
+      onpointerdown={pressStart}
+      onpointerup={pressEnd}
+      onpointerleave={pressEnd}
+      onpointercancel={pressEnd}>{format(value)}</output
+    >
     <button type="button" aria-label="{label} +" onclick={() => set(value + step)}>+</button>
   </div>
   <input

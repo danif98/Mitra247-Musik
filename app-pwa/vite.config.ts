@@ -79,6 +79,8 @@ export default defineConfig({
         // Precache everything including the Rubber Band WASM and the worklet bundle.
         globPatterns: ['**/*.{js,css,html,svg,png,wasm,webmanifest}'],
         navigateFallback: null,
+        // Pages are precached once; query strings (?test, Share Target params) must still match.
+        ignoreURLParametersMatching: [/.*/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
