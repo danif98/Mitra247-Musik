@@ -91,7 +91,10 @@
             <button type="button" class="open" onclick={() => open(song)}>
               <span class="name">{song.title}</span>
               <span class="meta">
-                {formatDuration(song.duration)} · {formatBytes(song.size)} · {t.local}
+                {formatDuration(song.duration)} · {formatBytes(song.size)} · {song.source ===
+                'youtube'
+                  ? t.fromYoutube
+                  : t.local}
                 {#if player.current?.id === song.id}· {t.now}{/if}
               </span>
             </button>

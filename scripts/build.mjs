@@ -40,6 +40,13 @@ runNode(
 );
 cpSync(serverDist, path.join(out, 'server'), { recursive: true });
 
+// The compiled server is CommonJS; mark it so a parent package.json with "type": "module" cannot
+// change how Node loads it (also keeps it correct when copied into the deploy repo).
+writeFileSync(
+  path.join(out, 'server', 'package.json'),
+  JSON.stringify({ type: 'commonjs' }) + '\n',
+);
+
 // 3. Build info
 const { commit, dirty } = gitInfo();
 const info = {

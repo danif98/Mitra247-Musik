@@ -1,7 +1,7 @@
 /** All user-facing strings (Indonesian). Keep code and comments in English. */
 export const id = {
   appName: 'Musik Tools',
-  nav: { play: 'Putar', library: 'Library', settings: 'Setelan' },
+  nav: { play: 'Putar', library: 'Library', youtube: 'YouTube', settings: 'Setelan' },
   player: {
     empty: 'Belum ada lagu. Tambahkan berkas di Library.',
     goLibrary: 'Buka Library',
@@ -44,6 +44,7 @@ export const id = {
     storageUnsupported: 'Penyimpanan lokal tidak didukung browser ini.',
     storageError: 'Penyimpanan gagal',
     local: 'berkas',
+    fromYoutube: 'YouTube',
     songs: 'lagu',
   },
   settings: {
@@ -63,6 +64,21 @@ export const id = {
     diagHint:
       'Catat underrun, status audio, layar mati dan perubahan tempo/kunci. Unduh dan kirim bila ada masalah.',
     downloadLog: 'Unduh log diagnostik (JSON)',
+    server: 'Server YouTube ke MP3',
+    serverUrl: 'URL server',
+    serverUrlHint: 'Contoh: https://domain-anda.com/musik-api',
+    serverToken: 'Token',
+    serverTokenHint: 'Disimpan hanya di perangkat ini. Tidak ditampilkan penuh.',
+    serverSave: 'Simpan',
+    serverSaved: 'Tersimpan.',
+    serverBadUrl: 'URL server harus diawali http:// atau https://.',
+    serverTest: 'Tes koneksi',
+    serverTesting: 'Menguji…',
+    serverOk: 'Terhubung. Token benar.',
+    serverVersion: 'Versi server',
+    serverYtdlp: 'Versi yt-dlp',
+    serverYtdlpNone: 'belum dikonfigurasi',
+    serverClearToken: 'Hapus token',
     about: 'Tentang',
     lab: 'Buka halaman lab audio',
     build: 'Build',
@@ -74,6 +90,49 @@ export const id = {
     degraded:
       'Pergeseran nada diblokir halaman ini. Tempo tetap berfungsi (nada dijaga), minus one tetap bisa dipakai.',
     shortcuts: 'Pintasan: [ ] tempo, Shift+↑/↓ kunci.',
+  },
+  youtube: {
+    title: 'YouTube ke MP3',
+    urlLabel: 'URL video YouTube',
+    placeholder: 'Tempel URL di sini',
+    paste: 'Tempel',
+    save: 'Simpan sebagai MP3',
+    busy: 'Sedang memproses…',
+    needServer: 'Atur URL server dan token di Setelan dulu.',
+    goSettings: 'Buka Setelan',
+    steps: {
+      queued: 'Mengantre di server',
+      download: 'Mengunduh',
+      convert: 'Mengonversi ke MP3',
+      saving: 'Menyimpan ke Library',
+      done: 'Selesai, lagu sudah ada di Library',
+    },
+    playNow: 'Putar sekarang',
+    another: 'Simpan lagu lain',
+    hint: 'Satu URL per permintaan. Hanya untuk penggunaan pribadi.',
+    errors: {
+      no_server: 'Atur URL server dan token di Setelan dulu.',
+      network:
+        'Tidak bisa terhubung ke server. Periksa alamat server, koneksi internet, dan apakah origin aplikasi ini diizinkan di server (ALLOWED_ORIGINS).',
+      unauthorized: 'Token salah. Periksa token di Setelan.',
+      locked_out:
+        'Terlalu banyak percobaan token salah. Server memblokir sementara; coba lagi nanti.',
+      rate_limited: 'Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.',
+      busy: 'Server sedang sibuk. Coba lagi sebentar.',
+      invalid_url: 'URL tidak valid. Gunakan URL satu video YouTube (bukan playlist).',
+      not_configured: 'Server belum dikonfigurasi (token belum diatur di server).',
+      not_found: 'Tugas tidak ditemukan atau sudah kedaluwarsa (berkas dihapus setelah 1 jam).',
+      timeout: 'Terlalu lama menunggu. Coba lagi.',
+      server: 'Server mengalami galat. Coba lagi nanti.',
+      job_failed: 'Konversi gagal.',
+      unavailable: 'Video tidak bisa diunduh (privat, dibatasi umur/anggota, atau dihapus).',
+      blocked:
+        'YouTube memblokir permintaan dari server. Coba lagi nanti atau gunakan ekstensi di desktop.',
+      too_long: 'Video terlalu panjang (batas 20 menit).',
+      server_misconfigured: 'yt-dlp belum siap di server. Periksa konfigurasi server.',
+      failed: 'Konversi gagal.',
+      save: 'Berkas selesai diunduh tetapi gagal disimpan ke Library.',
+    },
   },
   lab: {
     title: 'Lab Audio (M0)',

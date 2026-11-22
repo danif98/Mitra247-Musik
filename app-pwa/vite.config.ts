@@ -56,6 +56,12 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
+        // Android share sheet: sharing a YouTube link opens the app on the YouTube screen.
+        share_target: {
+          action: './',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
         background_color: '#0f1115',
         theme_color: '#0f1115',
         icons: [

@@ -5,24 +5,40 @@
   import PlayerScreen from './PlayerScreen.svelte';
   import LibraryScreen from './LibraryScreen.svelte';
   import SettingsScreen from './SettingsScreen.svelte';
+  import YoutubeScreen from './YoutubeScreen.svelte';
+  import { ServerSettings } from './server.svelte';
+  import { YoutubeFlow } from './youtube.svelte';
+  import { extractYoutubeUrl } from '@musik/core';
 
-  type Tab = 'play' | 'library' | 'settings';
+  type Tab = 'play' | 'library' | 'youtube' | 'settings';
   const player = new Player();
+  const server = new ServerSettings();
+  const flow = new YoutubeFlow();
   let tab = $state<Tab>('library');
 
   onMount(() => {
     // Test hook (Playwright): /?test
     if (new URLSearchParams(location.search).has('test')) {
-      (window as unknown as { __musik: unknown }).__musik = { player };
+      (window as unknown as { __musik: unknown }).__musik = { player, server, flow };
+    }
+    // Share Target / extension: ?url=...&text=... carries a YouTube link.
+    const params = new URLSearchParams(location.search);
+    const shared = extractYoutubeUrl(params.get('url'), params.get('text'), params.get('title'));
+    if (shared) {
+      flow.url = shared;
+      tab = 'youtube';
+      const keep = params.has('test') ? '?test' : '';
+      history.replaceState(null, '', location.pathname + keep);
     }
     void player.init().then(() => {
-      if (player.songs.length > 0) tab = 'play';
+      if (!shared && player.songs.length > 0) tab = 'play';
     });
   });
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'play', label: id.nav.play },
     { key: 'library', label: id.nav.library },
+    { key: 'youtube', label: id.nav.youtube },
     { key: 'settings', label: id.nav.settings },
   ];
 </script>
@@ -32,8 +48,16 @@
     <PlayerScreen {player} ongoLibrary={() => (tab = 'library')} />
   {:else if tab === 'library'}
     <LibraryScreen {player} onplay={() => (tab = 'play')} />
+  {:else if tab === 'youtube'}
+    <YoutubeScreen
+      {player}
+      {server}
+      {flow}
+      ongoSettings={() => (tab = 'settings')}
+      onplay={() => (tab = 'play')}
+    />
   {:else}
-    <SettingsScreen {player} />
+    <SettingsScreen {player} {server} />
   {/if}
 </main>
 
@@ -59,7 +83,7 @@
     position: fixed;
     inset: auto 0 0 0;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: var(--panel);

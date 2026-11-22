@@ -6,3 +6,4 @@ export * from './audio/minus-one';
 export * from './library/meta';
 export * from './library/peaks';
 export * from './library/store';
+export * from './api/client';

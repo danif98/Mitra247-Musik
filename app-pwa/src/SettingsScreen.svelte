@@ -1,14 +1,56 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { id } from '@musik/ui';
   import { formatBytes } from '@musik/core';
   import type { Player } from './player.svelte';
+  import { maskToken, type ServerSettings } from './server.svelte';
+  import { describeError } from './youtube.svelte';
 
   interface Props {
     player: Player;
+    server: ServerSettings;
   }
-  let { player }: Props = $props();
+  let { player, server }: Props = $props();
   const t = id.settings;
+
+  let urlInput = $state(untrack(() => server.url));
+  let tokenInput = $state('');
+  let serverMsg = $state('');
+  let serverOk = $state(false);
+  let testing = $state(false);
+  let serverInfo = $state('');
+
+  function saveServer(): boolean {
+    serverOk = false;
+    if (!server.save(urlInput, tokenInput)) {
+      serverMsg = t.serverBadUrl;
+      return false;
+    }
+    tokenInput = '';
+    urlInput = server.url;
+    serverMsg = t.serverSaved;
+    return true;
+  }
+
+  async function testServer() {
+    if (!saveServer()) return;
+    testing = true;
+    serverMsg = t.serverTesting;
+    serverInfo = '';
+    try {
+      const api = server.client();
+      const health = await api.health();
+      await api.checkAuth();
+      serverOk = true;
+      serverMsg = t.serverOk;
+      serverInfo = `${t.serverVersion}: ${health.version} · ${t.serverYtdlp}: ${health.ytdlp ?? t.serverYtdlpNone}`;
+    } catch (err) {
+      serverOk = false;
+      serverMsg = describeError(err);
+    } finally {
+      testing = false;
+    }
+  }
 
   let usage = $state('');
   let persisted = $state<boolean | null>(null);
@@ -59,6 +101,48 @@
   </div>
 
   <div class="panel">
+    <h3>{t.server}</h3>
+    <label class="field">
+      <span class="muted">{t.serverUrl}</span>
+      <input
+        id="srv-url"
+        type="url"
+        inputmode="url"
+        autocomplete="off"
+        placeholder={t.serverUrlHint}
+        bind:value={urlInput}
+      />
+    </label>
+    <label class="field">
+      <span class="muted">{t.serverToken}{server.token ? ` (${maskToken(server.token)})` : ''}</span
+      >
+      <input
+        id="srv-token"
+        type="password"
+        autocomplete="off"
+        placeholder={server.token ? maskToken(server.token) : ''}
+        bind:value={tokenInput}
+      />
+    </label>
+    <p class="muted">{t.serverTokenHint}</p>
+    <div class="seg">
+      <button type="button" id="srv-save" onclick={saveServer}>{t.serverSave}</button>
+      <button type="button" class="primary" id="srv-test" onclick={testServer} disabled={testing}
+        >{t.serverTest}</button
+      >
+    </div>
+    {#if serverMsg}
+      <p id="srv-msg" role="status" class={serverOk ? 'ok' : 'muted'}>{serverMsg}</p>
+    {/if}
+    {#if serverInfo}
+      <p class="muted" id="srv-info">{serverInfo}</p>
+    {/if}
+    {#if server.token}
+      <button type="button" onclick={() => server.clearToken()}>{t.serverClearToken}</button>
+    {/if}
+  </div>
+
+  <div class="panel">
     <h3>{t.storage}</h3>
     <p>{t.used}: <span id="usage">{usage}</span></p>
     <p class="muted">{persisted ? t.persisted : t.notPersisted}</p>
@@ -102,6 +186,22 @@
   .muted {
     color: var(--muted);
     font-size: 0.9rem;
+  }
+  .field {
+    display: grid;
+    gap: 4px;
+  }
+  .field input {
+    min-height: var(--tap);
+    padding: 0 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--panel-2);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+  }
+  .ok {
+    color: var(--ok);
   }
   .panel {
     background: var(--panel);
