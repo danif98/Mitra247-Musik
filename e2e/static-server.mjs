@@ -16,7 +16,8 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
-export function startStaticServer(dir, port = 0) {
+/** `headersFor(urlPath)` may return extra response headers (used for CSP test pages). */
+export function startStaticServer(dir, port = 0, headersFor = () => ({})) {
   const root = path.resolve(dir);
   const server = http.createServer((req, res) => {
     const urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
@@ -35,6 +36,7 @@ export function startStaticServer(dir, port = 0) {
     res.writeHead(200, {
       'content-type': MIME[path.extname(file)] ?? 'application/octet-stream',
       'cache-control': 'no-cache',
+      ...headersFor(urlPath),
     });
     createReadStream(file).pipe(res);
   });

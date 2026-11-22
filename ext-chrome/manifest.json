@@ -1,8 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Musik Tools",
-  "version": "0.0.1",
-  "description": "Skeleton only (M0). Tempo/transpose for media in the active tab arrives in M1.",
+  "version": "0.1.0",
+  "description": "Tempo, transpose dan minus one untuk audio/video di tab aktif.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArbz+dTJHVo4AP6McBeTFi6mjTj/RkiiG29sx7cjhhjJ7DcTr24AqX0RikMnmxTOGu9eBJFzhdvb/UGfy/oxmzk8VGq9OeQqYm1Dkm2iyIMZX71J7jHgFREOq8r9UFStaKPE6bAgRjGcFRQlrZMoWAfGxZYLg+mY1sNJcASQx6PqiJ12yo5QF8jxpQhriCfbjQk+7sE2ZLzwlGZp77/ZDTn7wUglidTBSistGD4WYblauWqvLeBxNn7y7VXLfBLRRTFNU2WXH3i8FhKzWpZ0P2x2iPaL8AjbV6MzHv8W39wPAGEEzIxECXcjhR5++9A0fYbTLeAJCKOmsfQXSBzQtLwIDAQAB",
   "minimum_chrome_version": "116",
-  "permissions": ["activeTab", "scripting", "storage"]
+  "action": {
+    "default_title": "Musik Tools",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting"],
+  "web_accessible_resources": [
+    {
+      "resources": ["worklet.js", "rubberband.wasm"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "128": "icon-128.png"
+  }
 }

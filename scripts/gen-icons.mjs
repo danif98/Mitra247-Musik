@@ -77,6 +77,7 @@ function renderIcon(size) {
 }
 
 mkdirSync(outDir, { recursive: true });
+writeFileSync(path.join(outDir, 'icon-128.png'), renderIcon(128));
 for (const size of [192, 512]) {
   writeFileSync(path.join(outDir, `icon-${size}.png`), renderIcon(size));
   writeFileSync(path.join(outDir, `icon-maskable-${size}.png`), renderIcon(size));

@@ -63,6 +63,14 @@ export const id = {
     lab: 'Buka halaman lab audio',
     build: 'Build',
   },
+  ext: {
+    loading: 'Memeriksa tab aktif…',
+    noMedia: 'Tidak ada video atau audio di tab ini.',
+    noAccess: 'Halaman ini tidak bisa dikontrol (mis. halaman chrome:// atau Web Store).',
+    degraded:
+      'Pergeseran nada diblokir halaman ini. Tempo tetap berfungsi (nada dijaga), minus one tetap bisa dipakai.',
+    shortcuts: 'Pintasan: [ ] tempo, Shift+↑/↓ kunci.',
+  },
   lab: {
     title: 'Lab Audio (M0)',
     build: 'Build',

@@ -28,6 +28,8 @@ export interface EngineOptions {
   engine?: RubberBandEngine;
   /** AudioContext latency hint. 'playback' favours stability (default). */
   latencyHint?: AudioContextLatencyCategory;
+  /** Keep working (tempo + minus one only) when the worklet cannot be loaded. */
+  allowNoWorklet?: boolean;
   /** Duration of the tempo / semitone ramp in ms. */
   rampMs?: number;
 }
@@ -91,7 +93,8 @@ export class MusikAudioEngine {
   workletReady: WorkletReady | null = null;
   lastStats: WorkletStats | null = null;
 
-  private node!: AudioWorkletNode;
+  private node: AudioWorkletNode | null = null;
+  workletError: string | null = null;
   private source!: MediaElementAudioSourceNode;
   private path: PitchPath;
   private engine: RubberBandEngine;
@@ -121,6 +124,33 @@ export class MusikAudioEngine {
     this.context.addEventListener('statechange', () =>
       this.events.stateChange?.(this.context.state),
     );
+    this.source = this.context.createMediaElementSource(this.media);
+    this.output = this.context.createGain();
+    this.minusOne = new MinusOne(this.context);
+
+    try {
+      this.node = await this.createWorkletNode(assets);
+    } catch (err) {
+      if (!this.opts.allowNoWorklet) throw err;
+      // Degraded mode (e.g. the host page CSP blocks worklets): no pitch shifting, tempo uses the
+      // browser's pitch-preserving stretch, minus one still works.
+      this.workletError = err instanceof Error ? err.message : String(err);
+      this.node = null;
+    }
+    if (this.node) {
+      this.source.connect(this.node);
+      this.node.connect(this.minusOne.input);
+    } else {
+      this.source.connect(this.minusOne.input);
+    }
+    this.minusOne.output.connect(this.output);
+    this.output.connect(this.context.destination);
+
+    this.applyNow();
+    this.startRenderCapacity();
+  }
+
+  private async createWorkletNode(assets: EngineAssets): Promise<AudioWorkletNode> {
     if (!this.context.audioWorklet) {
       throw new Error(
         'AudioWorklet unavailable: page is not a secure context (use HTTPS or http://localhost via adb reverse).',
@@ -128,15 +158,14 @@ export class MusikAudioEngine {
     }
     await this.context.audioWorklet.addModule(assets.workletUrl);
     const wasm = await (await fetch(assets.wasmUrl)).arrayBuffer();
-
-    this.node = new AudioWorkletNode(this.context, 'musik-pitch-processor', {
+    const node = new AudioWorkletNode(this.context, 'musik-pitch-processor', {
       numberOfInputs: 1,
       numberOfOutputs: 1,
       channelCount: 2,
       channelCountMode: 'explicit',
       outputChannelCount: [2],
     });
-    this.node.port.onmessage = (e: MessageEvent) => {
+    node.port.onmessage = (e: MessageEvent) => {
       const m = e.data as { type: string; message?: string };
       if (m.type === 'stats') {
         this.lastStats = e.data as WorkletStats;
@@ -148,18 +177,13 @@ export class MusikAudioEngine {
         this.events.error?.(m.message ?? 'worklet error');
       }
     };
-    this.node.port.postMessage({ type: 'init', wasm, engine: this.engine }, [wasm]);
+    node.port.postMessage({ type: 'init', wasm, engine: this.engine }, [wasm]);
+    return node;
+  }
 
-    this.source = this.context.createMediaElementSource(this.media);
-    this.output = this.context.createGain();
-    this.source.connect(this.node);
-    this.minusOne = new MinusOne(this.context);
-    this.node.connect(this.minusOne.input);
-    this.minusOne.output.connect(this.output);
-    this.output.connect(this.context.destination);
-
-    this.applyNow();
-    this.startRenderCapacity();
+  /** True when Rubber Band is active; false in degraded mode (see `allowNoWorklet`). */
+  get pitchAvailable(): boolean {
+    return this.node !== null;
   }
 
   /** Resume the context; call from a user gesture. */
@@ -194,7 +218,7 @@ export class MusikAudioEngine {
   /** Rebuild the Rubber Band instance with another engine (R2 default, R3 optional). */
   setEngine(engine: RubberBandEngine): void {
     this.engine = engine;
-    this.node.port.postMessage({ type: 'engine', engine });
+    this.node?.port.postMessage({ type: 'engine', engine });
   }
 
   get currentPath(): PitchPath {
@@ -229,7 +253,7 @@ export class MusikAudioEngine {
   async dispose(): Promise<void> {
     this.disposed = true;
     if (this.rampTimer) clearInterval(this.rampTimer);
-    this.node.disconnect();
+    this.node?.disconnect();
     await this.context.close();
   }
 
@@ -268,9 +292,9 @@ export class MusikAudioEngine {
 
   /** Push the current tempo / semitone / path to the media element and worklet. */
   private applyNow(): void {
-    this.media.preservesPitch = preservesPitchFor(this.path);
+    this.media.preservesPitch = this.node ? preservesPitchFor(this.path) : true;
     this.media.playbackRate = this.tempo;
-    const param = (this.node.parameters as AudioParamMap).get('pitchRatio');
+    const param = (this.node?.parameters as AudioParamMap | undefined)?.get('pitchRatio');
     param?.setValueAtTime(this.currentPitchRatio, this.context.currentTime);
   }
 
