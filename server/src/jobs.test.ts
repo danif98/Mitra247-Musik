@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { JobManager, buildYtdlpArgs, type Job, type JobsOptions } from './jobs';
+import { JobManager, buildYtdlpArgs, failureLog, type Job, type JobsOptions } from './jobs';
 import { FAKE_YTDLP, removeDir, tempDir, until } from '../test/helpers';
 
 const dirs: string[] = [];
@@ -212,5 +212,24 @@ describe('JobManager', () => {
     const { m } = make();
     expect(m.get('../../etc/passwd')).toBeUndefined();
     expect(m.get('z'.repeat(32))).toBeUndefined();
+  });
+});
+
+describe('failureLog', () => {
+  it('keeps the last 10 lines, removes URLs and paths', () => {
+    const out = [
+      ...Array.from({ length: 20 }, (_, i) => `line ${i}`),
+      'ERROR: [youtube] abc: Sign in to confirm you are not a bot. See https://github.com/yt-dlp/yt-dlp/wiki/FAQ',
+      'cannot write /home/user/data/jobs/x/file.part',
+    ].join('\n');
+    const msg = failureLog('0123456789abcdef', 'blocked', out);
+    expect(msg).toContain('job 01234567 failed (blocked)');
+    expect(msg).toContain('Sign in to confirm');
+    expect(msg).toContain('<url>');
+    expect(msg).toContain('<path>');
+    expect(msg).not.toContain('github.com');
+    expect(msg).not.toContain('/home/user');
+    expect(msg).not.toContain('line 5');
+    expect(msg.split('\n').length).toBe(11);
   });
 });

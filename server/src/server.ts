@@ -132,6 +132,7 @@ export function createApp(
     jobTimeoutMs: config.jobTimeoutMs,
     now,
     log: (m) => console.log(`[musik] ${m}`),
+    logError: (m) => console.error(`[musik] ${m}`),
   });
   if (configured && !deps.quiet) jobs.start();
 

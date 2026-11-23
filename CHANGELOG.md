@@ -2,6 +2,10 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.1.3 (2026-11-23)
+
+- Server: kegagalan job menulis 10 baris terakhir output yt-dlp ke stderr (`stderr.log` di cPanel). URL dan path dihapus dari baris itu; token tidak pernah masuk. Sebelumnya `stderr.log` kosong sehingga penyebab `blocked` tidak terlihat.
+
 ## 0.1.2 (2026-11-23)
 
 - Server: `server/app.js` selalu menjalankan server saat dimuat. Sebelumnya hanya jalan bila menjadi modul utama (`require.main === module`), sedangkan Passenger/CloudLinux memuatnya lewat pembungkus, sehingga aplikasi diam dan pengunjung mendapat **503**. Kode yang bisa diuji dipindah ke `server/src/server.ts`.

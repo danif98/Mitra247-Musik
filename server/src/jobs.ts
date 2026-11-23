@@ -49,6 +49,8 @@ export interface JobsOptions {
   now?: Clock;
   /** Optional logger; never receives tokens or full URLs. */
   log?: (message: string) => void;
+  /** Failure details (last yt-dlp output lines, URLs removed); goes to stderr. */
+  logError?: (message: string) => void;
 }
 
 export const JOB_ID = /^[0-9a-f]{32}$/;
@@ -105,6 +107,22 @@ function childEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const k of keep) if (process.env[k] !== undefined) env[k] = process.env[k];
   return env;
+}
+
+/** Last lines of yt-dlp output for the server log. URLs and the work dir are removed; max 10 lines. */
+export function failureLog(jobId: string, code: string, output: string): string {
+  const lines = output
+    .split(/\r?\n/)
+    .map((l) =>
+      l
+        .replace(/https?:\/\/\S+/gi, '<url>')
+        .replace(/[A-Za-z]:\\[^\s"']+|\/(?:home|tmp|var)\/[^\s"']+/g, '<path>')
+        .trim()
+        .slice(0, 300),
+    )
+    .filter(Boolean)
+    .slice(-10);
+  return `job ${jobId.slice(0, 8)} failed (${code}); yt-dlp output:\n  ${lines.join('\n  ')}`;
 }
 
 export function classifyFailure(output: string): { code: JobErrorCode; message: string } {
@@ -297,6 +315,7 @@ export class JobManager {
           }
           if (!error) this.readInfo(job, jobDir);
         }
+        if (error && output) this.o.logError?.(failureLog(job.id, error.code, output));
         this.finish(job, error);
         resolve();
       };
