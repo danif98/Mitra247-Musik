@@ -4,12 +4,17 @@
   import type { SongMeta } from '@musik/core';
   import Icon from '@musik/ui/components/Icon.svelte';
   import type { Player } from './player.svelte';
+  import type { DeviceMusic } from './device.svelte';
+  import DeviceMusicScreen from './DeviceMusicScreen.svelte';
+  import { native } from './native';
 
   interface Props {
     player: Player;
+    device: DeviceMusic;
     onplay: () => void;
   }
-  let { player, onplay }: Props = $props();
+  let { player, device, onplay }: Props = $props();
+  let view = $state<'library' | 'device'>('library');
   const t = id.library;
 
   let query = $state('');
@@ -65,7 +70,26 @@
 <section class="screen">
   <h1>{t.title}</h1>
 
-  {#if !player.storageOk}
+  {#if native}
+    <div class="views" role="group" aria-label={t.title}>
+      <button
+        type="button"
+        id="view-library"
+        aria-pressed={view === 'library'}
+        onclick={() => (view = 'library')}>{t.title}</button
+      >
+      <button
+        type="button"
+        id="view-device"
+        aria-pressed={view === 'device'}
+        onclick={() => (view = 'device')}>{id.device.tab}</button
+      >
+    </div>
+  {/if}
+
+  {#if native && view === 'device'}
+    <DeviceMusicScreen {player} {device} {onplay} />
+  {:else if !player.storageOk}
     <p class="error">{t.storageUnsupported}</p>
   {:else}
     <div class="bar">
@@ -155,6 +179,11 @@
   }
   .error {
     color: var(--bad);
+  }
+  .views {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
   .bar {
     display: grid;

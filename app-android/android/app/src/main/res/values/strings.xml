@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Musik Tools</string>
+    <string name="title_activity_main">Musik Tools</string>
+    <string name="package_name">com.musik.tools</string>
+    <string name="custom_url_scheme">com.musik.tools</string>
+</resources>

@@ -1,0 +1,15 @@
+{
+  "name": "@musik/app-android",
+  "version": "0.0.1",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "description": "Android wrapper (Capacitor) for the Musik PWA: background playback, MediaStore library and on-device yt-dlp.",
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0"
+  }
+}

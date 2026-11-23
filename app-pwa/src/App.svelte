@@ -10,6 +10,8 @@
   import { ServerSettings } from './server.svelte';
   import { YoutubeFlow } from './youtube.svelte';
   import { SearchFlow } from './search.svelte';
+  import { DeviceMusic } from './device.svelte';
+  import { bindNative } from './native-bridge.svelte';
   import { Equalizer, MinusOne, extractYoutubeUrl } from '@musik/core';
 
   type Tab = 'play' | 'library' | 'search' | 'youtube' | 'settings';
@@ -17,7 +19,14 @@
   const server = new ServerSettings();
   const flow = new YoutubeFlow();
   const searchFlow = new SearchFlow();
+  const device = new DeviceMusic();
   let tab = $state<Tab>('library');
+
+  // Android app: notification controls and links shared from the YouTube app.
+  bindNative(player, (url) => {
+    flow.url = url;
+    tab = 'youtube';
+  });
 
   onMount(() => {
     // Test hook (Playwright): /?test
@@ -59,7 +68,7 @@
   {#if tab === 'play'}
     <PlayerScreen {player} ongoLibrary={() => (tab = 'library')} />
   {:else if tab === 'library'}
-    <LibraryScreen {player} onplay={() => (tab = 'play')} />
+    <LibraryScreen {player} {device} onplay={() => (tab = 'play')} />
   {:else if tab === 'search'}
     <SearchScreen {player} flow={searchFlow} onplay={() => (tab = 'play')} />
   {:else if tab === 'youtube'}

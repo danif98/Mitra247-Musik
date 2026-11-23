@@ -2,6 +2,16 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.3.0 (2026-11-23)
+
+- Server: `GET /api/search?q=` (token wajib) mencari YouTube lewat yt-dlp `ytsearch10:` tanpa mengunduh. Hasil: id, judul, kanal, durasi, thumbnail (dibuat dari id, bukan URL dari yt-dlp). Siaran langsung dan video di atas batas durasi disaring. Kata kunci maks. 100 karakter, hanya sebagai satu argumen setelah `--`. Batas 15 pencarian/menit per IP, maks. 2 pencarian bersamaan, cache 5 menit.
+- PWA: layar YouTube punya kolom pencarian; memilih satu hasil mengonversi, menyimpannya ke Library, lalu langsung membukanya di Putar (tempo dan nada bisa diatur).
+- Android: workspace `app-android/` (Capacitor 8) dan plugin native `MusikNative`: pemutaran latar belakang (foreground service, notifikasi media, kontrol lock screen), tab "Musik di HP" yang membaca seluruh musik lewat MediaStore, pencarian dan unduh YouTube ke MP3 langsung di HP (youtubedl-android), tombol perbarui yt-dlp di Setelan, dan menerima tautan yang dibagikan dari aplikasi YouTube. `npm run android:apk` membangun APK debug. Belum diuji di perangkat. Lihat `docs/ANDROID.md`.
+- Android: tab "Musik di HP" punya mode **Folder**: pilih penyimpanan (internal atau kartu SD/USB), masuk-keluar folder dengan breadcrumb dan tombol naik, atau mode Semua lagu dengan pencarian. Dibangun dari kolom volume dan folder MediaStore (`core/library/folders.ts`), tanpa izin tambahan; hanya folder berisi lagu yang dikenali Android yang tampil.
+- Android: memutar lagu dari "Musik di HP" kini membuat **antrean** dari folder yang sedang dibuka (atau hasil pencarian di mode Semua lagu), jadi Berikutnya/Sebelumnya, lagu otomatis lanjut, dan tombol notifikasi bekerja. `Player.playLazy`: berkas dibaca hanya saat gilirannya, hanya lagu yang diputar disimpan di memori. Uji: `e2e/lazyqueue.mjs`.
+- Klien: `parseYoutubeVideoId`.
+- Uji: `server/src/search.test.ts`, uji klien di `core/api/client.test.ts`, `e2e/ytsearch.mjs`.
+
 ## 0.2.2 (2026-11-23)
 
 - Cari: entitas HTML dari Openverse didekode ("&amp;" tampil "&").

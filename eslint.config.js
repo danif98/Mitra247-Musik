@@ -10,6 +10,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/dist-test/**',
       '**/out/**',
+      'app-android/android/**',
       'node_modules/**',
       '.scratch/**',
       'e2e/artifacts/**',

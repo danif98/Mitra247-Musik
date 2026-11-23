@@ -5,6 +5,7 @@ import {
   buildAppLink,
   extractYoutubeUrl,
   normalizeBaseUrl,
+  parseYoutubeVideoId,
   type JobView,
 } from './client';
 
@@ -88,6 +89,22 @@ describe('ApiClient', () => {
     expect(JSON.parse(calls[0]!.init.body as string)).toEqual({
       url: 'https://youtu.be/dQw4w9WgXcQ',
     });
+  });
+
+  it('search encodes the query and returns the results', async () => {
+    const results = [
+      { videoId: 'aaaaaaaaaaa', title: 'T', channel: null, duration: 60, thumbnail: 'u' },
+    ];
+    const { c, calls } = client(() => reply(200, { query: 'a&b c', results }));
+    expect(await c.search('a&b c')).toEqual(results);
+    expect(calls[0]!.url).toBe('https://srv.example/app/api/search?q=a%26b%20c');
+    const h = calls[0]!.init.headers as Record<string, string>;
+    expect(h['authorization']).toBe('Bearer tok');
+  });
+
+  it('search maps a server failure to an ApiError', async () => {
+    const { c } = client(() => reply(502, { error: 'search_failed', reason: 'failed' }));
+    await expect(c.search('x')).rejects.toMatchObject({ code: 'server' });
   });
 
   it('health needs no token', async () => {
@@ -210,5 +227,23 @@ describe('ApiClient', () => {
     expect(
       (calls[0]!.init.headers as Record<string, string> | undefined)?.['authorization'],
     ).toBeUndefined();
+  });
+});
+
+describe('parseYoutubeVideoId', () => {
+  const ID = 'dQw4w9WgXcQ';
+  it('reads the id from the usual single-video URLs', () => {
+    expect(parseYoutubeVideoId(`https://www.youtube.com/watch?v=${ID}&t=5`)).toBe(ID);
+    expect(parseYoutubeVideoId(`https://youtu.be/${ID}?si=x`)).toBe(ID);
+    expect(parseYoutubeVideoId(`https://music.youtube.com/watch?v=${ID}&list=RDx`)).toBe(ID);
+    expect(parseYoutubeVideoId(`https://m.youtube.com/shorts/${ID}`)).toBe(ID);
+    expect(parseYoutubeVideoId(`  https://youtube.com/embed/${ID}  `)).toBe(ID);
+  });
+  it('rejects other hosts, playlists and malformed input', () => {
+    expect(parseYoutubeVideoId(`https://evil.example/watch?v=${ID}`)).toBeNull();
+    expect(parseYoutubeVideoId('https://www.youtube.com/playlist?list=PL123')).toBeNull();
+    expect(parseYoutubeVideoId('https://www.youtube.com/watch?v=short')).toBeNull();
+    expect(parseYoutubeVideoId('ftp://youtu.be/' + ID)).toBeNull();
+    expect(parseYoutubeVideoId('bukan url')).toBeNull();
   });
 });

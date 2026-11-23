@@ -14,6 +14,37 @@ if (args.includes('--version')) {
   console.log('2099.01.01-fake');
   process.exit(0);
 }
+// Search (ytsearchN:<query>): a query containing FAILQ exits 1, BOTQ is a bot check, NONE has no
+// results. The received arguments go to search-argv.json in the data dir (parent of --cache-dir).
+const searchArg = args.find((a) => a.startsWith('ytsearch'));
+if (searchArg) {
+  const q = searchArg.slice(searchArg.indexOf(':') + 1);
+  const cacheDir = args[args.indexOf('--cache-dir') + 1];
+  if (cacheDir) {
+    fs.mkdirSync(path.dirname(cacheDir), { recursive: true });
+    fs.writeFileSync(
+      path.join(path.dirname(cacheDir), 'search-argv.json'),
+      JSON.stringify({ args }),
+    );
+  }
+  if (q.includes('FAILQ')) {
+    console.error('ERROR: something broke');
+    process.exit(1);
+  }
+  if (q.includes('BOTQ')) {
+    console.error("ERROR: [youtube] Sign in to confirm you're not a bot");
+    process.exit(1);
+  }
+  if (q.includes('NONE')) process.exit(0);
+  const mk = (id, title, duration, extra) => JSON.stringify({ id, title, duration, ...extra });
+  console.log(mk('aaaaaaaaaaa', 'Lagu Satu ' + q, 185, { channel: 'Kanal A' }));
+  console.log(mk('bbbbbbbbbbb', 'Lagu Dua', 240.4, { uploader: 'Pengunggah B' }));
+  console.log(mk('liveliveliv', 'Siaran Langsung', null, {}));
+  console.log(mk('longlonglon', 'Terlalu Panjang', 99999, {}));
+  console.log(mk('bad id!!', 'Id Rusak', 100, {}));
+  console.log(mk('aaaaaaaaaaa', 'Duplikat', 100, {}));
+  process.exit(0);
+}
 const dashdash = args.lastIndexOf('--');
 const url = dashdash >= 0 ? args[dashdash + 1] : '';
 const id = (/v=([A-Za-z0-9_-]{11})/.exec(url) || [])[1] || 'unknown0000';

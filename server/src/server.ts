@@ -6,6 +6,7 @@ import { configProblems, isValidProxy, type Config } from './config';
 import { JOB_ID, JobManager, type Job } from './jobs';
 import { AuthLockout, SlidingWindowLimiter, type Clock } from './limits';
 import { LINK_TTL_MS, signLink, verifyLink } from './signing';
+import { SearchCache, SearchError, cleanQuery, searchYoutube } from './search';
 import { getYtdlpInfo } from './ytdlp';
 import { parseYoutubeUrl, type UrlRejection } from './youtube-url';
 
@@ -141,6 +142,9 @@ export function createApp(
   const generalLimiter = new SlidingWindowLimiter(120, 60_000, now);
   const ipJobLimiter = new SlidingWindowLimiter(10, 60_000, now);
   const tokenJobLimiter = new SlidingWindowLimiter(20, 60_000, now);
+  const searchLimiter = new SlidingWindowLimiter(15, 60_000, now);
+  const searchCache = new SearchCache(5 * 60_000, 50, now);
+  let activeSearches = 0;
   const lockout = new AuthLockout(
     { maxFailures: 5, windowMs: 10 * 60_000, blockMs: 15 * 60_000 },
     now,
@@ -256,6 +260,67 @@ export function createApp(
     }
 
     if (!authorize(req, res, ip, corsHeaders)) return;
+
+    if (method === 'GET' && route === '/api/search') {
+      const query = cleanQuery(url.searchParams.get('q'));
+      if (!query) {
+        sendJson(
+          res,
+          400,
+          { error: 'invalid_query', message: 'Kata kunci pencarian kosong.' },
+          corsHeaders,
+        );
+        return;
+      }
+      const key = query.toLowerCase();
+      const cached = searchCache.get(key);
+      if (cached) {
+        sendJson(res, 200, { query, results: cached }, corsHeaders);
+        return;
+      }
+      const lim = searchLimiter.hit(ip);
+      if (!lim.allowed) {
+        return tooMany(res, corsHeaders, lim.retryAfterMs, 'Terlalu banyak pencarian.');
+      }
+      if (activeSearches >= 2) {
+        sendJson(
+          res,
+          429,
+          { error: 'busy', message: 'Server sedang sibuk. Coba lagi sebentar.' },
+          { ...corsHeaders, 'retry-after': '5' },
+        );
+        return;
+      }
+      activeSearches++;
+      try {
+        const results = await searchYoutube(
+          {
+            dataDir: config.dataDir,
+            ytdlpPath: config.ytdlpPath,
+            ytdlpPrefixArgs: deps.ytdlpPrefixArgs,
+            jsRuntime: config.jsRuntime,
+            proxy: config.proxy && isValidProxy(config.proxy) ? config.proxy : undefined,
+            cookiesFile: config.cookiesFile,
+            maxDurationSec: config.maxDurationSec,
+            logError: (m) => console.error(`[musik] ${m}`),
+          },
+          query,
+        );
+        searchCache.set(key, results);
+        sendJson(res, 200, { query, results }, corsHeaders);
+      } catch (err) {
+        const code = err instanceof SearchError ? err.code : 'failed';
+        sendJson(
+          res,
+          502,
+          { error: 'search_failed', reason: code, message: 'Pencarian gagal.' },
+          corsHeaders,
+        );
+      } finally {
+        activeSearches--;
+      }
+      return;
+    }
 
     if (method === 'POST' && route === '/api/jobs') {
       const lim = ipJobLimiter.hit(ip);
@@ -388,6 +453,7 @@ export function createApp(
     generalLimiter.prune();
     ipJobLimiter.prune();
     tokenJobLimiter.prune();
+    searchLimiter.prune();
   }, 60_000);
   prune.unref?.();
   server.on('close', () => clearInterval(prune));

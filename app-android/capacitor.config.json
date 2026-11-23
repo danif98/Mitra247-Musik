@@ -1,0 +1,11 @@
+{
+  "appId": "com.musik.tools",
+  "appName": "Musik Tools",
+  "webDir": "../out/app",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

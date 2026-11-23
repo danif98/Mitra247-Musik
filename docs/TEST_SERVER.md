@@ -11,13 +11,14 @@ read -s -p "Token: " TOKEN; echo
 
 ## A. Dasar
 
-| #   | Langkah                                                                                   | Hasil yang diharapkan                                                        | Hasil |
-| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----- |
-| 1   | `curl -s $API/api/health`                                                                 | `status:ok`, `configured:true`, `ytdlp` berisi versi (bukan null)            |       |
-| 2   | `curl -s -o /dev/null -w "%{http_code}\n" $API/api/jobs/00000000000000000000000000000000` | `401`                                                                        |       |
-| 3   | sama dengan header `-H "Authorization: Bearer $TOKEN"`                                    | `404`                                                                        |       |
-| 4   | Setelan PWA: isi URL server + token, **Tes koneksi**                                      | "Terhubung. Token benar." + versi server dan yt-dlp                          |       |
-| 5   | Token sengaja salah 5 kali berturut-turut (Tes koneksi)                                   | pesan "Token salah", lalu "Terlalu banyak percobaan..." (IP diblokir 15 mnt) |       |
+| #   | Langkah                                                                                    | Hasil yang diharapkan                                                                                                                   | Hasil |
+| --- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | `curl -s $API/api/health`                                                                  | `status:ok`, `configured:true`, `ytdlp` berisi versi (bukan null)                                                                       |       |
+| 2   | `curl -s -o /dev/null -w "%{http_code}\n" $API/api/jobs/00000000000000000000000000000000`  | `401`                                                                                                                                   |       |
+| 3   | sama dengan header `-H "Authorization: Bearer $TOKEN"`                                     | `404`                                                                                                                                   |       |
+| 3a  | `curl -s "$API/api/search?q=lagu" -H "Authorization: Bearer $TOKEN"` (tanpa header: `401`) | JSON `results` (maks. 10: `videoId`, `title`, `channel`, `duration`, `thumbnail`); kata kunci kosong `400`; gagal `502` dengan `reason` |       |
+| 4   | Setelan PWA: isi URL server + token, **Tes koneksi**                                       | "Terhubung. Token benar." + versi server dan yt-dlp                                                                                     |       |
+| 5   | Token sengaja salah 5 kali berturut-turut (Tes koneksi)                                    | pesan "Token salah", lalu "Terlalu banyak percobaan..." (IP diblokir 15 mnt)                                                            |       |
 
 (Setelah langkah 5 tunggu 15 menit atau restart server sebelum lanjut.)
 

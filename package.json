@@ -1,6 +1,6 @@
 {
   "name": "musik",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "description": "Musik Tools: personal music practice player (speed, transpose, minus one, YouTube to MP3).",
   "license": "GPL-3.0-only",
@@ -13,6 +13,7 @@
     "core",
     "ui",
     "app-pwa",
+    "app-android",
     "ext-chrome",
     "server"
   ],
@@ -24,11 +25,13 @@
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json && tsc -p server/tsconfig.json --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs && node e2e/minusone.mjs && node e2e/search.mjs",
+    "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs && node e2e/minusone.mjs && node e2e/search.mjs && node e2e/ytsearch.mjs && node e2e/lazyqueue.mjs",
     "check:pure-js": "node scripts/check-pure-js.mjs",
     "deploy:prepare": "node scripts/deploy-prepare.mjs",
     "vendor:zip": "node scripts/vendor-zip.mjs",
-    "smoke:server": "node scripts/smoke-server.mjs"
+    "smoke:server": "node scripts/smoke-server.mjs",
+    "android:apk": "node scripts/android.mjs",
+    "android:sync": "node scripts/android.mjs sync"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

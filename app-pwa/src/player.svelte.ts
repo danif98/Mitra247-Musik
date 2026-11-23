@@ -62,6 +62,17 @@ function loadEngine(): RubberBandEngine {
   }
 }
 
+/** A track for playLazy: metadata is known up front, the file is read when it is played. */
+export interface LazyTrack {
+  title: string;
+  fileName: string;
+  size: number;
+  /** Seconds. */
+  duration: number;
+  mime: string;
+  open: () => Promise<File>;
+}
+
 export class Player {
   readonly store = new LibraryStore();
   readonly audio = new Audio();
@@ -103,6 +114,9 @@ export class Player {
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private readonly tempFiles = new Map<string, File>();
   private tempCounter = 0;
+  /** Temporary tracks whose file is read only when the track is played (see playLazy). */
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  private readonly tempLoaders = new Map<string, () => Promise<File>>();
 
   get hasNext(): boolean {
     return nextIndex(this.queue.length, this.queueIndex) !== null;
@@ -227,6 +241,7 @@ export class Player {
     const picked = files.filter(isSupportedAudio);
     if (picked.length === 0) return 0;
     this.tempFiles.clear();
+    this.tempLoaders.clear();
     const items = picked.map((file): SongMeta => {
       const tmpId = `tmp:${++this.tempCounter}`;
       this.tempFiles.set(tmpId, file);
@@ -247,6 +262,37 @@ export class Player {
     this.log.event('files:open', { count: items.length });
     await this.load(items[0]!, true);
     return items.length;
+  }
+
+  /**
+   * Play a list of tracks whose files are read on demand (music on the phone). The whole list is
+   * the queue, so next/previous work, but only the playing track is kept in memory.
+   */
+  async playLazy(entries: LazyTrack[], start: number): Promise<boolean> {
+    if (entries.length === 0) return false;
+    const at = Math.min(Math.max(start, 0), entries.length - 1);
+    this.tempFiles.clear();
+    this.tempLoaders.clear();
+    const items = entries.map((entry): SongMeta => {
+      const tmpId = `tmp:${++this.tempCounter}`;
+      this.tempLoaders.set(tmpId, entry.open);
+      return {
+        id: tmpId,
+        title: entry.title,
+        fileName: entry.fileName,
+        size: entry.size,
+        duration: entry.duration,
+        addedAt: Date.now(),
+        source: 'local',
+        mime: entry.mime || 'audio/mpeg',
+        peaks: new Float32Array(0),
+      };
+    });
+    this.queue = items;
+    this.queueIndex = at;
+    this.log.event('files:open', { count: items.length });
+    await this.load(items[at]!, true);
+    return true;
   }
 
   /** Store the current temporary track in the library; it then behaves like any library song. */
@@ -301,6 +347,20 @@ export class Player {
     this.error = '';
     await this.flushPreset(); // save the previous song's settings before they are replaced
     let file: File | undefined = this.tempFiles.get(song.id);
+    const opener = this.tempLoaders.get(song.id);
+    if (!file && opener) {
+      try {
+        file = await opener();
+      } catch {
+        this.error = id.player.loadError;
+        return;
+      }
+      // Keep only the playing lazy track in memory.
+      for (const key of [...this.tempFiles.keys()]) {
+        if (this.tempLoaders.has(key)) this.tempFiles.delete(key);
+      }
+      this.tempFiles.set(song.id, file);
+    }
     if (!file) {
       try {
         file = await this.store.getFile(song.id);
@@ -638,6 +698,7 @@ export class Player {
     this.queue = [];
     this.queueIndex = -1;
     this.tempFiles.clear();
+    this.tempLoaders.clear();
     await this.store.clear();
     this.songs = [];
     try {

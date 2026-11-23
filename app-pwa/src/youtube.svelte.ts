@@ -1,8 +1,14 @@
 /** YouTube to MP3 flow: create job, follow its status, fetch the MP3 and store it in the library. */
-import { ApiError, type SongMeta } from '@musik/core';
+import {
+  ApiError,
+  parseYoutubeVideoId,
+  type SongMeta,
+  type YoutubeSearchResult,
+} from '@musik/core';
 import { id } from '@musik/ui';
 import type { Player } from './player.svelte';
 import type { ServerSettings } from './server.svelte';
+import { native, nativeErrorCode, nativeFileUrl } from './native';
 
 export type Phase = 'idle' | 'queued' | 'download' | 'convert' | 'saving' | 'done' | 'error';
 
@@ -19,12 +25,26 @@ export function describeError(err: unknown): string {
   return texts['server']!;
 }
 
+/** Error text for a failure reported by the native plugin (it only sends a short code). */
+export function describeNativeError(err: unknown): string {
+  const texts = id.youtube.errors as ErrorTexts;
+  return texts[nativeErrorCode(err)] ?? texts['failed']!;
+}
+
 export class YoutubeFlow {
   url = $state('');
   phase = $state<Phase>('idle');
   title = $state('');
   error = $state('');
   song = $state<SongMeta | null>(null);
+
+  // Search by keyword (server runs yt-dlp ytsearch).
+  query = $state('');
+  results = $state<YoutubeSearchResult[]>([]);
+  searching = $state(false);
+  searched = $state(false);
+  searchError = $state('');
+  private searchSeq = 0;
 
   get active(): boolean {
     return ['queued', 'download', 'convert', 'saving'].includes(this.phase);
@@ -37,10 +57,38 @@ export class YoutubeFlow {
     this.song = null;
   }
 
+  async search(server: ServerSettings): Promise<void> {
+    const q = this.query.trim();
+    if (q === '' || this.searching) return;
+    this.searchError = '';
+    if (!native && !server.configured) {
+      this.searchError = describeError(new ApiError('no_server', 'no server'));
+      return;
+    }
+    const seq = ++this.searchSeq;
+    this.searching = true;
+    try {
+      const found = native
+        ? (await native.ytSearch({ query: q })).results
+        : await server.client().search(q);
+      if (seq !== this.searchSeq) return;
+      this.results = found;
+      this.searched = true;
+    } catch (err) {
+      if (seq !== this.searchSeq) return;
+      this.results = [];
+      this.searched = false;
+      this.searchError = native ? describeNativeError(err) : describeError(err);
+    } finally {
+      if (seq === this.searchSeq) this.searching = false;
+    }
+  }
+
   /** Only one conversion at a time from the UI. */
   async start(server: ServerSettings, player: Player): Promise<void> {
     if (this.active) return;
     this.reset();
+    if (native) return this.startNative(native, player);
     if (!server.configured) {
       this.fail(describeError(new ApiError('no_server', 'no server')));
       return;
@@ -72,6 +120,47 @@ export class YoutubeFlow {
       this.phase = 'done';
     } catch (err) {
       this.fail(describeError(err));
+    }
+  }
+
+  /** On the phone: yt-dlp runs inside the app, so no server (and no server IP block) is involved. */
+  private async startNative(plugin: NonNullable<typeof native>, player: Player): Promise<void> {
+    const videoId = parseYoutubeVideoId(this.url);
+    if (!videoId) {
+      this.fail(describeError(new ApiError('invalid_url', 'invalid url')));
+      return;
+    }
+    this.phase = 'queued';
+    const progress = await plugin.addListener('ytProgress', (e) => {
+      if (e.videoId !== videoId) return;
+      this.phase = e.stage === 'convert' ? 'convert' : 'download';
+    });
+    try {
+      this.phase = 'download';
+      const done = await plugin.ytDownload({ videoId });
+      this.title = done.title;
+      this.phase = 'saving';
+      const res = await fetch(nativeFileUrl(done.path));
+      if (!res.ok) throw new ApiError('server', 'read failed');
+      const blob = await res.blob();
+      const name = `${done.title.replace(/[\\/:*?"<>|]+/g, '_')}.mp3`;
+      let song: SongMeta;
+      try {
+        song = await player.store.add(new File([blob], name, { type: 'audio/mpeg' }), 'youtube');
+      } catch {
+        this.fail(id.youtube.errors.save);
+        return;
+      } finally {
+        void plugin.ytCleanup({ videoId });
+      }
+      await player.refresh();
+      this.song = song;
+      this.title = song.title;
+      this.phase = 'done';
+    } catch (err) {
+      this.fail(err instanceof ApiError ? describeError(err) : describeNativeError(err));
+    } finally {
+      void progress.remove();
     }
   }
 

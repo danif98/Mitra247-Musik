@@ -56,6 +56,15 @@ export interface JobView {
   downloadUrl: string | null;
 }
 
+export interface YoutubeSearchResult {
+  videoId: string;
+  title: string;
+  channel: string | null;
+  /** Seconds. */
+  duration: number;
+  thumbnail: string;
+}
+
 /** "https://host/path/" -> "https://host/path"; null when it is not an http(s) URL. */
 export function normalizeBaseUrl(input: string): string | null {
   const text = input.trim();
@@ -83,6 +92,28 @@ export function extractYoutubeUrl(...candidates: (string | null | undefined)[]):
     }
   }
   return null;
+}
+
+/** The 11-character video id of a single-video YouTube URL, or null (playlists/channels are not videos). */
+export function parseYoutubeVideoId(input: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(input.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+  const host = u.hostname.toLowerCase().replace(/\.$/, '');
+  const ID = /^[A-Za-z0-9_-]{11}$/;
+  if (host === 'youtu.be') {
+    const id = u.pathname.split('/')[1] ?? '';
+    return ID.test(id) ? id : null;
+  }
+  if (!/^(www\.|m\.|music\.)?youtube\.com$/.test(host)) return null;
+  const v = u.searchParams.get('v');
+  if (u.pathname === '/watch' && v && ID.test(v)) return v;
+  const m = /^\/(?:shorts|embed|live|v)\/([A-Za-z0-9_-]{11})(?:[/?]|$)/.exec(u.pathname);
+  return m ? m[1]! : null;
 }
 
 /** Link that opens the PWA on its YouTube screen with the video URL prefilled (used by the extension). */
@@ -131,6 +162,14 @@ export class ApiClient {
       if (err instanceof ApiError && err.code === 'not_found') return;
       throw err;
     }
+  }
+
+  /** Search YouTube through the server (metadata only; nothing is downloaded). */
+  async search(query: string): Promise<YoutubeSearchResult[]> {
+    const body = (await this.request(`/api/search?q=${encodeURIComponent(query)}`)) as {
+      results?: YoutubeSearchResult[];
+    };
+    return Array.isArray(body.results) ? body.results : [];
   }
 
   async createJob(url: string): Promise<JobView> {
