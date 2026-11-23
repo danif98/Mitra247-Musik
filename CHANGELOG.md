@@ -2,6 +2,12 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.2.0 (2026-11-23)
+
+- PWA: tab **Cari** untuk mencari dan mengunduh musik legal langsung dari sumbernya (tanpa server): Internet Archive, Openverse, Wikimedia Commons. Hanya karya berlisensi Creative Commons atau domain publik yang tampil; tanpa lisensi dikenali = disembunyikan. Label lisensi dan penanda non-komersial / tanpa turunan terlihat; album Internet Archive dibuka per berkas. Unduhan memakai progres, batas 200 MB, hanya https dan hanya tipe audio, lalu masuk Library dengan atribusi (`credit`: pencipta, lisensi, tautan).
+- Library menampilkan lisensi lagu unduhan; `SongMeta.source` mendapat nilai `web`.
+- Uji: 18 uji unit (`core/sources`) dan `e2e/search.mjs` (jaringan di-mock). Detail: `docs/DECISIONS_SOURCES.md`.
+
 ## 0.1.4 (2026-11-23)
 
 - Server: `YTDLP_PROXY` (`--proxy`, skema http/https/socks4/socks5/socks5h divalidasi) dan `YTDLP_COOKIES_FILE` (`--cookies`; berkas disalin per job dan salinannya dihapus setelah selesai) untuk kasus YouTube memblokir IP server. `/api/health` menampilkan `cookies` dan `proxy` sebagai true/false saja. Lihat `docs/DEPLOY.md` 3.2.

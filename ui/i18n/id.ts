@@ -1,7 +1,13 @@
 /** All user-facing strings (Indonesian). Keep code and comments in English. */
 export const id = {
   appName: 'Musik Tools',
-  nav: { play: 'Putar', library: 'Library', youtube: 'YouTube', settings: 'Setelan' },
+  nav: {
+    play: 'Putar',
+    library: 'Library',
+    search: 'Cari',
+    youtube: 'YouTube',
+    settings: 'Setelan',
+  },
   player: {
     empty: 'Belum ada lagu. Tambahkan berkas di Library.',
     goLibrary: 'Buka Library',
@@ -75,6 +81,7 @@ export const id = {
     rename: 'Ubah nama',
     renamePrompt: 'Nama baru',
     remove: 'Hapus',
+    fromWeb: 'unduhan legal',
     removeConfirm: 'Hapus lagu ini dari perangkat?',
     now: 'Sedang diputar',
     storageUnsupported: 'Penyimpanan lokal tidak didukung browser ini.',
@@ -132,6 +139,54 @@ export const id = {
     save: 'Simpan sebagai MP3',
     saveNeedApp: 'Isi URL aplikasi Musik Tools (alamat PWA) dulu.',
     saveHint: 'Membuka aplikasi dengan URL video terisi; tekan Simpan di sana.',
+  },
+  search: {
+    title: 'Cari musik legal',
+    intro:
+      'Mencari lagu berlisensi Creative Commons atau domain publik yang boleh diunduh. Unduhan langsung dari sumbernya ke HP, tanpa server.',
+    placeholder: 'Judul, artis, atau alat musik',
+    submit: 'Cari',
+    searching: 'Mencari…',
+    sources: {
+      archive: 'Internet Archive',
+      openverse: 'Openverse',
+      commons: 'Wikimedia Commons',
+    },
+    noResult: 'Tidak ada hasil. Coba kata kunci lain atau sumber lain.',
+    more: 'Muat lagi',
+    sourceFailed: 'tidak bisa dihubungi',
+    album: 'Album',
+    showTracks: 'Lihat lagu',
+    hideTracks: 'Tutup',
+    loadingTracks: 'Memuat daftar lagu…',
+    noTracks: 'Tidak ada berkas audio yang bisa diunduh di item ini.',
+    download: 'Unduh',
+    downloading: 'Mengunduh',
+    saving: 'Menyimpan ke Library…',
+    saved: 'Tersimpan di Library',
+    play: 'Putar',
+    openPage: 'Buka halaman sumber',
+    noCommercial: 'Non-komersial',
+    noDerivatives: 'Tanpa turunan',
+    licenseHint:
+      'Hanya karya berlisensi CC atau domain publik. Untuk latihan pribadi. Jika kamu membagikan ulang, cantumkan atribusi (tersimpan di Library) dan patuhi syarat lisensinya.',
+    searchErrors: {
+      network: 'Koneksi gagal atau sumber tidak merespons. Periksa internet lalu coba lagi.',
+      http: 'Sumber sedang bermasalah. Coba lagi nanti.',
+      bad_response: 'Jawaban sumber tidak dikenali.',
+      aborted: 'Dibatalkan.',
+    },
+    errors: {
+      network:
+        'Tidak bisa mengunduh langsung (koneksi atau sumber tidak mengizinkan akses dari aplikasi). Buka halaman sumber lalu impor berkasnya dari Library.',
+      http: 'Sumber menolak permintaan. Coba lagi nanti.',
+      bad_response: 'Jawaban sumber tidak dikenali.',
+      bad_url: 'Alamat unduhan tidak aman (bukan https).',
+      not_audio: 'Berkas yang diterima bukan audio.',
+      too_large: 'Berkas terlalu besar (batas 200 MB).',
+      aborted: 'Dibatalkan.',
+      save: 'Berkas selesai diunduh tetapi gagal disimpan ke Library.',
+    },
   },
   youtube: {
     title: 'YouTube ke MP3',

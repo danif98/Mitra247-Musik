@@ -56,7 +56,11 @@ export class LibraryStore {
   }
 
   /** Copy a file into OPFS, decode peaks, and store the metadata row. */
-  async add(file: File, source: SongMeta['source'] = 'local'): Promise<SongMeta> {
+  async add(
+    file: File,
+    source: SongMeta['source'] = 'local',
+    extra: { title?: string; credit?: SongMeta['credit'] } = {},
+  ): Promise<SongMeta> {
     const id = crypto.randomUUID();
     const dir = await this.dir();
     const handle = await dir.getFileHandle(id, { create: true });
@@ -70,7 +74,7 @@ export class LibraryStore {
     const { peaks, duration } = await analyzeAudio(file);
     const song: SongMeta = {
       id,
-      title: titleFromFileName(file.name),
+      title: extra.title?.trim() || titleFromFileName(file.name),
       fileName: file.name,
       size: file.size,
       duration,
@@ -78,6 +82,7 @@ export class LibraryStore {
       source,
       mime: file.type || 'audio/mpeg',
       peaks,
+      ...(extra.credit ? { credit: extra.credit } : {}),
     };
     const db = await this.db();
     const tx = db.transaction(STORE, 'readwrite');

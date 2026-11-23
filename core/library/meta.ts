@@ -1,4 +1,5 @@
 /** Pure helpers for the local library (no browser APIs, unit-tested). */
+import type { SongCredit } from '../sources/types';
 
 export interface SongMeta {
   id: string;
@@ -8,10 +9,12 @@ export interface SongMeta {
   /** Seconds; 0 when unknown. */
   duration: number;
   addedAt: number;
-  source: 'local' | 'youtube';
+  source: 'local' | 'youtube' | 'web';
   mime: string;
   /** Waveform peaks (0..1), empty when not computed. */
   peaks: Float32Array;
+  /** Author and license of a song downloaded from a legal source (source 'web'). */
+  credit?: SongCredit;
 }
 
 export const AUDIO_EXTENSIONS = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'flac'];

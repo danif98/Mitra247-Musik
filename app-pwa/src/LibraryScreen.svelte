@@ -118,7 +118,9 @@
                 {formatDuration(song.duration)} · {formatBytes(song.size)} · {song.source ===
                 'youtube'
                   ? t.fromYoutube
-                  : t.local}
+                  : song.source === 'web'
+                    ? (song.credit?.license ?? t.fromWeb)
+                    : t.local}
                 {#if player.current?.id === song.id}· {t.now}{/if}
               </span>
             </button>

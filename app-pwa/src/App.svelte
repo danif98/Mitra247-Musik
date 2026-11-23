@@ -6,14 +6,17 @@
   import LibraryScreen from './LibraryScreen.svelte';
   import SettingsScreen from './SettingsScreen.svelte';
   import YoutubeScreen from './YoutubeScreen.svelte';
+  import SearchScreen from './SearchScreen.svelte';
   import { ServerSettings } from './server.svelte';
   import { YoutubeFlow } from './youtube.svelte';
+  import { SearchFlow } from './search.svelte';
   import { Equalizer, MinusOne, extractYoutubeUrl } from '@musik/core';
 
-  type Tab = 'play' | 'library' | 'youtube' | 'settings';
+  type Tab = 'play' | 'library' | 'search' | 'youtube' | 'settings';
   const player = new Player();
   const server = new ServerSettings();
   const flow = new YoutubeFlow();
+  const searchFlow = new SearchFlow();
   let tab = $state<Tab>('library');
 
   onMount(() => {
@@ -23,6 +26,7 @@
         player,
         server,
         flow,
+        searchFlow,
         // classes exposed so e2e can render them offline and measure the DSP
         MinusOne,
         Equalizer,
@@ -45,6 +49,7 @@
   const tabs: { key: Tab; label: string }[] = [
     { key: 'play', label: id.nav.play },
     { key: 'library', label: id.nav.library },
+    { key: 'search', label: id.nav.search },
     { key: 'youtube', label: id.nav.youtube },
     { key: 'settings', label: id.nav.settings },
   ];
@@ -55,6 +60,8 @@
     <PlayerScreen {player} ongoLibrary={() => (tab = 'library')} />
   {:else if tab === 'library'}
     <LibraryScreen {player} onplay={() => (tab = 'play')} />
+  {:else if tab === 'search'}
+    <SearchScreen {player} flow={searchFlow} onplay={() => (tab = 'play')} />
   {:else if tab === 'youtube'}
     <YoutubeScreen
       {player}
@@ -90,7 +97,7 @@
     position: fixed;
     inset: auto 0 0 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 4px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: var(--panel);

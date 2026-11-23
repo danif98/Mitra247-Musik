@@ -6,14 +6,15 @@ Sumber kebenaran produk: [`docs/PRD.md`](docs/PRD.md). Hanya untuk penggunaan pr
 
 ## Fitur
 
-| Area            | Isi                                                                                                                                             |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pemutar         | Library lokal (OPFS + IndexedDB), waveform, prev / stop / play-pause / next, ±5 detik, antrean, **Buka & putar** tanpa menyimpan, Media Session |
-| Tempo dan nada  | Tempo 0,25-2× dan kunci ±12 semitone, Rubber Band WASM (R2 bawaan, R3 opsional), tanpa putus saat diubah                                        |
-| Minus One       | Dasar, Jaga bass, Fokus vokal + kekuatan / batas bass / lebar pita vokal                                                                        |
-| Latihan         | Loop A-B, equalizer 5 pita, metronom + hitung masuk, preset per lagu otomatis                                                                   |
-| YouTube ke MP3  | Layar YouTube, Share Target Android, server Node pure JS (antrean, token, batas laju, retensi 1 jam)                                            |
-| Ekstensi Chrome | Tempo, transpose, Minus One pada `<video>`/`<audio>` di tab aktif; tombol Simpan sebagai MP3 membuka PWA                                        |
+| Area             | Isi                                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pemutar          | Library lokal (OPFS + IndexedDB), waveform, prev / stop / play-pause / next, ±5 detik, antrean, **Buka & putar** tanpa menyimpan, Media Session       |
+| Tempo dan nada   | Tempo 0,25-2× dan kunci ±12 semitone, Rubber Band WASM (R2 bawaan, R3 opsional), tanpa putus saat diubah                                              |
+| Minus One        | Dasar, Jaga bass, Fokus vokal + kekuatan / batas bass / lebar pita vokal                                                                              |
+| Latihan          | Loop A-B, equalizer 5 pita, metronom + hitung masuk, preset per lagu otomatis                                                                         |
+| Cari musik legal | Layar Cari: Internet Archive, Openverse, Wikimedia Commons; hanya lisensi CC / domain publik; unduh langsung ke Library dengan atribusi, tanpa server |
+| YouTube ke MP3   | Layar YouTube, Share Target Android, server Node pure JS (antrean, token, batas laju, retensi 1 jam)                                                  |
+| Ekstensi Chrome  | Tempo, transpose, Minus One pada `<video>`/`<audio>` di tab aktif; tombol Simpan sebagai MP3 membuka PWA                                              |
 
 ## Status
 
@@ -24,9 +25,10 @@ Sumber kebenaran produk: [`docs/PRD.md`](docs/PRD.md). Hanya untuk penggunaan pr
 | M2   | YouTube ke MP3                             | Selesai; konversi nyata lulus di PC Windows + A23; **server cPanel belum** |
 | M3   | Antrean, loop, EQ, metronom, preset        | Selesai di kode dan uji otomatis; **belum diuji di A23**                   |
 | M4   | Minus One lanjutan                         | Selesai di kode dan uji otomatis; **belum didengar di A23**                |
+| M6   | Cari dan unduh dari sumber legal (0.2.0)   | Selesai di kode dan uji otomatis; **belum dicoba di A23**                  |
 | M5   | Opsional: APK, deteksi kunci               | Belum                                                                      |
 
-Rincian keputusan dan bukti per fase: `docs/DECISIONS_M0.md` ... `docs/DECISIONS_M4.md`. Daftar yang belum teruji ada di setiap berkas itu dan di `CHANGELOG.md`.
+Rincian keputusan dan bukti per fase: `docs/DECISIONS_M0.md` ... `docs/DECISIONS_M4.md`, `docs/DECISIONS_SOURCES.md` (sumber legal). Daftar yang belum teruji ada di setiap berkas itu dan di `CHANGELOG.md`.
 
 ## Struktur
 
@@ -58,7 +60,7 @@ npm run build:ext        # ekstensi -> ext-chrome/dist
 Uji end-to-end (Playwright memakai Chrome sistem; ekstensi memakai Chromium dari cache Playwright):
 
 ```powershell
-npm run test:e2e         # lab, aplikasi, alat latihan, Minus One
+npm run test:e2e         # lab, aplikasi, alat latihan, Minus One, Cari (sumber legal, jaringan di-mock)
 node e2e/m2.mjs          # YouTube ke MP3 (server asli + yt-dlp palsu)
 node e2e/ext.mjs         # ekstensi
 ```
