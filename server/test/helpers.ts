@@ -3,7 +3,7 @@ import type http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { createApp, type App } from '../src/app';
+import { createApp, type App } from '../src/server';
 import { loadConfig } from '../src/config';
 
 export const FAKE_YTDLP = path.join(__dirname, 'fake-ytdlp.cjs');

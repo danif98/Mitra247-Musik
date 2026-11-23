@@ -1,6 +1,6 @@
 {
   "name": "musik",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Musik Tools: personal music practice player (speed, transpose, minus one, YouTube to MP3).",
   "license": "GPL-3.0-only",
@@ -27,7 +27,8 @@
     "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs && node e2e/minusone.mjs",
     "check:pure-js": "node scripts/check-pure-js.mjs",
     "deploy:prepare": "node scripts/deploy-prepare.mjs",
-    "vendor:zip": "node scripts/vendor-zip.mjs"
+    "vendor:zip": "node scripts/vendor-zip.mjs",
+    "smoke:server": "node scripts/smoke-server.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

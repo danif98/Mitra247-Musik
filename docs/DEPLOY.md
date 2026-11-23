@@ -190,12 +190,13 @@ Alternatif yang lebih bersih: pisahkan folder dokumen (hanya berisi isi `app/`) 
 
 ### Diagnosa dari browser (tanpa SSH)
 
-| Uji                                       | Hasil benar                     | Bila lain                                                                                     |
-| ----------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
-| `https://<subdomain>/app/`                | Aplikasi tampil                 | 404 / daftar folder: symlink atau salinan `app/` belum benar                                  |
-| `.../app/sw.js`                           | `Content-Type: text/javascript` | MIME lain: `app/.htaccess` tidak terbaca (hosting bukan Apache/LiteSpeed)                     |
-| `.../<Application URL>/api/health`        | JSON `{"status":"ok",...}`      | **Daftar folder kosong atau halaman 404 HTML dari LiteSpeed = aplikasi Node tidak berjalan**  |
-| `.../<Application URL>/api/health` -> 401 | JSON `unauthorized`             | Aplikasi jalan tetapi memakai versi < 0.1.1 (tidak mengenal awalan jalur); perbarui ke 0.1.1+ |
+| Uji                                                                                     | Hasil benar                     | Bila lain                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `https://<subdomain>/app/`                                                              | Aplikasi tampil                 | 404 / daftar folder: symlink atau salinan `app/` belum benar                                                                                                                              |
+| `.../app/sw.js`                                                                         | `Content-Type: text/javascript` | MIME lain: `app/.htaccess` tidak terbaca (hosting bukan Apache/LiteSpeed)                                                                                                                 |
+| `.../<Application URL>/api/health`                                                      | JSON `{"status":"ok",...}`      | **Daftar folder kosong atau halaman 404 HTML dari LiteSpeed = aplikasi Node tidak berjalan**                                                                                              |
+| `.../<Application URL>/api/health` -> 401                                               | JSON `unauthorized`             | Aplikasi jalan tetapi memakai versi < 0.1.1 (tidak mengenal awalan jalur); perbarui ke 0.1.1+                                                                                             |
+| `.../<Application URL>/api/health` -> **503** (halaman "Service Unavailable" LiteSpeed) | JSON `{"status":"ok",...}`      | Permintaan sudah diteruskan ke aplikasi tetapi aplikasi tidak menjawab: gagal start, mati, atau (versi < 0.1.2) tidak pernah memanggil `listen()`. Perbarui ke 0.1.2+, Restart, lihat log |
 
 Bila aplikasi Node tidak berjalan (daftar folder atau 404 HTML dari LiteSpeed): buka cPanel -> _Setup Node.js App_ dan periksa
 
@@ -204,13 +205,15 @@ Bila aplikasi Node tidak berjalan (daftar folder atau 404 HTML dari LiteSpeed): 
 3. versi Node dipilih (>= 18) dan variabel lingkungan tersimpan (tombol **Save**, lalu Restart);
 4. log kesalahan aplikasi (`stderr.log` di akar aplikasi, atau tautan log di halaman aplikasi). Pesan `MUSIK_TOKEN is not set` bukan galat fatal (server tetap hidup); galat `Cannot find module` berarti folder `server/` tidak lengkap (ulangi `git pull`).
 
+**Startup file:** `server/app.js` selalu memanggil `listen()` saat dimuat (Passenger memuatnya lewat pembungkus). Uji sebelum deploy: `npm run build && npm run smoke:server` memuat hasil build lewat `require()` seperti Passenger dan memeriksa `/api/health`.
+
 **Awalan jalur:** Passenger meneruskan URL asli ke aplikasi (mis. `/musik-api/api/health`). Server 0.1.1+ mengabaikan apa pun sebelum `/api/`, jadi Application URL bebas (`/musik-api`, `/musik/api`, dll.).
 
 ## Daftar periksa go-live
 
 Urutan dari paling mendasar. Centang satu per satu; detail uji ada di `TEST_SERVER.md`.
 
-1. [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run check:pure-js` lulus di PC.
+1. [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run check:pure-js`, `npm run smoke:server` lulus di PC.
 2. [ ] Versi Node di _Setup Node.js App_ >= 18 (disarankan 20 atau 22); catat versinya.
 3. [ ] `~/ytvenv/bin/yt-dlp --version` dan `~/bin/ffmpeg -version` berjalan dari SSH; pilih runtime JS untuk yt-dlp.
 4. [ ] Environment variable terisi: `MUSIK_TOKEN`, `YTDLP_PATH`, `FFMPEG_PATH`, `DATA_DIR`, `ALLOWED_ORIGINS` (origin PWA yang persis, tanpa `/` di akhir), `YTDLP_JS_RUNTIME`.
