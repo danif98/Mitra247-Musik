@@ -2,6 +2,11 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.1.1 (2026-11-23)
+
+- Server: rute `/api/...` kini bekerja di bawah awalan jalur apa pun (mis. Application URL `/musik-api` di cPanel/Passenger, yang meneruskan URL lengkap). Ditemukan saat deploy pertama.
+- Dokumentasi: struktur nyata di cPanel, aturan `.htaccess` untuk menutup isi repo dari web, diagnosa dari browser.
+
 ## 0.1.0 (2026-11-22)
 
 Pertama kali di-deploy. Mencakup M0 sampai M4.

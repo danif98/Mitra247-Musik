@@ -98,6 +98,23 @@ describe('health and auth gate', () => {
     expect(ok.ytdlpProblem).toBeNull();
   });
 
+  it('works when mounted under a sub-path (Passenger keeps the full URL, e.g. /musik-api/api/...)', async () => {
+    s = await startApp();
+    const health = await (await fetch(`${s.base}/musik-api/api/health`)).json();
+    expect(health.status).toBe('ok');
+    const created = await fetch(`${s.base}/musik-api/api/jobs`, {
+      method: 'POST',
+      headers: { ...json, ...auth },
+      body: JSON.stringify({ url: 'https://youtu.be/OKAYxxxxxxx' }),
+    });
+    expect(created.status).toBe(202);
+    const job = await created.json();
+    const got = await fetch(`${s.base}/a/b/api/jobs/${job.id}`, { headers: auth });
+    expect(got.status).toBe(200);
+    // not under /api/: still a plain 404 after auth
+    expect((await fetch(`${s.base}/musik-api/other`, { headers: auth })).status).toBe(404);
+  });
+
   it('without MUSIK_TOKEN only health works and others say why', async () => {
     s = await startApp({ MUSIK_TOKEN: '' });
     expect((await fetch(`${s.base}/api/health`)).status).toBe(200);

@@ -163,6 +163,49 @@ adb reverse tcp:3000 tcp:3000
 
 Di PWA (HP) buka `http://localhost:4173/`, Setelan -> **URL server `http://localhost:3000`** (tanpa `/musik-api`), isi token yang sama, Tes koneksi. Port 4173 adalah PWA, bukan API.
 
+## Struktur nyata di cPanel, diagnosa, dan pengamanan
+
+### Bila folder dokumen subdomain = akar aplikasi (kasus `musik.<domain>`)
+
+Bila repo `musik-deploy` di-clone langsung sebagai folder dokumen subdomain, alamatnya menjadi:
+
+| Alamat                                  | Isi                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `https://<subdomain>/app/`              | **PWA** (buka ini di HP; bukan `/`, karena `/` tidak punya `index.html`) |
+| `https://<subdomain>/<Application URL>` | API Node (mis. `/musik-api`); `.../api/health` harus memberi JSON        |
+
+Akibatnya semua isi repo ikut terbuka ke web: daftar folder (`server/`, `node_modules/`, `package.json`, `VERSION`). Berkas titik (`.env`, `.htaccess`) biasanya diblokir server (403), tetapi **jangan bergantung padanya**. Tambahkan aturan berikut ke `.htaccess` di folder dokumen itu, **di luar** blok `CLOUDLINUX PASSENGER CONFIGURATION` yang dikelola cPanel (jangan menaruh `.htaccess` ini di repo; `git pull` akan bentrok dengan berkas yang diubah cPanel):
+
+```apache
+Options -Indexes
+RewriteEngine On
+RewriteRule ^$ /app/ [R=302,L]
+RewriteRule ^(server|node_modules|tmp|data|public)(/|$) - [F,L]
+RewriteRule ^(package(-lock)?\.json|VERSION|README\.md)$ - [F,L]
+```
+
+Artinya: `/` mengalihkan ke `/app/`, daftar folder dimatikan, dan kode server serta berkas konfigurasi tidak bisa diunduh. Jangan menaruh `DATA_DIR` di dalam folder dokumen (pakai mis. `/home/<user>/musik-data`), supaya MP3 hasil konversi tidak bisa diakses lewat web. Verifikasi dengan `curl -sI https://<subdomain>/server/app.js` (harus 403) dan `curl -sI https://<subdomain>/` (harus 302 ke `/app/`).
+
+Alternatif yang lebih bersih: pisahkan folder dokumen (hanya berisi isi `app/`) dari akar aplikasi Node. Cara ini butuh pemetaan Passenger yang berbeda; lakukan hanya bila Anda nyaman mengubah pengaturan cPanel.
+
+### Diagnosa dari browser (tanpa SSH)
+
+| Uji                                       | Hasil benar                     | Bila lain                                                                                     |
+| ----------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
+| `https://<subdomain>/app/`                | Aplikasi tampil                 | 404 / daftar folder: symlink atau salinan `app/` belum benar                                  |
+| `.../app/sw.js`                           | `Content-Type: text/javascript` | MIME lain: `app/.htaccess` tidak terbaca (hosting bukan Apache/LiteSpeed)                     |
+| `.../<Application URL>/api/health`        | JSON `{"status":"ok",...}`      | **Daftar folder kosong atau halaman 404 HTML dari LiteSpeed = aplikasi Node tidak berjalan**  |
+| `.../<Application URL>/api/health` -> 401 | JSON `unauthorized`             | Aplikasi jalan tetapi memakai versi < 0.1.1 (tidak mengenal awalan jalur); perbarui ke 0.1.1+ |
+
+Bila aplikasi Node tidak berjalan (daftar folder atau 404 HTML dari LiteSpeed): buka cPanel -> _Setup Node.js App_ dan periksa
+
+1. status aplikasi **Started** (bukan Stopped); tekan **Restart**;
+2. _Application root_ benar (folder yang berisi `package.json`), _Application startup file_ `server/app.js`, _Application URL_ sama dengan yang dipakai di alamat API;
+3. versi Node dipilih (>= 18) dan variabel lingkungan tersimpan (tombol **Save**, lalu Restart);
+4. log kesalahan aplikasi (`stderr.log` di akar aplikasi, atau tautan log di halaman aplikasi). Pesan `MUSIK_TOKEN is not set` bukan galat fatal (server tetap hidup); galat `Cannot find module` berarti folder `server/` tidak lengkap (ulangi `git pull`).
+
+**Awalan jalur:** Passenger meneruskan URL asli ke aplikasi (mis. `/musik-api/api/health`). Server 0.1.1+ mengabaikan apa pun sebelum `/api/`, jadi Application URL bebas (`/musik-api`, `/musik/api`, dll.).
+
 ## Daftar periksa go-live
 
 Urutan dari paling mendasar. Centang satu per satu; detail uji ada di `TEST_SERVER.md`.
@@ -171,8 +214,8 @@ Urutan dari paling mendasar. Centang satu per satu; detail uji ada di `TEST_SERV
 2. [ ] Versi Node di _Setup Node.js App_ >= 18 (disarankan 20 atau 22); catat versinya.
 3. [ ] `~/ytvenv/bin/yt-dlp --version` dan `~/bin/ffmpeg -version` berjalan dari SSH; pilih runtime JS untuk yt-dlp.
 4. [ ] Environment variable terisi: `MUSIK_TOKEN`, `YTDLP_PATH`, `FFMPEG_PATH`, `DATA_DIR`, `ALLOWED_ORIGINS` (origin PWA yang persis, tanpa `/` di akhir), `YTDLP_JS_RUNTIME`.
-5. [ ] `curl -s https://<domain>/<api>/api/health` -> `configured:true`, `ytdlp` berisi versi, `ffmpegFound:true`.
-6. [ ] PWA terbuka lewat HTTPS; `curl -sI https://<domain>/<jalur>/sw.js` -> `Content-Type: text/javascript`, `Cache-Control: no-cache`; `.../assets/*.wasm` -> `application/wasm`.
+5. [ ] `curl -s https://<domain>/<Application URL>/api/health` -> `configured:true`, `ytdlp` berisi versi, `ffmpegFound:true`.
+6. [ ] PWA terbuka lewat HTTPS di alamat yang benar (lihat tabel struktur di atas; bila folder dokumen = akar aplikasi, alamatnya `/app/`); `curl -sI https://<domain>/<jalur>/sw.js` -> `Content-Type: text/javascript`, `Cache-Control: no-cache`; `.../assets/*.wasm` -> `application/wasm`.
 7. [ ] Di PWA: Setelan -> URL server + token -> Tes koneksi -> "Terhubung. Token benar."
 8. [ ] Satu konversi nyata (video pendek) sampai masuk Library dan bisa diputar.
 9. [ ] Pasang PWA di HP (Instal aplikasi), uji offline (mode pesawat) dan Share Target dari aplikasi YouTube.

@@ -47,6 +47,15 @@ function sendJson(
   res.end(JSON.stringify(body));
 }
 
+/**
+ * The app may be mounted under a sub-path (cPanel "Application URL" such as /musik-api); Passenger
+ * passes the full original path through. Routes live under /api/, so anything before that is dropped.
+ */
+export function routePath(pathname: string): string {
+  const i = pathname.indexOf('/api/');
+  return i > 0 ? pathname.slice(i) : pathname;
+}
+
 function clientIp(req: http.IncomingMessage, trustProxy: boolean): string {
   if (trustProxy) {
     const xff = req.headers['x-forwarded-for'];
@@ -171,6 +180,7 @@ export function createApp(
 
   async function handle(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://localhost');
+    const route = routePath(url.pathname);
     const method = req.method ?? 'GET';
     const ip = clientIp(req, config.trustProxy);
     const corsHeaders = cors(req);
@@ -193,7 +203,7 @@ export function createApp(
       return tooMany(res, corsHeaders, general.retryAfterMs, 'Terlalu banyak permintaan.');
 
     // Public: health only.
-    if (method === 'GET' && url.pathname === '/api/health') {
+    if (method === 'GET' && route === '/api/health') {
       const ytdlpInfo = await getYtdlpInfo(config.ytdlpPath);
       sendJson(
         res,
@@ -225,7 +235,7 @@ export function createApp(
     }
 
     // Short-lived signed download link (no Authorization header needed, e.g. for <audio>/<a>).
-    const fileMatch = /^\/api\/files\/([0-9a-f]{32})\.mp3$/.exec(url.pathname);
+    const fileMatch = /^\/api\/files\/([0-9a-f]{32})\.mp3$/.exec(route);
     if (method === 'GET' && fileMatch) {
       const id = fileMatch[1]!;
       const signed = verifyLink(
@@ -242,7 +252,7 @@ export function createApp(
 
     if (!authorize(req, res, ip, corsHeaders)) return;
 
-    if (method === 'POST' && url.pathname === '/api/jobs') {
+    if (method === 'POST' && route === '/api/jobs') {
       const lim = ipJobLimiter.hit(ip);
       const limTok = tokenJobLimiter.hit('token');
       if (!lim.allowed || !limTok.allowed) {
@@ -290,7 +300,7 @@ export function createApp(
       return;
     }
 
-    const jobMatch = /^\/api\/jobs\/([^/]+)$/.exec(url.pathname);
+    const jobMatch = /^\/api\/jobs\/([^/]+)$/.exec(route);
     if (method === 'GET' && jobMatch) {
       const job = JOB_ID.test(jobMatch[1]!) ? jobs.get(jobMatch[1]!) : undefined;
       if (!job) {
