@@ -1,5 +1,5 @@
 /** Internet Archive: advanced search for audio items with a Creative Commons / public domain license. */
-import { asNumber, asString, getJson, isRecord, parseYear } from './http';
+import { asNumber, asString, decodeEntities, getJson, isRecord, parseYear } from './http';
 import { licenseFromUrl } from './license';
 import type { FetchLike, SearchHit, SearchMode, SearchPage, SourceTrack } from './types';
 
@@ -25,7 +25,8 @@ export async function searchArchive(
   if (!q) return { source: 'archive', hits: [], hasMore: false };
   // licenseurl:* keeps only items that carry a license; audiobooks and podcasts are not music.
   const field = mode === 'title' ? 'title:' : mode === 'artist' ? 'creator:' : '';
-  const lucene = `${field}(${q}) AND mediatype:audio AND licenseurl:* AND -collection:(librivoxaudio OR audio_bookspoetry OR podcasts)`;
+  // Every word must match (the Archive's default would be OR, which floods the list).
+  const lucene = `${field}(${q.split(' ').join(' AND ')}) AND mediatype:audio AND licenseurl:* AND -collection:(librivoxaudio OR audio_bookspoetry OR podcasts)`;
   const params = new URLSearchParams();
   params.set('q', lucene);
   for (const f of ['identifier', 'title', 'creator', 'licenseurl', 'item_size', 'year', 'date']) {
@@ -49,8 +50,8 @@ export async function searchArchive(
     hits.push({
       source: 'archive',
       id: identifier,
-      title: asString(d['title']) || identifier,
-      creator: asString(d['creator']),
+      title: decodeEntities(asString(d['title'])) || identifier,
+      creator: decodeEntities(asString(d['creator'])),
       license,
       pageUrl: `${BASE}/details/${encodeURIComponent(identifier)}`,
       durationSec: null,

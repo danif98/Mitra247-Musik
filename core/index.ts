@@ -20,3 +20,4 @@ export * from './sources/commons';
 export * from './sources/search';
 export * from './sources/download';
 export * from './sources/sort';
+export * from './sources/filter';

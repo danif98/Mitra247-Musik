@@ -72,9 +72,26 @@ Keputusan:
 - Bila gagal, aplikasi menampilkan pesan dan tautan **Buka halaman sumber** (halaman album Jamendo) tetap ada; berkas bisa diunduh manual lalu diimpor lewat Library.
 - Lisensi hasil Jamendo di Openverse sering CC BY-NC-ND / BY-NC-SA: aman untuk latihan pribadi, tetapi ditandai "Non-komersial" dan "Tanpa turunan" di daftar.
 
+## Simulasi: "Dear Jessie" oleh Madonna (2026-11-23)
+
+Dijalankan di PWA (`http://localhost:5173/`) dan dicocokkan dengan API nyata. **Tidak ditemukan, dan itu benar.**
+
+- Lagu itu (Madonna, 1989) berhak cipta komersial. Ketiga sumber hanya memuat karya yang dilisensikan terbuka oleh penciptanya; label besar tidak merilis lewat sumber ini.
+- Internet Archive hanya punya satu item berjudul "Dear Jessie": `Rollergirl - Dear Jessie [CD RIP/WAV]` (cover grup lain, bukan Madonna). Item itu **tidak punya `licenseurl`**, jadi disembunyikan oleh aturan lisensi. Openverse dan Commons memberi 0 hasil untuk judul itu.
+- Mode Judul "dear jessie" = 0 hasil di ketiga sumber; mode Artis "madonna" = 14 (Archive) + 12 (Openverse, grup "Madonna del Pettoruto", bukan Madonna penyanyi) + 0 (Commons).
+
+**Peringatan penting: lisensi di sumber adalah klaim pengunggah, tidak diverifikasi.** Beberapa pengunggah Internet Archive menandai rip CD Madonna sebagai **CC0** (mis. "Madonna - Give It 2 Me", "Madonna - American Life (Instrumental Version)"). Itu hampir pasti salah label, dan aplikasi menampilkannya sebagai berlisensi terbuka karena membaca metadata apa adanya. Mitigasi saat ini: teks peringatan di layar Cari dan di sini. Tidak ada cara otomatis yang andal untuk membedakannya. Bila ingin lebih ketat, opsi: sembunyikan item Internet Archive yang tidak dari koleksi netlabel / musik terkurasi (mengurangi hasil sah), atau tandai "klaim pengunggah" di tiap baris Archive.
+
+Temuan lain dari simulasi, sudah diperbaiki di 0.2.2:
+
+- Openverse mengirim teks ber-entitas HTML ("John Dada &amp; the Weathermen"); kini didekode.
+- Internet Archive memakai OR antar kata, sehingga "dear jessie madonna" mengembalikan item tak relevan; kini AND antar kata.
+- Openverse `title=` / `creator=` mencocokkan longgar; di mode Judul / Artis hasil kini disaring agar judul / artis benar-benar memuat semua kata (aksen diabaikan).
+- Mode Semua masih longgar: kata bisa cocok di deskripsi atau tag, jadi sebagian hasil terlihat tak relevan (mis. satu koleksi besar jazz untuk "dear jessie madonna").
+
 ## Pengujian
 
-- `core/sources/sources.test.ts`: 29 uji dengan `fetch` palsu (lisensi, tiap sumber, mode pencarian, tahun, pengurutan, kegagalan sebagian, unduhan, batas ukuran, atribusi).
+- `core/sources/sources.test.ts`: 32 uji dengan `fetch` palsu (lisensi, tiap sumber, mode pencarian, tahun, pengurutan, entitas HTML, penyaringan judul / artis, kegagalan sebagian, unduhan, batas ukuran, atribusi).
 - `e2e/search.mjs`: 30 pemeriksaan di Chromium dengan jaringan di-mock (daftar gabungan, hasil tanpa lisensi disembunyikan, album, unduh, kredit tersimpan, putar, lisensi di Library, mode Judul / Artis, semua urutan dan arah, tahun, tombol ikon, satu sumber gagal, chip sumber).
 - Verifikasi nyata ke tiga API: manual di browser pane (pencarian dan unduhan 1 KB per sumber lewat Range).
 

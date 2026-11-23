@@ -1,5 +1,6 @@
 import { searchArchive } from './archive';
 import { searchCommons } from './commons';
+import { matchesMode } from './filter';
 import { searchOpenverse } from './openverse';
 import {
   SourceError,
@@ -37,7 +38,8 @@ export async function searchSources(
     sources.map(async (source): Promise<SourceResult> => {
       try {
         const result = await IMPL[source](query, mode, page, PAGE_SIZE, fetchFn, signal);
-        return { source, page: result, error: null };
+        const hits = result.hits.filter((h) => matchesMode(h, query, mode));
+        return { source, page: { ...result, hits }, error: null };
       } catch (err) {
         return {
           source,

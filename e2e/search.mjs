@@ -187,7 +187,7 @@ try {
     'Lucene syntax from the user text was cleaned',
     requested.length === 1 &&
       !/%22|%28/.test(new URL(requested[0]).searchParams.get('q').replace(/%/g, '')) &&
-      new URL(requested[0]).searchParams.get('q').startsWith('(piano live x)'),
+      new URL(requested[0]).searchParams.get('q').startsWith('(piano AND live AND x)'),
     requested[0] ? new URL(requested[0]).searchParams.get('q') : 'no request',
   );
 
@@ -270,7 +270,7 @@ try {
     'title mode re-runs the search with title fields',
     requested.length > archiveCalls &&
       openverseRequests.length > openverseCalls &&
-      titleQ.startsWith('title:(moon river)') &&
+      titleQ.startsWith('title:(moon AND river)') &&
       ovTitle.get('title') === 'moon river' &&
       ovTitle.get('q') === null,
     `${titleQ} | ${ovTitle}`,
@@ -285,7 +285,7 @@ try {
   const ovArtist = new URL(openverseRequests.at(-1)).searchParams;
   check(
     'artist mode uses creator fields',
-    artistQ.startsWith('creator:(moon river)') && ovArtist.get('creator') === 'moon river',
+    artistQ.startsWith('creator:(moon AND river)') && ovArtist.get('creator') === 'moon river',
     `${artistQ} | ${ovArtist}`,
   );
   await page.click('.chip.mode[data-mode="all"]');

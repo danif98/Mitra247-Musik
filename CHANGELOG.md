@@ -2,6 +2,13 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.2.2 (2026-11-23)
+
+- Cari: entitas HTML dari Openverse didekode ("&amp;" tampil "&").
+- Cari: Internet Archive mencocokkan semua kata (AND), bukan salah satu (OR).
+- Cari: mode Judul / Artis hanya menampilkan hasil yang judul / artisnya memuat semua kata (aksen diabaikan).
+- Cari: teks peringatan bahwa lisensi adalah klaim pengunggah dan tidak diverifikasi (rip CD komersial kadang salah dilabeli CC0). Simulasi "Dear Jessie" Madonna dan temuannya di `docs/DECISIONS_SOURCES.md`.
+
 ## 0.2.1 (2026-11-23)
 
 - Cari: mode pencarian **Semua / Judul / Artis** (kolom judul dan pencipta di tiap sumber; Commons menyaring artis di sisi aplikasi).

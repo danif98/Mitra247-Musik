@@ -6,7 +6,8 @@ import { licenseFromOpenverse, licenseFromShortName, licenseFromUrl } from './li
 import { searchOpenverse } from './openverse';
 import { searchSources } from './search';
 import { defaultDir, mergeHits } from './sort';
-import { parseYear } from './http';
+import { decodeEntities, parseYear } from './http';
+import { matchesMode, queryWords } from './filter';
 import { SourceError, attributionLine, creditOf, type FetchLike, type SearchHit } from './types';
 
 const json = (body: unknown, status = 200): Response =>
@@ -395,7 +396,7 @@ describe('search modes', () => {
     await searchArchive('bach', 'artist', 1, 15, f.fetch);
     await searchArchive('bach', 'all', 1, 15, f.fetch);
     const q = f.calls.map((u) => new URL(u).searchParams.get('q')!);
-    expect(q[0]).toMatch(/^title:\(moon river\) AND /);
+    expect(q[0]).toMatch(/^title:\(moon AND river\) AND /);
     expect(q[1]).toMatch(/^creator:\(bach\) AND /);
     expect(q[2]).toMatch(/^\(bach\) AND /);
   });
@@ -541,5 +542,62 @@ describe('mergeHits', () => {
     expect(defaultDir('artist')).toBe('asc');
     expect(defaultDir('size')).toBe('desc');
     expect(defaultDir('year')).toBe('desc');
+  });
+});
+
+describe('precise matching and entities', () => {
+  it('decodes entities that Openverse leaves in text', async () => {
+    expect(decodeEntities('John Dada &amp; the Weathermen')).toBe('John Dada & the Weathermen');
+    expect(decodeEntities('Hugo &#x27;Droopy&#x27; &#39;C&#39; &quot;x&quot;')).toBe(
+      "Hugo 'Droopy' 'C' \"x\"",
+    );
+    expect(decodeEntities('&#9999999; ok')).toBe(' ok');
+    const f = fakeFetch({
+      'https://api.openverse.org/': () =>
+        json({
+          page_count: 1,
+          results: [
+            {
+              id: 'x',
+              title: 'Rock &amp; Roll',
+              creator: 'AC &amp; DC',
+              license: 'by',
+              license_version: '4.0',
+              url: 'https://cdn.example.org/x.mp3',
+            },
+          ],
+        }),
+    });
+    const page = await searchOpenverse('rock', 'all', 1, 15, f.fetch);
+    expect(page.hits[0]).toMatchObject({ title: 'Rock & Roll', creator: 'AC & DC' });
+  });
+  it('title / artist mode keep only hits containing every word (accents ignored)', () => {
+    const hit = { title: 'Dear Friends', creator: 'Beyoncé Knowles' };
+    expect(matchesMode(hit, 'dear jessie', 'title')).toBe(false);
+    expect(matchesMode(hit, 'DEAR friends', 'title')).toBe(true);
+    expect(matchesMode(hit, 'beyonce', 'artist')).toBe(true);
+    expect(matchesMode(hit, 'knowles jay', 'artist')).toBe(false);
+    expect(matchesMode(hit, 'anything at all', 'all')).toBe(true);
+    expect(queryWords('Dear, Jessie!  (live)')).toEqual(['dear', 'jessie', 'live']);
+  });
+  it('searchSources applies the filter per mode', async () => {
+    const f = fakeFetch({
+      'https://api.openverse.org/': () =>
+        json({
+          page_count: 1,
+          results: ['Dear Friends', 'Dear Jessie'].map((title, i) => ({
+            id: String(i),
+            title,
+            creator: 'x',
+            license: 'by',
+            license_version: '4.0',
+            url: `https://cdn.example.org/${i}.mp3`,
+          })),
+        }),
+    });
+    const [r] = await searchSources('dear jessie', 'title', ['openverse'], 1, f.fetch);
+    expect(r!.page!.hits.map((h) => h.title)).toEqual(['Dear Jessie']);
+    const [all] = await searchSources('dear jessie', 'all', ['openverse'], 1, f.fetch);
+    expect(all!.page!.hits).toHaveLength(2);
   });
 });

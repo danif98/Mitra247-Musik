@@ -1,5 +1,5 @@
 /** Openverse (WordPress): aggregates Creative Commons audio (Jamendo, Freesound, Wikimedia, ...). */
-import { asNumber, asString, getJson, isRecord } from './http';
+import { asNumber, asString, decodeEntities, getJson, isRecord } from './http';
 import { licenseFromOpenverse } from './license';
 import type { FetchLike, SearchHit, SearchMode, SearchPage } from './types';
 
@@ -46,8 +46,8 @@ export async function searchOpenverse(
     hits.push({
       source: 'openverse',
       id: asString(r['id']) || url,
-      title: asString(r['title']) || 'Tanpa judul',
-      creator: asString(r['creator']),
+      title: decodeEntities(asString(r['title'])) || 'Tanpa judul',
+      creator: decodeEntities(asString(r['creator'])),
       license,
       pageUrl: asString(r['foreign_landing_url']) || url,
       durationSec: ms === null ? null : Math.round(ms / 1000),

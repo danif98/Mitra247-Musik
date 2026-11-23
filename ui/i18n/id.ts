@@ -188,7 +188,7 @@ export const id = {
     noCommercial: 'Non-komersial',
     noDerivatives: 'Tanpa turunan',
     licenseHint:
-      'Hanya karya berlisensi CC atau domain publik. Untuk latihan pribadi. Jika kamu membagikan ulang, cantumkan atribusi (tersimpan di Library) dan patuhi syarat lisensinya.',
+      'Hanya karya yang dinyatakan berlisensi CC atau domain publik. Lisensi adalah klaim pengunggah di sumbernya dan tidak diverifikasi: lagu komersial terkenal yang salah dilabeli bisa ikut muncul, jadi periksa halaman sumber bila ragu. Untuk latihan pribadi; jika dibagikan ulang, cantumkan atribusi (tersimpan di Library) dan patuhi syarat lisensinya.',
     searchErrors: {
       network: 'Koneksi gagal atau sumber tidak merespons. Periksa internet lalu coba lagi.',
       http: 'Sumber sedang bermasalah. Coba lagi nanti.',

@@ -36,15 +36,25 @@ export function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Remove HTML tags and decode the few entities Wikimedia metadata uses. */
-export function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&')
+/** Decode the HTML entities that APIs leave in plain text (&amp;, &#x27;, &#39; ...). */
+export function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]{1,6});/gi, (_, h: string) => safeChar(parseInt(h, 16)))
+    .replace(/&#(\d{1,7});/g, (_, d: string) => safeChar(Number(d)))
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#0?39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function safeChar(code: number): string {
+  return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+}
+
+/** Remove HTML tags and decode entities (Wikimedia metadata is HTML). */
+export function stripHtml(html: string): string {
+  return decodeEntities(html.replace(/<[^>]*>/g, ''))
     .replace(/\s+/g, ' ')
     .trim();
 }
