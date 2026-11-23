@@ -94,6 +94,8 @@ cPanel -> _Setup Node.js App_ -> Create: Application root `musik-deploy`, Applic
 | `YTDLP_JS_RUNTIME` | lihat 3.1                                                                                                              |
 | opsional           | `MAX_ACTIVE` (1-2), `MAX_QUEUE`, `MAX_DURATION_SEC` (1200), `RETENTION_MINUTES` (60), `JOB_TIMEOUT_SEC`, `TRUST_PROXY` |
 
+**Alternatif `.env`:** buat `~/musik-deploy/.env` (akar aplikasi, sejajar `package.json`; bukan di `app/` atau `server/`), isi dari `.env.example`, lalu `chmod 600 .env`. Berkas ini diabaikan git sehingga `git pull` tidak menimpanya; variabel yang diisi di cPanel menang atas isi `.env`. Hanya `app/` yang boleh terbuka ke web; jangan membuka seluruh `~/musik-deploy`, karena `.env` berisi token. Cek hasilnya di `/api/health` (`configured:true`).
+
 `PORT` diatur Passenger. Server berjalan sebagai pengguna cPanel (bukan root). Token tidak pernah dicatat di log. Simpan token yang sama di perangkat (Setelan PWA); mengganti token = ubah variabel lalu restart, lalu perbarui PWA.
 
 Situs statis PWA: arahkan `public_html/<jalur>` ke `~/musik-deploy/app` (symlink atau salin). **PWA harus lewat HTTPS** dan API juga HTTPS (kalau tidak, browser memblokir panggilan campuran). Berkas `app/.htaccess` (ikut terbawa dari build) mengatur tipe MIME `.wasm` / `.webmanifest` dan `Cache-Control: no-cache` untuk HTML, `sw.js` dan manifest; pastikan hosting memakai Apache/LiteSpeed yang membaca `.htaccess`, lalu cek dengan `curl -sI`.
@@ -137,7 +139,7 @@ curl -s https://domain-anda.com/musik-api/api/health
 
 ## Uji lokal: PC + HP lewat USB (tanpa cPanel)
 
-Server membaca `.env` di folder tempat ia dijalankan (hanya untuk uji lokal; variabel yang sudah ada di lingkungan tidak ditimpa, dan di cPanel `.env` tidak dipakai). Buat `.env` di akar proyek dari `.env.example`:
+Server membaca `.env` di folder kerjanya (akar aplikasi); variabel yang sudah ada di lingkungan tidak ditimpa. Di cPanel cara yang disarankan tetap _Environment variables_ di Setup Node.js App; `.env` di server juga bekerja (lihat 3.2). Buat `.env` di akar proyek dari `.env.example`:
 
 ```
 MUSIK_TOKEN=<token >= 32 karakter>
