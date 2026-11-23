@@ -5,7 +5,9 @@ import { MAX_DOWNLOAD_BYTES, downloadAudio, fileNameFor } from './download';
 import { licenseFromOpenverse, licenseFromShortName, licenseFromUrl } from './license';
 import { searchOpenverse } from './openverse';
 import { searchSources } from './search';
-import { SourceError, attributionLine, creditOf, type FetchLike } from './types';
+import { defaultDir, mergeHits } from './sort';
+import { parseYear } from './http';
+import { SourceError, attributionLine, creditOf, type FetchLike, type SearchHit } from './types';
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -91,7 +93,7 @@ describe('Internet Archive', () => {
           },
         }),
     });
-    const page = await searchArchive('piano', 1, 15, f.fetch);
+    const page = await searchArchive('piano', 'all', 1, 15, f.fetch);
     expect(page.hits).toHaveLength(1);
     expect(page.hits[0]).toMatchObject({
       source: 'archive',
@@ -108,7 +110,7 @@ describe('Internet Archive', () => {
   });
   it('does not call the network for an empty query', async () => {
     const f = fakeFetch({});
-    expect((await searchArchive('  ', 1, 15, f.fetch)).hits).toEqual([]);
+    expect((await searchArchive('  ', 'all', 1, 15, f.fetch)).hits).toEqual([]);
     expect(f.calls).toEqual([]);
   });
   it('lists the best audio files of an item with encoded download URLs', async () => {
@@ -209,7 +211,7 @@ describe('Openverse', () => {
           ],
         }),
     });
-    const page = await searchOpenverse('piano', 1, 15, f.fetch);
+    const page = await searchOpenverse('piano', 'all', 1, 15, f.fetch);
     expect(page.hits).toHaveLength(1);
     expect(page.hits[0]).toMatchObject({
       source: 'openverse',
@@ -265,7 +267,7 @@ describe('Wikimedia Commons', () => {
           },
         }),
     });
-    const page = await searchCommons('piano', 2, 15, f.fetch);
+    const page = await searchCommons('piano', 'all', 2, 15, f.fetch);
     expect(page.hits).toHaveLength(1);
     expect(page.hits[0]).toMatchObject({
       title: 'Blue Danube',
@@ -285,7 +287,13 @@ describe('searchSources', () => {
       'https://archive.org/advancedsearch.php': () => json({ response: { docs: [], numFound: 0 } }),
       'https://api.openverse.org/': () => json({ error: 'x' }, 500),
     });
-    const results = await searchSources('piano', ['archive', 'openverse', 'commons'], 1, f.fetch);
+    const results = await searchSources(
+      'piano',
+      'all',
+      ['archive', 'openverse', 'commons'],
+      1,
+      f.fetch,
+    );
     expect(results.map((r) => [r.source, r.page ? 'ok' : r.error?.code])).toEqual([
       ['archive', 'ok'],
       ['openverse', 'http'],
@@ -366,6 +374,7 @@ describe('names and credit', () => {
       pageUrl: 'https://commons.wikimedia.org/wiki/File:x.ogg',
       durationSec: null,
       size: null,
+      year: null,
       downloadUrl: null,
       mime: null,
     };
@@ -374,5 +383,163 @@ describe('names and credit', () => {
     expect(line).toContain('CC BY-SA 4.0');
     expect(line).toContain('Wikimedia Commons');
     expect(line).toContain('https://creativecommons.org/licenses/by-sa/4.0/');
+  });
+});
+
+describe('search modes', () => {
+  const empty = () =>
+    json({ response: { docs: [], numFound: 0 }, results: [], query: { pages: [] } });
+  it('Internet Archive searches the title or creator field', async () => {
+    const f = fakeFetch({ 'https://archive.org/advancedsearch.php': empty });
+    await searchArchive('moon river', 'title', 1, 15, f.fetch);
+    await searchArchive('bach', 'artist', 1, 15, f.fetch);
+    await searchArchive('bach', 'all', 1, 15, f.fetch);
+    const q = f.calls.map((u) => new URL(u).searchParams.get('q')!);
+    expect(q[0]).toMatch(/^title:\(moon river\) AND /);
+    expect(q[1]).toMatch(/^creator:\(bach\) AND /);
+    expect(q[2]).toMatch(/^\(bach\) AND /);
+  });
+  it('Openverse uses the title / creator parameter', async () => {
+    const f = fakeFetch({ 'https://api.openverse.org/': empty });
+    await searchOpenverse('moon river', 'title', 1, 15, f.fetch);
+    await searchOpenverse('kevin', 'artist', 1, 15, f.fetch);
+    await searchOpenverse('piano', 'all', 1, 15, f.fetch);
+    const params = f.calls.map((u) => new URL(u).searchParams);
+    expect(params[0]!.get('title')).toBe('moon river');
+    expect(params[0]!.get('q')).toBeNull();
+    expect(params[1]!.get('creator')).toBe('kevin');
+    expect(params[2]!.get('q')).toBe('piano');
+  });
+  const commonsPages = () =>
+    json({
+      query: {
+        pages: [
+          {
+            title: 'File:A.ogg',
+            imageinfo: [
+              {
+                url: 'https://upload.wikimedia.org/a.ogg',
+                mime: 'application/ogg',
+                extmetadata: {
+                  Artist: { value: 'Clara Schumann' },
+                  DateTimeOriginal: { value: 'circa 1935<div>x</div>' },
+                  LicenseShortName: { value: 'CC0' },
+                },
+              },
+            ],
+          },
+          {
+            title: 'File:B.ogg',
+            imageinfo: [
+              {
+                url: 'https://upload.wikimedia.org/b.ogg',
+                mime: 'application/ogg',
+                extmetadata: {
+                  Artist: { value: 'Someone Else' },
+                  LicenseShortName: { value: 'CC0' },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  it('Commons: title mode requires every word in the file name', async () => {
+    const f = fakeFetch({ 'https://commons.wikimedia.org/': commonsPages });
+    await searchCommons('blue danube', 'title', 1, 15, f.fetch);
+    expect(new URL(f.calls[0]!).searchParams.get('gsrsearch')).toBe(
+      'intitle:blue intitle:danube filetype:audio',
+    );
+  });
+  it('Commons: artist mode filters on the Artist metadata and reads the year', async () => {
+    const f = fakeFetch({ 'https://commons.wikimedia.org/': commonsPages });
+    const page = await searchCommons('schumann', 'artist', 1, 15, f.fetch);
+    expect(page.hits.map((h) => h.title)).toEqual(['A']);
+    expect(page.hits[0]!.year).toBe(1935);
+    const all = await searchCommons('schumann', 'all', 1, 15, f.fetch);
+    expect(all.hits).toHaveLength(2);
+  });
+  it('Internet Archive reads year, falling back to date', async () => {
+    const lic = 'https://creativecommons.org/licenses/by/4.0/';
+    const f = fakeFetch({
+      'https://archive.org/advancedsearch.php': () =>
+        json({
+          response: {
+            numFound: 3,
+            docs: [
+              { identifier: 'a', licenseurl: lic, year: 2014 },
+              { identifier: 'b', licenseurl: lic, date: '2007-01-01T00:00:00Z' },
+              { identifier: 'c', licenseurl: lic },
+            ],
+          },
+        }),
+    });
+    const page = await searchArchive('x', 'all', 1, 15, f.fetch);
+    expect(page.hits.map((h) => h.year)).toEqual([2014, 2007, null]);
+  });
+  it('parses years out of free text', () => {
+    expect(parseYear('circa 1935')).toBe(1935);
+    expect(parseYear('April 1916. first published 1909')).toBe(1916);
+    expect(parseYear('2025-06-03')).toBe(2025);
+    expect(parseYear(2014)).toBe(2014);
+    expect(parseYear('page 12345')).toBeNull();
+    expect(parseYear('3025')).toBeNull();
+    expect(parseYear('')).toBeNull();
+  });
+});
+
+describe('mergeHits', () => {
+  const lic = licenseFromShortName('CC0')!;
+  const hit = (
+    source: SearchHit['source'],
+    title: string,
+    creator: string,
+    size: number | null,
+    year: number | null,
+  ): SearchHit => ({
+    source,
+    id: `${source}-${title}`,
+    title,
+    creator,
+    license: lic,
+    pageUrl: '',
+    durationSec: null,
+    size,
+    year,
+    downloadUrl: null,
+    mime: null,
+  });
+  const a = [hit('archive', 'Zebra', 'bob', 300, 1999), hit('archive', 'Apple', '', 100, null)];
+  const o = [
+    hit('openverse', 'Mango', 'Ann', null, 2010),
+    hit('openverse', 'Berry', 'carl', 200, 1980),
+  ];
+  const titles = (key: Parameters<typeof mergeHits>[1], dir: Parameters<typeof mergeHits>[2]) =>
+    mergeHits([{ hits: a }, { hits: o }], key, dir).map((h) => h.title);
+
+  it('interleaves the sources by relevance', () => {
+    expect(titles('relevance', 'asc')).toEqual(['Zebra', 'Mango', 'Apple', 'Berry']);
+  });
+  it('sorts by title, ignoring case', () => {
+    expect(titles('title', 'asc')).toEqual(['Apple', 'Berry', 'Mango', 'Zebra']);
+    expect(titles('title', 'desc')).toEqual(['Zebra', 'Mango', 'Berry', 'Apple']);
+  });
+  it('sorts by artist; items without an artist are always last', () => {
+    expect(titles('artist', 'asc')).toEqual(['Mango', 'Zebra', 'Berry', 'Apple']);
+    expect(titles('artist', 'desc')).toEqual(['Berry', 'Zebra', 'Mango', 'Apple']);
+  });
+  it('sorts by size and year; unknown values are always last', () => {
+    expect(titles('size', 'asc')).toEqual(['Apple', 'Berry', 'Zebra', 'Mango']);
+    expect(titles('size', 'desc')).toEqual(['Zebra', 'Berry', 'Apple', 'Mango']);
+    expect(titles('year', 'desc')).toEqual(['Mango', 'Zebra', 'Berry', 'Apple']);
+    expect(titles('year', 'asc')).toEqual(['Berry', 'Zebra', 'Mango', 'Apple']);
+  });
+  it('handles empty input and picks sensible default directions', () => {
+    expect(mergeHits([], 'title', 'asc')).toEqual([]);
+    expect(mergeHits([{ hits: [] }], 'size', 'desc')).toEqual([]);
+    expect(defaultDir('title')).toBe('asc');
+    expect(defaultDir('artist')).toBe('asc');
+    expect(defaultDir('size')).toBe('desc');
+    expect(defaultDir('year')).toBe('desc');
   });
 });

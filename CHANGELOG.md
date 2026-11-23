@@ -2,6 +2,14 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.2.1 (2026-11-23)
+
+- Cari: mode pencarian **Semua / Judul / Artis** (kolom judul dan pencipta di tiap sumber; Commons menyaring artis di sisi aplikasi).
+- Cari: hasil tiga sumber dalam **satu daftar** yang bisa diurutkan menurut relevansi, nama artis, judul lagu, ukuran, atau tahun rilis, naik atau turun; nilai tidak diketahui selalu di akhir. Tahun rilis ditampilkan bila sumber menyebutnya (Internet Archive, Commons; Openverse tidak punya).
+- Cari: Lihat lagu, Unduh, dan Putar kini berupa ikon (dengan nama aksesibel).
+- Dokumentasi: temuan Jamendo (sebagian berkas gagal di PC, berhasil di A23) di `docs/DECISIONS_SOURCES.md`.
+- Konversi YouTube tidak berubah.
+
 ## 0.2.0 (2026-11-23)
 
 - PWA: tab **Cari** untuk mencari dan mengunduh musik legal langsung dari sumbernya (tanpa server): Internet Archive, Openverse, Wikimedia Commons. Hanya karya berlisensi Creative Commons atau domain publik yang tampil; tanpa lisensi dikenali = disembunyikan. Label lisensi dan penanda non-komersial / tanpa turunan terlihat; album Internet Archive dibuka per berkas. Unduhan memakai progres, batas 200 MB, hanya https dan hanya tipe audio, lalu masuk Library dengan atribusi (`credit`: pencipta, lisensi, tautan).

@@ -48,3 +48,13 @@ export function stripHtml(html: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/** First plausible year (1500-2100) in free text such as "circa 1935" or "2014-12-01T00:00:00Z". */
+export function parseYear(v: unknown): number | null {
+  const m = /(?:^|\D)(1[5-9]\d\d|20\d\d)(?!\d)/.exec(
+    asString(typeof v === 'number' ? String(v) : v),
+  );
+  if (!m) return null;
+  const year = Number(m[1]);
+  return year <= new Date().getFullYear() + 1 ? year : null;
+}

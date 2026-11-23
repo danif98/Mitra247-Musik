@@ -1,7 +1,7 @@
 /** Internet Archive: advanced search for audio items with a Creative Commons / public domain license. */
-import { asNumber, asString, getJson, isRecord } from './http';
+import { asNumber, asString, getJson, isRecord, parseYear } from './http';
 import { licenseFromUrl } from './license';
-import type { FetchLike, SearchHit, SearchPage, SourceTrack } from './types';
+import type { FetchLike, SearchHit, SearchMode, SearchPage, SourceTrack } from './types';
 
 const BASE = 'https://archive.org';
 
@@ -15,6 +15,7 @@ export function cleanQuery(query: string): string {
 
 export async function searchArchive(
   query: string,
+  mode: SearchMode,
   page: number,
   pageSize: number,
   fetchFn: FetchLike,
@@ -23,10 +24,11 @@ export async function searchArchive(
   const q = cleanQuery(query);
   if (!q) return { source: 'archive', hits: [], hasMore: false };
   // licenseurl:* keeps only items that carry a license; audiobooks and podcasts are not music.
-  const lucene = `(${q}) AND mediatype:audio AND licenseurl:* AND -collection:(librivoxaudio OR audio_bookspoetry OR podcasts)`;
+  const field = mode === 'title' ? 'title:' : mode === 'artist' ? 'creator:' : '';
+  const lucene = `${field}(${q}) AND mediatype:audio AND licenseurl:* AND -collection:(librivoxaudio OR audio_bookspoetry OR podcasts)`;
   const params = new URLSearchParams();
   params.set('q', lucene);
-  for (const f of ['identifier', 'title', 'creator', 'licenseurl', 'item_size']) {
+  for (const f of ['identifier', 'title', 'creator', 'licenseurl', 'item_size', 'year', 'date']) {
     params.append('fl[]', f);
   }
   params.append('sort[]', 'downloads desc');
@@ -53,6 +55,7 @@ export async function searchArchive(
       pageUrl: `${BASE}/details/${encodeURIComponent(identifier)}`,
       durationSec: null,
       size: asNumber(d['item_size']),
+      year: parseYear(d['year']) ?? parseYear(d['date']),
       downloadUrl: null,
       mime: null,
     });
@@ -77,7 +80,9 @@ export function parseLength(v: unknown): number | null {
 
 /** Playable files of an item: best MP3 variants, else Ogg Vorbis, else the 64 kbps MP3. */
 export async function archiveTracks(
-  hit: Pick<SearchHit, 'id' | 'title' | 'creator' | 'license' | 'pageUrl'>,
+  hit: Pick<SearchHit, 'id' | 'title' | 'creator' | 'license' | 'pageUrl'> & {
+    year?: number | null;
+  },
   fetchFn: FetchLike,
   signal?: AbortSignal,
 ): Promise<SourceTrack[]> {
@@ -103,6 +108,7 @@ export async function archiveTracks(
       pageUrl: hit.pageUrl,
       durationSec: parseLength(f['length']),
       size: asNumber(f['size']),
+      year: hit.year ?? null,
       downloadUrl: `${BASE}/download/${encodeURIComponent(hit.id)}/${path}`,
       mime: isOgg ? 'audio/ogg' : 'audio/mpeg',
     };

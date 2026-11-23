@@ -1,6 +1,8 @@
 /** Search and download from legal sources (Creative Commons / public domain), browser to source. */
 import {
   ALL_SOURCES,
+  defaultDir,
+  mergeHits,
   SourceError,
   archiveTracks,
   creditOf,
@@ -8,7 +10,10 @@ import {
   fileNameFor,
   searchSources,
   type SearchHit,
+  type SearchMode,
   type SongMeta,
+  type SortDir,
+  type SortKey,
   type SourceId,
   type SourceTrack,
 } from '@musik/core';
@@ -58,12 +63,36 @@ const doFetch = (input: string, init?: RequestInit) => fetch(input, init);
 
 export class SearchFlow {
   query = $state('');
+  mode = $state<SearchMode>('all');
+  sortKey = $state<SortKey>('relevance');
+  sortDir = $state<SortDir>('asc');
   sources = $state<SourceId[]>([...ALL_SOURCES]);
   status = $state<'idle' | 'searching' | 'done'>('idle');
   groups = $state<Group[]>([]);
   expanded = $state<Record<string, Expansion>>({});
   downloads = $state<Record<string, Download>>({});
   private abort: AbortController | null = null;
+
+  /** All loaded results of every source in one list, sorted. */
+  get items(): SearchHit[] {
+    return mergeHits(this.groups, this.sortKey, this.sortDir);
+  }
+
+  setSort(key: SortKey): void {
+    this.sortKey = key;
+    this.sortDir = defaultDir(key);
+  }
+
+  toggleDir(): void {
+    this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+  }
+
+  /** Changing what is searched re-runs the search when there are results to replace. */
+  setMode(mode: SearchMode): void {
+    if (this.mode === mode) return;
+    this.mode = mode;
+    if (this.status === 'done' && this.query.trim()) void this.search();
+  }
 
   toggleSource(source: SourceId): void {
     const has = this.sources.includes(source);
@@ -80,7 +109,7 @@ export class SearchFlow {
     this.status = 'searching';
     this.groups = [];
     this.expanded = {};
-    const results = await searchSources(q, this.sources, 1, doFetch, this.abort.signal);
+    const results = await searchSources(q, this.mode, this.sources, 1, doFetch, this.abort.signal);
     this.groups = results.map((r) => ({
       source: r.source,
       hits: r.page?.hits ?? [],
@@ -96,7 +125,13 @@ export class SearchFlow {
     const group = this.groups.find((g) => g.source === source);
     if (!group || group.loadingMore || !group.hasMore) return;
     group.loadingMore = true;
-    const [r] = await searchSources(this.query.trim(), [source], group.page + 1, doFetch);
+    const [r] = await searchSources(
+      this.query.trim(),
+      this.mode,
+      [source],
+      group.page + 1,
+      doFetch,
+    );
     if (r?.page) {
       const seen = group.hits.map(keyOf);
       group.hits.push(...r.page.hits.filter((h) => !seen.includes(keyOf(h))));

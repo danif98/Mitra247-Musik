@@ -19,7 +19,10 @@
     | 'loopB'
     | 'loopClear'
     | 'eq'
-    | 'metronome';
+    | 'metronome'
+    | 'list'
+    | 'sortUp'
+    | 'sortDown';
 
   interface Props {
     name: IconName;
@@ -52,6 +55,9 @@
       'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
     eq: 'M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z',
     metronome: 'M9.6 2h4.8l3.6 20H6L9.6 2zm1.4 2L8 20h8L13 4h-2z',
+    list: 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z',
+    sortUp: 'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z',
+    sortDown: 'M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z',
   };
 </script>
 

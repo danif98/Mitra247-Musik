@@ -1,7 +1,13 @@
 import { searchArchive } from './archive';
 import { searchCommons } from './commons';
 import { searchOpenverse } from './openverse';
-import { SourceError, type FetchLike, type SearchPage, type SourceId } from './types';
+import {
+  SourceError,
+  type FetchLike,
+  type SearchMode,
+  type SearchPage,
+  type SourceId,
+} from './types';
 
 export const ALL_SOURCES: SourceId[] = ['archive', 'openverse', 'commons'];
 export const PAGE_SIZE = 15;
@@ -21,6 +27,7 @@ const IMPL = {
 /** Search the chosen sources in parallel; one failing source never hides the others. */
 export async function searchSources(
   query: string,
+  mode: SearchMode,
   sources: SourceId[],
   page: number,
   fetchFn: FetchLike,
@@ -29,7 +36,7 @@ export async function searchSources(
   return Promise.all(
     sources.map(async (source): Promise<SourceResult> => {
       try {
-        const result = await IMPL[source](query, page, PAGE_SIZE, fetchFn, signal);
+        const result = await IMPL[source](query, mode, page, PAGE_SIZE, fetchFn, signal);
         return { source, page: result, error: null };
       } catch (err) {
         return {

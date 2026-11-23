@@ -1,6 +1,6 @@
 {
   "name": "musik",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Musik Tools: personal music practice player (speed, transpose, minus one, YouTube to MP3).",
   "license": "GPL-3.0-only",

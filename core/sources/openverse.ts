@@ -1,7 +1,7 @@
 /** Openverse (WordPress): aggregates Creative Commons audio (Jamendo, Freesound, Wikimedia, ...). */
 import { asNumber, asString, getJson, isRecord } from './http';
 import { licenseFromOpenverse } from './license';
-import type { FetchLike, SearchHit, SearchPage } from './types';
+import type { FetchLike, SearchHit, SearchMode, SearchPage } from './types';
 
 const MIME: Record<string, string> = {
   mp3: 'audio/mpeg',
@@ -16,6 +16,7 @@ const MIME: Record<string, string> = {
 
 export async function searchOpenverse(
   query: string,
+  mode: SearchMode,
   page: number,
   pageSize: number,
   fetchFn: FetchLike,
@@ -23,8 +24,10 @@ export async function searchOpenverse(
 ): Promise<SearchPage> {
   const q = query.replace(/\s+/g, ' ').trim();
   if (!q) return { source: 'openverse', hits: [], hasMore: false };
+  // Openverse has dedicated `title` and `creator` filters; it states no release year.
+  const field = mode === 'title' ? 'title' : mode === 'artist' ? 'creator' : 'q';
   const params = new URLSearchParams({
-    q,
+    [field]: q,
     category: 'music',
     page: String(page),
     page_size: String(pageSize),
@@ -49,6 +52,7 @@ export async function searchOpenverse(
       pageUrl: asString(r['foreign_landing_url']) || url,
       durationSec: ms === null ? null : Math.round(ms / 1000),
       size: asNumber(r['filesize']),
+      year: null,
       downloadUrl: url,
       mime: MIME[type] ?? null,
     });

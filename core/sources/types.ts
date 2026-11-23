@@ -8,6 +8,11 @@ export const SOURCE_NAMES: Record<SourceId, string> = {
   commons: 'Wikimedia Commons',
 };
 
+/** What the query is matched against. */
+export type SearchMode = 'all' | 'title' | 'artist';
+
+export const SEARCH_MODES: SearchMode[] = ['all', 'title', 'artist'];
+
 export interface License {
   /** Short code such as "CC BY-SA 4.0", "CC0" or "Domain publik". */
   label: string;
@@ -30,6 +35,8 @@ export interface SearchHit {
   pageUrl: string;
   durationSec: number | null;
   size: number | null;
+  /** Release year when the source states one, else null. */
+  year: number | null;
   downloadUrl: string | null;
   mime: string | null;
 }

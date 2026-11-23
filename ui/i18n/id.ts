@@ -145,6 +145,25 @@ export const id = {
     intro:
       'Mencari lagu berlisensi Creative Commons atau domain publik yang boleh diunduh. Unduhan langsung dari sumbernya ke HP, tanpa server.',
     placeholder: 'Judul, artis, atau alat musik',
+    placeholders: {
+      all: 'Judul, artis, atau alat musik',
+      title: 'Judul lagu',
+      artist: 'Nama artis',
+    },
+    modeLabel: 'Cari berdasarkan',
+    modes: { all: 'Semua', title: 'Judul', artist: 'Artis' },
+    sortLabel: 'Urutkan',
+    sorts: {
+      relevance: 'Relevansi',
+      artist: 'Nama artis',
+      title: 'Judul lagu',
+      size: 'Ukuran',
+      year: 'Tahun rilis',
+    },
+    dirAsc: 'Naik (A-Z, kecil ke besar)',
+    dirDesc: 'Turun (Z-A, besar ke kecil)',
+    sortHint:
+      'Urutan berlaku untuk hasil yang sudah dimuat. Tahun rilis hanya diberikan sebagian sumber (Openverse tidak punya); yang tidak diketahui selalu di akhir.',
     submit: 'Cari',
     searching: 'Mencari…',
     sources: {

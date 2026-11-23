@@ -19,3 +19,4 @@ export * from './sources/openverse';
 export * from './sources/commons';
 export * from './sources/search';
 export * from './sources/download';
+export * from './sources/sort';

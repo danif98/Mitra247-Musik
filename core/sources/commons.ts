@@ -1,7 +1,7 @@
 /** Wikimedia Commons: audio files with their license metadata. */
-import { asNumber, asString, getJson, isRecord, stripHtml } from './http';
+import { asNumber, asString, getJson, isRecord, parseYear, stripHtml } from './http';
 import { licenseFromShortName, licenseFromUrl } from './license';
-import type { FetchLike, SearchHit, SearchPage } from './types';
+import type { FetchLike, SearchHit, SearchMode, SearchPage } from './types';
 
 function metaValue(meta: unknown, key: string): string {
   if (!isRecord(meta) || !isRecord(meta[key])) return '';
@@ -10,6 +10,7 @@ function metaValue(meta: unknown, key: string): string {
 
 export async function searchCommons(
   query: string,
+  mode: SearchMode,
   page: number,
   pageSize: number,
   fetchFn: FetchLike,
@@ -20,13 +21,21 @@ export async function searchCommons(
   const params = new URLSearchParams({
     action: 'query',
     generator: 'search',
-    gsrsearch: `${q} filetype:audio`,
+    // Title: every word must be in the file name. Artist has no search field: full text, then
+    // filtered below on the Artist metadata.
+    gsrsearch:
+      mode === 'title'
+        ? `${q
+            .split(' ')
+            .map((w) => `intitle:${w}`)
+            .join(' ')} filetype:audio`
+        : `${q} filetype:audio`,
     gsrnamespace: '6',
     gsrlimit: String(pageSize),
     gsroffset: String((page - 1) * pageSize),
     prop: 'imageinfo',
     iiprop: 'url|mime|size|extmetadata',
-    iiextmetadatafilter: 'Artist|LicenseShortName|LicenseUrl',
+    iiextmetadatafilter: 'Artist|DateTimeOriginal|LicenseShortName|LicenseUrl',
     format: 'json',
     formatversion: '2',
     origin: '*',
@@ -53,19 +62,31 @@ export async function searchCommons(
       licenseFromUrl(metaValue(meta, 'LicenseUrl')) ??
       licenseFromShortName(metaValue(meta, 'LicenseShortName'));
     if (!license) continue;
+    const creator = stripHtml(metaValue(meta, 'Artist'));
+    if (mode === 'artist') {
+      const hay = creator.toLowerCase();
+      if (
+        !q
+          .toLowerCase()
+          .split(' ')
+          .every((w) => hay.includes(w))
+      )
+        continue;
+    }
     const fileTitle = asString(p['title']);
     const title = fileTitle.replace(/^File:/i, '').replace(/\.[A-Za-z0-9]{2,4}$/, '');
     hits.push({
       source: 'commons',
       id: fileTitle || url,
       title: title || 'Tanpa judul',
-      creator: stripHtml(metaValue(meta, 'Artist')),
+      creator,
       license,
       pageUrl:
         asString(info['descriptionurl']) ||
         `https://commons.wikimedia.org/wiki/${encodeURIComponent(fileTitle)}`,
       durationSec: null,
       size: asNumber(info['size']),
+      year: parseYear(metaValue(meta, 'DateTimeOriginal')),
       downloadUrl: url,
       mime: /ogg/i.test(mime) ? 'audio/ogg' : mime,
     });
