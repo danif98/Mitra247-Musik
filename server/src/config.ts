@@ -21,6 +21,10 @@ export interface Config {
   jobTimeoutMs: number;
   /** Value for yt-dlp --js-runtimes, e.g. "node:/home/user/nodevenv/.../bin/node". */
   jsRuntime: string | undefined;
+  /** Netscape cookies.txt for yt-dlp --cookies (copied per job, never modified). */
+  cookiesFile: string | undefined;
+  /** Proxy for yt-dlp --proxy (http, https, socks4, socks5, socks5h). May contain credentials. */
+  proxy: string | undefined;
 }
 
 function intIn(value: string | undefined, fallback: number, min: number, max: number): number {
@@ -51,7 +55,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     retentionMs: intIn(env['RETENTION_MINUTES'], 60, 1, 24 * 60) * 60_000,
     jobTimeoutMs: intIn(env['JOB_TIMEOUT_SEC'], 300, 10, 1800) * 1000,
     jsRuntime: env['YTDLP_JS_RUNTIME']?.trim() || undefined,
+    cookiesFile: env['YTDLP_COOKIES_FILE']?.trim() || undefined,
+    proxy: env['YTDLP_PROXY']?.trim() || undefined,
   };
+}
+
+const PROXY_SCHEME = /^(https?|socks4a?|socks5h?):\/\/[^\s]+$/i;
+
+export function isValidProxy(value: string): boolean {
+  return PROXY_SCHEME.test(value);
 }
 
 /** Human readable configuration problems; empty when the server is fully usable. */
@@ -63,6 +75,14 @@ export function configProblems(config: Config): string[] {
     problems.push(
       `MUSIK_TOKEN is shorter than ${MIN_TOKEN_LENGTH} characters. All endpoints except GET /api/health are disabled.`,
     );
+  }
+  if (config.proxy && !isValidProxy(config.proxy)) {
+    problems.push(
+      'YTDLP_PROXY is not a valid URL (http://, https://, socks4://, socks5:// or socks5h://). It is ignored.',
+    );
+  }
+  if (config.cookiesFile && !fs.existsSync(config.cookiesFile)) {
+    problems.push('YTDLP_COOKIES_FILE does not exist. Cookies are not used.');
   }
   return problems;
 }

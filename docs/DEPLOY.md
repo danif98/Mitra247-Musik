@@ -84,15 +84,24 @@ git clone <url musik-deploy> musik-deploy
 
 cPanel -> _Setup Node.js App_ -> Create: Application root `musik-deploy`, Application URL (mis. `domain-anda.com/musik-api`), **Startup file `server/app.js`**, pilih versi Node. Tambahkan _Environment variables_ (daftar lengkap di `.env.example`):
 
-| Variabel           | Isi                                                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `MUSIK_TOKEN`      | wajib; 32 byte acak hex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`                    |
-| `YTDLP_PATH`       | `/home/<user>/ytvenv/bin/yt-dlp` (path absolut)                                                                        |
-| `FFMPEG_PATH`      | `/home/<user>/bin/ffmpeg`                                                                                              |
-| `DATA_DIR`         | folder kerja di luar `public_html`, mis. `/home/<user>/musik-data`                                                     |
-| `ALLOWED_ORIGINS`  | origin PWA, mis. `https://domain-anda.com` (tanpa path); tambahkan `chrome-extension://<id>` bila memakai ekstensi     |
-| `YTDLP_JS_RUNTIME` | lihat 3.1                                                                                                              |
-| opsional           | `MAX_ACTIVE` (1-2), `MAX_QUEUE`, `MAX_DURATION_SEC` (1200), `RETENTION_MINUTES` (60), `JOB_TIMEOUT_SEC`, `TRUST_PROXY` |
+| Variabel             | Isi                                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `MUSIK_TOKEN`        | wajib; 32 byte acak hex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`                    |
+| `YTDLP_PATH`         | `/home/<user>/ytvenv/bin/yt-dlp` (path absolut)                                                                        |
+| `FFMPEG_PATH`        | `/home/<user>/bin/ffmpeg`                                                                                              |
+| `DATA_DIR`           | folder kerja di luar `public_html`, mis. `/home/<user>/musik-data`                                                     |
+| `ALLOWED_ORIGINS`    | origin PWA, mis. `https://domain-anda.com` (tanpa path); tambahkan `chrome-extension://<id>` bila memakai ekstensi     |
+| `YTDLP_COOKIES_FILE` | opsional; path berkas `cookies.txt` (format Netscape) di luar `public_html`, `chmod 600`. Lihat 3.2                    |
+| `YTDLP_PROXY`        | opsional; mis. `socks5h://user:sandi@host:1080` atau `http://host:3128`. Lihat 3.2                                     |
+| `YTDLP_JS_RUNTIME`   | lihat 3.1                                                                                                              |
+| opsional             | `MAX_ACTIVE` (1-2), `MAX_QUEUE`, `MAX_DURATION_SEC` (1200), `RETENTION_MINUTES` (60), `JOB_TIMEOUT_SEC`, `TRUST_PROXY` |
+
+**3.2 Bila YouTube memblokir server ("Sign in to confirm you're not a bot").** IP hosting bersama sering ditolak YouTube. Uji dengan `yt-dlp --simulate --no-playlist <url>` di Terminal cPanel; log kegagalan job juga masuk `stderr.log` (10 baris terakhir, tanpa URL). Dua opsi, boleh dipakai bersama:
+
+- `YTDLP_PROXY`: lalu lintas yt-dlp lewat proxy dengan IP yang tidak diblokir (VPS sendiri, tunnel ke rumah). Nilai bisa berisi sandi: isi hanya sebagai variabel, jangan di repo. Hanya skema `http`, `https`, `socks4`, `socks5`, `socks5h` yang diterima; nilai lain diabaikan dengan peringatan.
+- `YTDLP_COOKIES_FILE`: cookies akun YouTube hasil ekspor dari browser (lihat wiki yt-dlp "Exporting YouTube cookies"). Server menyalin berkas ini per job dan menghapus salinannya setelah selesai, jadi berkas asli tidak diubah. **Risiko:** akun yang dipakai bisa kena batasan atau ditandai; pakai akun cadangan, bukan akun utama. Perlakukan berkas ini seperti sandi: di luar document root, `chmod 600`, jangan di-commit.
+
+`/api/health` menampilkan `cookies` dan `proxy` (true/false saja, nilainya tidak pernah ditampilkan). Isi variabel di cPanel lalu Restart.
 
 **Alternatif `.env`:** buat `~/musik-deploy/.env` (akar aplikasi, sejajar `package.json`; bukan di `app/` atau `server/`), isi dari `.env.example`, lalu `chmod 600 .env`. Berkas ini diabaikan git sehingga `git pull` tidak menimpanya; variabel yang diisi di cPanel menang atas isi `.env`. Hanya `app/` yang boleh terbuka ke web; jangan membuka seluruh `~/musik-deploy`, karena `.env` berisi token. Cek hasilnya di `/api/health` (`configured:true`).
 

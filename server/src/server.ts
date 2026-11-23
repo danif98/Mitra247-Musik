@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import { hasValidBearer } from './auth';
 import { readBuildInfo, type BuildInfo } from './build-info';
-import { configProblems, type Config } from './config';
+import { configProblems, isValidProxy, type Config } from './config';
 import { JOB_ID, JobManager, type Job } from './jobs';
 import { AuthLockout, SlidingWindowLimiter, type Clock } from './limits';
 import { LINK_TTL_MS, signLink, verifyLink } from './signing';
@@ -125,6 +125,8 @@ export function createApp(
     ytdlpPrefixArgs: deps.ytdlpPrefixArgs,
     ffmpegPath: config.ffmpegPath,
     jsRuntime: config.jsRuntime,
+    proxy: config.proxy && isValidProxy(config.proxy) ? config.proxy : undefined,
+    cookiesFile: config.cookiesFile,
     maxActive: config.maxActive,
     maxQueue: config.maxQueue,
     maxDurationSec: config.maxDurationSec,
@@ -218,6 +220,9 @@ export function createApp(
           ytdlpProblem: ytdlpInfo.problem,
           ffmpegFound: config.ffmpegPath ? fs.existsSync(config.ffmpegPath) : null,
           configured,
+          // Only whether they are set, never the values.
+          cookies: config.cookiesFile ? fs.existsSync(config.cookiesFile) : false,
+          proxy: Boolean(config.proxy && isValidProxy(config.proxy)),
         },
         corsHeaders,
       );

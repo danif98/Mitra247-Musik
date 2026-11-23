@@ -55,6 +55,22 @@ describe('buildYtdlpArgs', () => {
     expect(at('--match-filters')).toBe('duration<=900');
     expect(args.every((a) => typeof a === 'string')).toBe(true);
   });
+  it('adds --proxy and --cookies only when given', () => {
+    const base = { dataDir: '/d', ffmpegPath: undefined, jsRuntime: undefined, maxDurationSec: 60 };
+    const withBoth = buildYtdlpArgs(
+      { ...base, proxy: 'socks5h://u:p@10.0.0.1:1080' },
+      '/d/jobs/abc',
+      'dQw4w9WgXcQ',
+      '/d/jobs/abc/cookies.txt',
+    );
+    const at = (flag: string) => withBoth[withBoth.indexOf(flag) + 1];
+    expect(at('--proxy')).toBe('socks5h://u:p@10.0.0.1:1080');
+    expect(at('--cookies')).toBe('/d/jobs/abc/cookies.txt');
+    expect(withBoth.slice(-2)[0]).toBe('--');
+    const none = buildYtdlpArgs(base, '/d/jobs/abc', 'dQw4w9WgXcQ');
+    expect(none).not.toContain('--proxy');
+    expect(none).not.toContain('--cookies');
+  });
   it('omits optional flags when not configured', () => {
     const args = buildYtdlpArgs(
       { dataDir: '/d', ffmpegPath: undefined, jsRuntime: undefined, maxDurationSec: 60 },
@@ -98,6 +114,27 @@ describe('JobManager', () => {
     } finally {
       delete process.env['MUSIK_TOKEN'];
     }
+  });
+
+  it('gives yt-dlp a private copy of the cookies file and removes it afterwards', async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const cookies = path.join(dir, 'cookies.txt');
+    fs.writeFileSync(cookies, '# Netscape HTTP Cookie File\n');
+    const { m, dataDir } = make({ cookiesFile: cookies, proxy: 'http://127.0.0.1:3128' });
+    const r = m.submit(vid('COOK'));
+    if (!r.ok) throw new Error('rejected');
+    await until(() => finished(r.job));
+    const jobDir = path.join(dataDir, 'jobs', r.job.id);
+    const argv = JSON.parse(fs.readFileSync(path.join(jobDir, 'argv.json'), 'utf8')) as {
+      args: string[];
+    };
+    const copy = argv.args[argv.args.indexOf('--cookies') + 1];
+    expect(copy).toBe(path.join(jobDir, 'cookies.txt'));
+    expect(copy).not.toBe(cookies);
+    expect(argv.args[argv.args.indexOf('--proxy') + 1]).toBe('http://127.0.0.1:3128');
+    expect(fs.existsSync(copy!)).toBe(false);
+    expect(fs.existsSync(cookies)).toBe(true);
   });
 
   it('maps failures to clear error codes and removes their files', async () => {

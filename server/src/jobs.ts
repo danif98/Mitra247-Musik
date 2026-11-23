@@ -41,6 +41,10 @@ export interface JobsOptions {
   ytdlpPrefixArgs?: string[];
   ffmpegPath: string | undefined;
   jsRuntime: string | undefined;
+  /** Already validated proxy URL (see isValidProxy). */
+  proxy?: string | undefined;
+  /** Cookies file to read; a per-job copy is passed to yt-dlp and deleted afterwards. */
+  cookiesFile?: string | undefined;
   maxActive: number;
   maxQueue: number;
   maxDurationSec: number;
@@ -57,9 +61,10 @@ export const JOB_ID = /^[0-9a-f]{32}$/;
 
 /** Fixed argument vector; user input only enters as the canonical URL after `--`. */
 export function buildYtdlpArgs(
-  o: Pick<JobsOptions, 'dataDir' | 'ffmpegPath' | 'jsRuntime' | 'maxDurationSec'>,
+  o: Pick<JobsOptions, 'dataDir' | 'ffmpegPath' | 'jsRuntime' | 'maxDurationSec' | 'proxy'>,
   jobDir: string,
   videoId: string,
+  cookiesCopy?: string,
 ): string[] {
   return [
     '--ignore-config',
@@ -86,6 +91,8 @@ export function buildYtdlpArgs(
     path.join(jobDir, '%(id)s.%(ext)s'),
     ...(o.ffmpegPath ? ['--ffmpeg-location', o.ffmpegPath] : []),
     ...(o.jsRuntime ? ['--js-runtimes', o.jsRuntime] : []),
+    ...(o.proxy ? ['--proxy', o.proxy] : []),
+    ...(cookiesCopy ? ['--cookies', cookiesCopy] : []),
     '--',
     canonicalUrl(videoId),
   ];
@@ -294,9 +301,22 @@ export class JobManager {
       }
       const jobDir = path.join(this.jobsDir, job.id);
       fs.mkdirSync(jobDir, { recursive: true });
+      // yt-dlp rewrites the cookie file when it exits, so it gets a private copy that is removed
+      // as soon as the process ends.
+      let cookiesCopy: string | undefined;
+      if (this.o.cookiesFile) {
+        try {
+          cookiesCopy = path.join(jobDir, 'cookies.txt');
+          fs.copyFileSync(this.o.cookiesFile, cookiesCopy);
+          fs.chmodSync(cookiesCopy, 0o600);
+        } catch {
+          cookiesCopy = undefined;
+          this.o.logError?.('YTDLP_COOKIES_FILE cannot be read; running without cookies.');
+        }
+      }
       const args = [
         ...(this.o.ytdlpPrefixArgs ?? []),
-        ...buildYtdlpArgs(this.o, jobDir, job.videoId),
+        ...buildYtdlpArgs(this.o, jobDir, job.videoId, cookiesCopy),
       ];
       let output = '';
       let settled = false;
@@ -304,6 +324,7 @@ export class JobManager {
         if (settled) return;
         settled = true;
         clearTimeout(timeout);
+        if (cookiesCopy) fs.rmSync(cookiesCopy, { force: true });
         if (!error) {
           const file = path.join(jobDir, `${job.videoId}.mp3`);
           try {

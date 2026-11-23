@@ -24,6 +24,14 @@ describe('config', () => {
     expect(configProblems(loadConfig({})).join()).toMatch(/not set/);
     expect(configProblems(loadConfig({ MUSIK_TOKEN: 'short' })).join()).toMatch(/shorter than/);
     expect(configProblems(loadConfig({ MUSIK_TOKEN: TOKEN }))).toEqual([]);
+    const bad = configProblems(
+      loadConfig({ MUSIK_TOKEN: TOKEN, YTDLP_PROXY: 'ftp://x', YTDLP_COOKIES_FILE: '/nope/c.txt' }),
+    ).join();
+    expect(bad).toMatch(/YTDLP_PROXY/);
+    expect(bad).toMatch(/YTDLP_COOKIES_FILE/);
+    expect(
+      configProblems(loadConfig({ MUSIK_TOKEN: TOKEN, YTDLP_PROXY: 'socks5h://u:p@1.2.3.4:1080' })),
+    ).toEqual([]);
   });
   it('parses and clamps options', () => {
     const c = loadConfig({
