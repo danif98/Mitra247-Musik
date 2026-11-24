@@ -2,6 +2,15 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.3.2 (2026-11-24)
+
+- Layar **Putar** didesain ulang: kartu "sedang diputar" (sampul gradien dari judul, asal daftar, nomor urut, artis, lencana tempo / kunci / loop / Minus One), gelombang suara, deretan kontrol modern (Acak, Sebelumnya, Putar besar, Berikutnya, Ulangi; lalu 5 detik mundur, Berhenti, 5 detik maju, Auto next), dan dua tab: **Antrean** dan **Latihan**. Latihan memuat tempo dan kunci, loop A-B, equalizer, metronom, volume, dan Minus One dalam kartu yang tertata. Tab terakhir yang dipakai diingat.
+- Tab **Latihan** kini ringkas dan muat di layar HP tanpa menggulir: kartu lagu mengecil (sampul 52 px, satu baris judul), gelombang lebih pendek, tombol Putar lebih kecil, tombol **Acak, Auto next, Berhenti** dan **Simpan ke Library** disembunyikan (tetap ada di tab Antrean), tempo dan kunci memakai pencacah ringkas, dan Alat latihan serta volume / Minus One digabung dalam satu kartu. Di mode Latihan, **Ulangi lagu ini** menjadi bawaan; pengaturan Ulangi yang biasa kembali saat keluar dari Latihan, kecuali Anda mengubahnya sendiri di dalam Latihan.
+- Tab **Antrean** menampilkan daftar lagu yang sedang diputar (dari Library, Musik di HP, atau folder simpan) dengan lagu yang diputar ditandai dan penanda animasi; ketuk baris untuk langsung memutar lagu itu. Daftar bergulir sendiri ke lagu yang sedang diputar dan memuat ribuan lagu tanpa lambat.
+- **Lagu terakhir diputar**: antrean, lagu, dan posisinya diingat di perangkat. Saat aplikasi dibuka lagi, layar Putar langsung menampilkan daftar terakhir dan lagu terakhir (dijeda, dilanjutkan dari posisi terakhir). Berlaku untuk daftar dari Library (yang diingat id lagunya) dan dari Musik di HP termasuk folder dan kartu SD (yang diingat entri MediaStore-nya, maksimal 1000 lagu di sekitar lagu yang diputar). Bila berkas sudah dihapus, layar dimulai kosong tanpa galat. Berkas yang dibuka lewat pemilih berkas tidak bisa dibuka ulang dan tidak diingat. Logika di `core/library/lastplayed.ts`.
+- Notifikasi dan layar kunci memakai nama artis lagu dari HP.
+- Uji: `core/library/lastplayed.test.ts`, `e2e/playscreen.mjs` (kartu, daftar, tab, ketuk baris, pulih setelah muat ulang, tanpa luapan lebar layar, mode Latihan ringkas muat di 384×780).
+
 ## 0.3.1 (2026-11-24)
 
 - Android, **perbaikan**: musik berhenti saat layar mati di akhir lagu. Log HP menunjukkan aplikasi crash (`ForegroundServiceStartNotAllowedException`): jeda singkat antar lagu menurunkan layanan dari foreground dan Android 12+ menolak menaikkannya lagi di latar belakang. Layanan kini bertahan di foreground sampai jeda 90 detik, wake lock ikut ditahan, dan penolakan Android tidak lagi menjatuhkan aplikasi. Terbukti di A23: lagu berganti otomatis dengan layar mati, nol crash.
@@ -9,7 +18,8 @@ Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi
 - Musik di HP: daftar dibaca ulang setiap kali tampilan dibuka, ada tombol **Muat ulang daftar**, entri MediaStore yang berkasnya sudah dihapus atau dipindah disembunyikan (dan Android diminta menyegarkan indeksnya), dan tampilan folder keluar dari folder yang sudah kosong.
 - Android: **Folder simpan MP3** di Setelan (pilih folder internal atau kartu SD lewat pemilih folder Android, izin tersimpan). MP3 hasil konversi YouTube disalin ke folder itu dengan nama judul (nomor ditambah bila sudah ada) dan langsung muncul di Musik di HP. Opsi **Simpan juga di Library aplikasi** (aktif bawaan; mati = hanya berkas di folder). Bila penyalinan gagal, lagu tetap disimpan di Library.
 - Android: **yt-dlp diperbarui otomatis**. APK membawa yt-dlp 2025.11.12 yang cepat usang; kini plugin memeriksa yt-dlp terbaru saat aplikasi dibuka (paling sering tiap 3 hari, ulang setelah 6 jam bila gagal) dan memperbaruinya sendiri, tanpa menyentuh unduhan yang sedang jalan. Bila unduhan atau pencarian gagal dengan galat umum, yt-dlp diperbarui sekali (jeda minimal 30 menit) lalu perintah diulang. Pencarian dan unduhan menunggu selama pembaruan berlangsung. Sakelar "Perbarui yt-dlp otomatis", waktu pemeriksaan terakhir, dan tombol Perbarui sekarang ada di Setelan. Terbukti di A23: 2025.11.12 menjadi 2026.11.23 dalam sekitar 4 detik saat pembukaan pertama.
-- Uji: `core/library/playmode.test.ts`, `e2e/lazyqueue.mjs` (mode putar dan tombol).
+- Setelan, bagian **Tentang**: versi (format 0.3.1), tanggal dan jam build (zona waktu perangkat), platform (APK atau Web/PWA), dan tombol **Lihat riwayat versi** yang menampilkan isi `CHANGELOG.md` per versi (versi terbaru terbuka, kode dan huruf tebal dirender tanpa HTML). APK melaporkan versi dan waktu build-nya sendiri: `versionName` dan `versionCode` (0.3.1 menjadi 301) kini diambil dari `package.json` dan waktu build dari `BuildConfig`. Parser di `core/about/changelog.ts`.
+- Uji: `core/about/changelog.test.ts` (termasuk membaca `CHANGELOG.md` asli), `e2e/about.mjs`, `core/library/playmode.test.ts`, `e2e/lazyqueue.mjs` (mode putar dan tombol).
 
 ## 0.3.0 (2026-11-23)
 

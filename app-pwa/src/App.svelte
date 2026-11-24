@@ -50,9 +50,13 @@
       const keep = params.has('test') ? '?test' : '';
       history.replaceState(null, '', location.pathname + keep);
     }
-    void player.init().then(() => {
-      if (!shared && player.songs.length > 0) tab = 'play';
-    });
+    void player
+      .init()
+      .then(() => player.restoreLast())
+      .then((restored) => {
+        // The last queue and song come back on the Play screen (paused).
+        if (!shared && (restored || player.songs.length > 0)) tab = 'play';
+      });
   });
 
   const tabs: { key: Tab; label: string }[] = [

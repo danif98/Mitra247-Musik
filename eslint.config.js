@@ -23,7 +23,14 @@ export default tseslint.config(
   ...svelte.configs['flat/prettier'],
   {
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node, __BUILD__: 'readonly', chrome: 'readonly' },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        __BUILD__: 'readonly',
+        __APP_VERSION__: 'readonly',
+        __BUILT_AT__: 'readonly',
+        chrome: 'readonly',
+      },
     },
     rules: {
       '@typescript-eslint/no-unused-vars': [

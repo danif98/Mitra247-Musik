@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from 'svelte';
   import { id } from '@musik/ui';
-  import { formatBytes } from '@musik/core';
+  import { formatBuildTime, formatBytes } from '@musik/core';
   import type { Player } from './player.svelte';
   import { maskToken, type ServerSettings } from './server.svelte';
   import { describeError } from './youtube.svelte';
-  import { native } from './native';
+  import { native, type AppInfo } from './native';
+  import ChangelogList from './ChangelogList.svelte';
   import { saveFolder } from './save-folder.svelte';
 
   interface Props {
@@ -22,6 +23,12 @@
   let testing = $state(false);
   let serverInfo = $state('');
 
+  // About: the APK reports its own version and build time; a browser uses the web build's.
+  let appInfo = $state<AppInfo | null>(null);
+  const aboutVersion = $derived(appInfo?.versionName ?? __APP_VERSION__);
+  const aboutBuilt = $derived(formatBuildTime(appInfo?.buildTime ?? __BUILT_AT__));
+  let showLog = $state(false);
+
   // Android app: yt-dlp runs on the phone and must be updated now and then.
   let ytVersion = $state('');
   let ytMsg = $state('');
@@ -30,6 +37,10 @@
   let ytLastCheck = $state(0);
   onMount(() => {
     void saveFolder.load();
+    void native
+      ?.appInfo()
+      .then((r) => (appInfo = r))
+      .catch(() => undefined);
     void native
       ?.ytAutoUpdate()
       .then((r) => {
@@ -283,7 +294,25 @@
 
   <div class="panel">
     <h3>{t.about}</h3>
-    <p class="muted">{t.build}: {__BUILD__}</p>
+    <dl class="about">
+      <dt>{t.appName}</dt>
+      <dd>{id.appName}</dd>
+      <dt>{t.version}</dt>
+      <dd id="about-version">{aboutVersion}</dd>
+      <dt>{t.builtAt}</dt>
+      <dd id="about-built">{aboutBuilt}</dd>
+      <dt>{t.platform}</dt>
+      <dd id="about-platform">{native ? t.platformApk : t.platformWeb}</dd>
+      <dt>{t.build}</dt>
+      <dd class="muted">{__BUILD__}</dd>
+    </dl>
+    <button
+      type="button"
+      id="changelog-toggle"
+      aria-expanded={showLog}
+      onclick={() => (showLog = !showLog)}>{showLog ? t.hideChangelog : t.showChangelog}</button
+    >
+    {#if showLog}<ChangelogList />{/if}
     <a class="btn" href="./lab/">{t.lab}</a>
   </div>
 </section>
@@ -335,6 +364,20 @@
     display: grid;
     gap: 8px;
     grid-template-columns: 1fr 1fr;
+  }
+  .about {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 14px;
+    margin: 0;
+  }
+  .about dt {
+    color: var(--muted);
+  }
+  .about dd {
+    margin: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
   }
   .check {
     display: flex;

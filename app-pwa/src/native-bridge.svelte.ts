@@ -24,7 +24,7 @@ export function bindNative(player: Player, onSharedUrl: (url: string) => void): 
     const playing = player.playing;
     const state = {
       title: song.title,
-      artist: song.credit?.creator ?? '',
+      artist: song.artist ?? song.credit?.creator ?? '',
       durationMs: Math.round((player.duration || song.duration || 0) * 1000),
       positionMs: Math.round(untrack(() => player.position) * 1000),
       playing,

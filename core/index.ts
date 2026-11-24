@@ -23,3 +23,5 @@ export * from './sources/sort';
 export * from './sources/filter';
 export * from './library/folders';
 export * from './library/playmode';
+export * from './about/changelog';
+export * from './library/lastplayed';

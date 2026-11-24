@@ -7,12 +7,23 @@
     loopA?: number | null;
     loopB?: number | null;
     onseek: (seconds: number) => void;
+    /** Height in CSS pixels. */
+    height?: number;
   }
-  let { peaks, position, duration, label, loopA = null, loopB = null, onseek }: Props = $props();
+  let {
+    peaks,
+    position,
+    duration,
+    label,
+    loopA = null,
+    loopB = null,
+    onseek,
+    height = 72,
+  }: Props = $props();
 
   let canvas: HTMLCanvasElement;
   let width = $state(300);
-  const HEIGHT = 72;
+  const HEIGHT = $derived(height);
 
   function draw() {
     if (!canvas) return;

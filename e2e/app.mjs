@@ -71,6 +71,14 @@ const context = await browser.newContext({
   viewport: { width: 412, height: 915 },
   deviceScaleFactor: 2.625,
 });
+// The Play screen opens on the queue; these tests drive the practice controls.
+await context.addInitScript(() => {
+  try {
+    localStorage.setItem('musik.playtab', 'practice');
+  } catch {
+    /* ignore */
+  }
+});
 const page = await context.newPage();
 const errors = [];
 page.on('console', (m) => {
@@ -121,6 +129,10 @@ try {
   // 2. Persistence across reload (OPFS + IndexedDB).
   await page.reload({ waitUntil: 'load' });
   await ready();
+  // The library is read from IndexedDB right after the engine is ready: wait for it.
+  await page
+    .waitForFunction(() => window.__musik.player.songs.length > 0, null, { timeout: 10000 })
+    .catch(() => undefined);
   const afterReload = await page.evaluate(() => window.__musik.player.songs.length);
   check('library persists after reload (OPFS + IndexedDB)', afterReload === 2, String(afterReload));
   // App opens on the player tab when songs exist; go to library.
@@ -229,7 +241,10 @@ try {
   // 6c. Queue: stop, previous, next, auto-advance
   const title = () => page.textContent('#song-title');
   check('next is disabled on the last track', await page.isDisabled('#next'));
+  // Stop is hidden in practice mode: use the queue view for it.
+  await page.click('#ptab-queue');
   await page.click('#stop');
+  await page.click('#ptab-practice');
   await page.waitForFunction(
     () => !window.__musik.player.playing && window.__musik.player.position < 0.3,
     null,
@@ -270,6 +285,8 @@ try {
   await page.waitForFunction(() => Number.isFinite(window.__musik.player.audio.duration), null, {
     timeout: 8000,
   });
+  // Practice mode repeats the current song, so check the auto-advance in the queue view.
+  await page.click('#ptab-queue');
   await page.evaluate(() => {
     const p = window.__musik.player;
     p.seek(p.audio.duration - 0.8);
@@ -280,6 +297,7 @@ try {
     { timeout: 10000 },
   );
   check('track end advances to the next track automatically', true);
+  await page.click('#ptab-practice');
   await page.evaluate(() => {
     window.__musik.player.audio.loop = true; // keep the tone going for the numeric checks below
     window.__musik.player.seek(0);
@@ -366,6 +384,8 @@ try {
   await page.click('#tab-library');
   const libBefore = await page.evaluate(() => window.__musik.player.songs.length);
   await page.setInputFiles('#open-play', [tonePath, songPath]);
+  // "Save to library" is shown in the queue view (hidden in practice mode).
+  await page.click('#ptab-queue');
   await page.waitForSelector('#save-temp');
   await page.waitForFunction(() => window.__musik.player.position > 0.5, null, { timeout: 15000 });
   const opened = await page.evaluate(async () => {

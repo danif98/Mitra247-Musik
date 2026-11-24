@@ -4,7 +4,7 @@ import { id } from '@musik/ui';
 import {
   native,
   nativeErrorCode,
-  nativeFileUrl,
+  readNativeFile,
   type NativeSong,
   type NativeVolume,
 } from './native';
@@ -117,6 +117,17 @@ export class DeviceMusic {
     }
   }
 
+  /** Where the queue comes from, shown above the list in the Play screen. */
+  private originLabel(): string {
+    const base = id.device.tab;
+    if (this.mode === 'all') {
+      const q = this.query.trim();
+      return q ? `${base} · "${q}"` : `${base} · ${id.device.modeAll}`;
+    }
+    if (this.volume === null) return base;
+    return `${base} · ${this.volumeLabel(this.volume)}${this.path ? ' / ' + this.path : ''}`;
+  }
+
   /** Songs shown right now: the folder being browsed, or the (filtered) full list. */
   get shown(): NativeSong[] {
     return this.mode === 'all' ? this.visible : this.listing.songs;
@@ -136,7 +147,7 @@ export class DeviceMusic {
         0,
         list.findIndex((s) => s.id === song.id),
       );
-      return await player.playLazy(list.map(toTrack), start);
+      return await player.playLazy(list.map(toTrack), start, this.originLabel());
     } catch {
       this.error = id.device.openFailed;
       void this.load();
@@ -147,21 +158,17 @@ export class DeviceMusic {
   }
 }
 
-/** Reads a MediaStore song through the WebView (file:// and content:// are served by Capacitor). */
+/** A MediaStore song as a track that is read when its turn comes. */
 function toTrack(song: NativeSong): LazyTrack {
+  const fileName = song.name || `${song.title}.mp3`;
   return {
+    uri: song.uri,
+    artist: song.artist,
     title: song.title,
-    fileName: song.name || `${song.title}.mp3`,
+    fileName,
     size: song.size,
     duration: song.durationMs / 1000,
     mime: song.mime,
-    open: async () => {
-      const res = await fetch(nativeFileUrl(song.uri));
-      if (!res.ok) throw new Error('read');
-      const blob = await res.blob();
-      return new File([blob], song.name || `${song.title}.mp3`, {
-        type: song.mime || blob.type || 'audio/mpeg',
-      });
-    },
+    open: () => readNativeFile(song.uri, fileName, song.mime),
   };
 }

@@ -61,6 +61,14 @@ const context = await browser.newContext({
   viewport: { width: 412, height: 915 },
   deviceScaleFactor: 2.625,
 });
+// The Play screen opens on the queue; these tests drive the practice controls.
+await context.addInitScript(() => {
+  try {
+    localStorage.setItem('musik.playtab', 'practice');
+  } catch {
+    /* ignore */
+  }
+});
 const page = await context.newPage();
 const errors = [];
 page.on('console', (m) => {

@@ -98,6 +98,19 @@ public class MusikNativePlugin extends Plugin {
         if (current == this) current = null;
     }
 
+    // ------------------------------------------------------------------ about
+
+    /** {versionName, versionCode, buildTime (ms since epoch), packageName} of this APK. */
+    @PluginMethod
+    public void appInfo(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("versionName", BuildConfig.VERSION_NAME);
+        r.put("versionCode", BuildConfig.VERSION_CODE);
+        r.put("buildTime", BuildConfig.BUILD_TIME);
+        r.put("packageName", getContext().getPackageName());
+        call.resolve(r);
+    }
+
     // ------------------------------------------------------------------ shared links
 
     /** Remember a link shared to the app (YouTube "Share" -> Musik Tools). */

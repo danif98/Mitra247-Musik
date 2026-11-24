@@ -38,6 +38,14 @@ export interface SaveFolder {
   writable: boolean;
 }
 
+export interface AppInfo {
+  versionName: string;
+  versionCode: number;
+  /** ms since epoch: when this APK was built. */
+  buildTime: number;
+  packageName: string;
+}
+
 export interface NativeDownload {
   videoId: string;
   /** Absolute path of the temporary MP3 in the app cache. */
@@ -71,6 +79,7 @@ export interface ListenerHandle {
 }
 
 export interface MusikNative {
+  appInfo(): Promise<AppInfo>;
   audioPermission(): Promise<{ granted: boolean }>;
   requestAudioPermission(): Promise<{ granted: boolean }>;
   requestNotificationPermission(): Promise<{ granted: boolean }>;
@@ -120,4 +129,12 @@ export function nativeFileUrl(uriOrPath: string): string {
 export function nativeErrorCode(err: unknown): string {
   const code = (err as { code?: unknown } | null)?.code;
   return typeof code === 'string' ? code : 'failed';
+}
+
+/** Read a content:// URI or file path through the WebView into a File. */
+export async function readNativeFile(uri: string, name: string, mime: string): Promise<File> {
+  const res = await fetch(nativeFileUrl(uri));
+  if (!res.ok) throw new Error('read');
+  const blob = await res.blob();
+  return new File([blob], name, { type: mime || blob.type || 'audio/mpeg' });
 }

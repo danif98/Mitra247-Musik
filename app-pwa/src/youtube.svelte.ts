@@ -8,7 +8,7 @@ import {
 import { id } from '@musik/ui';
 import type { Player } from './player.svelte';
 import type { ServerSettings } from './server.svelte';
-import { native, nativeErrorCode, nativeFileUrl } from './native';
+import { native, nativeErrorCode, nativeFileUrl, readNativeFile } from './native';
 import { saveFolder } from './save-folder.svelte';
 
 export type Phase = 'idle' | 'queued' | 'download' | 'convert' | 'saving' | 'done' | 'error';
@@ -191,24 +191,21 @@ export class YoutubeFlow {
   async playSaved(player: Player): Promise<boolean> {
     if (!this.savedUri) return false;
     const uri = this.savedUri;
+    const fileName = this.savedName || `${this.title}.mp3`;
     return player.playLazy(
       [
         {
+          uri,
           title: this.title,
-          fileName: this.savedName || `${this.title}.mp3`,
+          fileName,
           size: 0,
           duration: this.savedDuration,
           mime: 'audio/mpeg',
-          open: async () => {
-            const res = await fetch(nativeFileUrl(uri));
-            if (!res.ok) throw new Error('read');
-            return new File([await res.blob()], this.savedName || 'lagu.mp3', {
-              type: 'audio/mpeg',
-            });
-          },
+          open: () => readNativeFile(uri, fileName, 'audio/mpeg'),
         },
       ],
       0,
+      this.savedFolder,
     );
   }
 

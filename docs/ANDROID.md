@@ -57,6 +57,10 @@ Setelan, bagian "Folder simpan MP3": `pickSaveFolder` membuka pemilih folder And
 
 Daftar dibaca ulang setiap tampilan dibuka. MediaStore menyimpan baris berkas yang sudah dihapus sampai pemindaian berikutnya, jadi plugin memeriksa keberadaan berkas dan menyembunyikan yang hilang (bila semua tampak hilang, jalur berkas dianggap tidak terbaca dan semuanya ditampilkan). Jalur yang hilang dikirim ke `MediaScannerConnection` agar indeks Android ikut bersih.
 
+## Versi dan riwayat
+
+`versionName` APK diambil dari `version` di `package.json` akar (mis. 0.3.1) dan `versionCode` = mayor*10000 + minor*100 + patch (301). Waktu build APK dari `BuildConfig.BUILD_TIME` (saat Gradle membangun). Setelan, bagian "Tentang", menampilkannya lewat `MusikNative.appInfo`; di browser dipakai versi dan waktu build web (`__APP_VERSION__`, `__BUILT_AT__` dari `vite.config.ts`). Riwayat per versi dibaca dari `CHANGELOG.md` saat build web, jadi cukup menulis entri `## <versi> (<tanggal>)` di berkas itu.
+
 ## Catatan teknis
 
 - Service worker PWA di dalam APK menyimpan versi lama: setelah memasang APK baru, buka aplikasi dua kali agar kode baru yang berjalan.

@@ -2,10 +2,19 @@ import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+/** Version from the root package.json (also used for the Android versionName). */
+function appVersion(): string {
+  const pkg = JSON.parse(readFileSync(path.resolve(here, '../package.json'), 'utf8')) as {
+    version: string;
+  };
+  return pkg.version;
+}
 
 /** Build label shown in the lab page so stale cached builds are easy to spot. */
 function buildLabel(): string {
@@ -41,7 +50,11 @@ export default defineConfig({
   root: here,
   // Relative base: the PWA can be hosted under any path on the server.
   base: './',
-  define: { __BUILD__: JSON.stringify(buildLabel()) },
+  define: {
+    __BUILD__: JSON.stringify(buildLabel()),
+    __APP_VERSION__: JSON.stringify(appVersion()),
+    __BUILT_AT__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     svelte(),
     VitePWA({

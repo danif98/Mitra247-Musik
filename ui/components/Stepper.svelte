@@ -12,8 +12,21 @@
     onchange: (v: number) => void;
     /** Accessible name of the reset icon button. */
     resetLabel: string;
+    /** Lower variant (practice mode on a phone). */
+    compact?: boolean;
   }
-  let { label, value, min, max, step, format, resetTo, onchange, resetLabel }: Props = $props();
+  let {
+    label,
+    value,
+    min,
+    max,
+    step,
+    format,
+    resetTo,
+    onchange,
+    resetLabel,
+    compact = false,
+  }: Props = $props();
 
   function set(v: number) {
     const clamped = Math.min(max, Math.max(min, Math.round(v / step) * step));
@@ -21,7 +34,7 @@
   }
 </script>
 
-<section class="stepper">
+<section class="stepper" class:compact>
   <div class="head">
     <h3>{label}</h3>
     <button
@@ -55,7 +68,7 @@
   .stepper {
     background: var(--panel);
     border-radius: var(--radius);
-    padding: 8px 12px 4px;
+    padding: 8px 8px 4px;
   }
   .head {
     display: flex;
@@ -84,9 +97,26 @@
   .row {
     display: grid;
     grid-template-columns: var(--tap) 1fr var(--tap);
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     margin-top: -6px;
+  }
+  .compact .head {
+    min-height: 32px;
+    margin-top: 0;
+  }
+  .compact .row {
+    grid-template-columns: 44px 1fr 44px;
+    margin-top: 0;
+  }
+  .compact .row button {
+    min-height: 40px;
+  }
+  .compact .value {
+    font-size: 1.5rem;
+  }
+  .compact input[type='range'] {
+    min-height: 28px;
   }
   .value {
     text-align: center;

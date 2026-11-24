@@ -30,6 +30,11 @@ import {
   sequentialOrder,
   shuffleOrder,
   type PlayMode,
+  limitTracks,
+  parseLastPosition,
+  parseLastQueue,
+  serializeLastQueue,
+  type LastTrack,
   type RepeatMode,
   sortSongs,
   titleFromFileName,
@@ -39,6 +44,7 @@ import {
 } from '@musik/core';
 import { engineAssets } from '@musik/core/audio/assets';
 import { id } from '@musik/ui';
+import { native, readNativeFile } from './native';
 import { DiagLog } from '../lab/diag-log';
 
 const ENGINE_KEY = 'musik.engine';
@@ -64,6 +70,8 @@ function loadMetro(): MetroSettings {
 }
 
 const MODE_KEY = 'musik.playmode';
+const LAST_KEY = 'musik.last';
+const LASTPOS_KEY = 'musik.lastpos';
 
 function loadPlayMode(): PlayMode {
   try {
@@ -83,6 +91,9 @@ function loadEngine(): RubberBandEngine {
 
 /** A track for playLazy: metadata is known up front, the file is read when it is played. */
 export interface LazyTrack {
+  /** content:// URI: lets the queue be remembered and restored (music on the phone). */
+  uri?: string;
+  artist?: string;
   title: string;
   fileName: string;
   size: number;
@@ -103,6 +114,8 @@ export class Player {
   /** Playback queue (library order, or the files picked with "Buka & putar") and the current index. */
   queue = $state<SongMeta[]>([]);
   queueIndex = $state(-1);
+  /** Where the queue came from, shown above the list ("Library", "Musik di HP · Music/Pop"). */
+  queueLabel = $state('');
   /** Auto next, repeat and shuffle (kept on this device). */
   autoNext = $state(loadPlayMode().autoNext);
   repeat = $state<RepeatMode>(loadPlayMode().repeat);
@@ -137,6 +150,10 @@ export class Player {
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private readonly tempFiles = new Map<string, File>();
   private tempCounter = 0;
+  /** Phone tracks of the current queue (for remembering it), by temporary id. */
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  private readonly lazyInfo = new Map<string, LastTrack>();
+  private lastSavedPosition = -100;
   /** Temporary tracks whose file is read only when the track is played (see playLazy). */
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private readonly tempLoaders = new Map<string, () => Promise<File>>();
@@ -171,7 +188,30 @@ export class Player {
     this.saveMode();
   }
 
+  /** Set the repeat mode; `persist: false` is a temporary override (practice mode). */
+  setRepeat(mode: RepeatMode, persist = true): void {
+    this.repeat = mode;
+    if (persist) this.saveMode();
+  }
+
+  /** The repeat mode to bring back when practice mode ends (null = no override active). */
+  private repeatBackup: RepeatMode | null = null;
+
+  /** Practice mode: the current song repeats by default. The usual setting is kept aside. */
+  enterPractice(): void {
+    if (this.repeatBackup !== null) return;
+    this.repeatBackup = this.repeat;
+    this.setRepeat('one', false);
+  }
+
+  leavePractice(): void {
+    if (this.repeatBackup === null) return;
+    this.setRepeat(this.repeatBackup, false);
+    this.repeatBackup = null;
+  }
+
   cycleRepeat(): void {
+    this.repeatBackup = null; // a choice made by the user wins over the practice default
     this.repeat = nextRepeat(this.repeat);
     this.saveMode();
   }
@@ -200,6 +240,7 @@ export class Player {
     this.audio.addEventListener('timeupdate', () => {
       this.position = this.audio.currentTime;
       this.updatePositionState();
+      this.savePosition(false);
     });
     this.audio.addEventListener('durationchange', () => {
       if (Number.isFinite(this.audio.duration)) this.duration = this.audio.duration;
@@ -211,6 +252,7 @@ export class Player {
     this.audio.addEventListener('pause', () => {
       this.playing = false;
       this.stopLoopWatch();
+      this.savePosition(true);
     });
     this.audio.addEventListener('ended', () => void this.onEnded());
     this.audio.addEventListener('error', () => (this.error = id.player.loadError));
@@ -295,6 +337,7 @@ export class Player {
   /** Play a library song; the queue becomes the library list in its current order. */
   async select(song: SongMeta, autoplay = true): Promise<void> {
     this.shuffled = null;
+    this.queueLabel = id.player.sourceLibrary;
     this.queue = [...this.songs];
     const at = this.queue.findIndex((s) => s.id === song.id);
     if (at < 0) this.queue = [song];
@@ -327,6 +370,7 @@ export class Player {
       };
     });
     this.shuffled = null;
+    this.queueLabel = id.player.sourceFiles;
     this.queue = items;
     this.queueIndex = 0;
     this.log.event('files:open', { count: items.length });
@@ -338,14 +382,26 @@ export class Player {
    * Play a list of tracks whose files are read on demand (music on the phone). The whole list is
    * the queue, so next/previous work, but only the playing track is kept in memory.
    */
-  async playLazy(entries: LazyTrack[], start: number): Promise<boolean> {
+  async playLazy(entries: LazyTrack[], start: number, label = ''): Promise<boolean> {
     if (entries.length === 0) return false;
     const at = Math.min(Math.max(start, 0), entries.length - 1);
     this.tempFiles.clear();
     this.tempLoaders.clear();
+    this.lazyInfo.clear();
     const items = entries.map((entry): SongMeta => {
       const tmpId = `tmp:${++this.tempCounter}`;
       this.tempLoaders.set(tmpId, entry.open);
+      if (entry.uri) {
+        this.lazyInfo.set(tmpId, {
+          uri: entry.uri,
+          title: entry.title,
+          artist: entry.artist ?? '',
+          fileName: entry.fileName,
+          size: entry.size,
+          duration: entry.duration,
+          mime: entry.mime,
+        });
+      }
       return {
         id: tmpId,
         title: entry.title,
@@ -356,9 +412,11 @@ export class Player {
         source: 'local',
         mime: entry.mime || 'audio/mpeg',
         peaks: new Float32Array(0),
+        ...(entry.artist ? { artist: entry.artist } : {}),
       };
     });
     this.shuffled = null;
+    this.queueLabel = label || id.player.sourceDevice;
     this.queue = items;
     this.queueIndex = at;
     this.log.event('files:open', { count: items.length });
@@ -383,6 +441,153 @@ export class Player {
       this.error = id.library.storageError;
       return null;
     }
+  }
+
+  /** Jump to a track of the queue (tap in the list). */
+  async playAt(index: number): Promise<void> {
+    const song = this.queue[index];
+    if (!song) return;
+    this.queueIndex = index;
+    await this.load(song, true);
+  }
+
+  // ---- last played: the queue and position are kept so the Play screen shows them again ----
+
+  private positionKey(song: SongMeta): string {
+    return this.lazyInfo.get(song.id)?.uri ?? song.id;
+  }
+
+  /** Remember the queue (library ids, or the phone tracks) and which one is playing. */
+  private saveLast(): void {
+    const cur = this.current;
+    if (!cur) return;
+    try {
+      let json: string | null = null;
+      if (!cur.id.startsWith('tmp:')) {
+        json = serializeLastQueue({
+          v: 1,
+          source: 'library',
+          label: this.queueLabel,
+          index: Math.max(0, this.queueIndex),
+          ids: this.queue.filter((x) => !x.id.startsWith('tmp:')).map((x) => x.id),
+        });
+      } else {
+        const infos = this.queue.map((x) => this.lazyInfo.get(x.id));
+        // Files opened with the file picker cannot be opened again later: not remembered.
+        if (infos.length > 0 && infos.every((x): x is LastTrack => x !== undefined)) {
+          const lim = limitTracks(infos, Math.max(0, this.queueIndex));
+          json = serializeLastQueue({
+            v: 1,
+            source: 'device',
+            label: this.queueLabel,
+            index: lim.index,
+            tracks: lim.tracks,
+          });
+        }
+      }
+      if (json) localStorage.setItem(LAST_KEY, json);
+      this.lastSavedPosition = -100;
+      this.savePosition(true);
+    } catch {
+      /* storage full or unavailable: the Play screen just starts empty next time */
+    }
+  }
+
+  private savePosition(force: boolean): void {
+    const cur = this.current;
+    if (!cur) return;
+    const at = this.audio.currentTime;
+    if (!force && Math.abs(at - this.lastSavedPosition) < 5) return;
+    this.lastSavedPosition = at;
+    try {
+      localStorage.setItem(
+        LASTPOS_KEY,
+        JSON.stringify({ key: this.positionKey(cur), position: Math.floor(at) }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
+   * Bring back the last queue and song, paused, where it stopped. Returns false when there is
+   * nothing to restore (first run, songs deleted, or a phone list outside the Android app).
+   */
+  async restoreLast(): Promise<boolean> {
+    if (this.current) return false;
+    let last;
+    let pos;
+    try {
+      last = parseLastQueue(localStorage.getItem(LAST_KEY));
+      pos = parseLastPosition(localStorage.getItem(LASTPOS_KEY));
+    } catch {
+      return false;
+    }
+    if (!last) return false;
+
+    let items: SongMeta[] = [];
+    let at = 0;
+    if (last.source === 'library') {
+      const byId: Record<string, SongMeta> = {};
+      for (const x of this.songs) byId[x.id] = x;
+      const wanted = last.ids ?? [];
+      items = wanted.map((i) => byId[i]).filter((x): x is SongMeta => x !== undefined);
+      const playingId = wanted[last.index];
+      at = Math.max(
+        0,
+        items.findIndex((x) => x.id === playingId),
+      );
+      this.lazyInfo.clear();
+      this.tempLoaders.clear();
+    } else {
+      if (!native) return false;
+      this.tempFiles.clear();
+      this.tempLoaders.clear();
+      this.lazyInfo.clear();
+      items = (last.tracks ?? []).map((t): SongMeta => {
+        const tmpId = `tmp:${++this.tempCounter}`;
+        this.lazyInfo.set(tmpId, t);
+        this.tempLoaders.set(tmpId, () =>
+          readNativeFile(t.uri, t.fileName || `${t.title}.mp3`, t.mime),
+        );
+        return {
+          id: tmpId,
+          title: t.title,
+          fileName: t.fileName,
+          size: t.size,
+          duration: t.duration,
+          addedAt: Date.now(),
+          source: 'local',
+          mime: t.mime,
+          peaks: new Float32Array(0),
+          ...(t.artist ? { artist: t.artist } : {}),
+        };
+      });
+      at = Math.min(last.index, items.length - 1);
+    }
+    if (items.length === 0) return false;
+
+    this.shuffled = null;
+    this.queueLabel = last.label;
+    this.queue = items;
+    this.queueIndex = at;
+    const song = items[at]!;
+    await this.load(song, false);
+    if ((this.current as SongMeta | null)?.id !== song.id) {
+      // The file is gone: start empty instead of showing a broken player.
+      this.error = '';
+      this.queue = [];
+      this.queueIndex = -1;
+      return false;
+    }
+    if (pos && pos.key === this.positionKey(song) && pos.position > 1) {
+      const limit = (this.duration || song.duration || 0) - 2;
+      if (limit <= 0 || pos.position < limit) {
+        this.seek(pos.position);
+        this.position = pos.position;
+      }
+    }
+    return true;
   }
 
   async next(): Promise<void> {
@@ -466,6 +671,7 @@ export class Player {
     this.currentUrl = URL.createObjectURL(file);
     this.audio.src = this.currentUrl;
     this.current = song;
+    this.saveLast();
     this.log.event('song', { title: song.title, size: song.size, duration: song.duration });
     this.position = 0;
     this.duration = song.duration;

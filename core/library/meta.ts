@@ -13,6 +13,8 @@ export interface SongMeta {
   mime: string;
   /** Waveform peaks (0..1), empty when not computed. */
   peaks: Float32Array;
+  /** Artist when known (music on the phone); library songs may have none. */
+  artist?: string;
   /** Author and license of a song downloaded from a legal source (source 'web'). */
   credit?: SongCredit;
 }

@@ -1,14 +1,23 @@
 apply plugin: 'com.android.application'
 
+// Version of the whole project (root package.json), e.g. 0.3.1 -> versionCode 301.
+def projectVersion = new groovy.json.JsonSlurper().parse(file('../../../package.json')).version
+def versionParts = projectVersion.tokenize('.').collect { it.replaceAll('[^0-9]', '').toInteger() }
+def projectVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+
 android {
     namespace = "com.musik.tools"
     compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId "com.musik.tools"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode projectVersionCode
+        versionName projectVersion
+        buildConfigField "long", "BUILD_TIME", "${System.currentTimeMillis()}L"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // yt-dlp + ffmpeg native libraries: only the 64-bit ARM phones (Galaxy A23) are supported.
         ndk {

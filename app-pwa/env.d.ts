@@ -1,2 +1,6 @@
 /** Injected by vite.config.ts (commit + build time). */
 declare const __BUILD__: string;
+/** Version from package.json, e.g. "0.3.1" (injected by vite.config.ts). */
+declare const __APP_VERSION__: string;
+/** ISO time of this web build (injected by vite.config.ts). */
+declare const __BUILT_AT__: string;
