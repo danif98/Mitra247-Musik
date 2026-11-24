@@ -82,6 +82,8 @@ export interface MusikNative {
   clearNowPlaying(): Promise<void>;
   ytVersion(): Promise<{ version: string }>;
   ytUpdate(): Promise<{ status: string; version: string }>;
+  ytAutoUpdate(): Promise<{ enabled: boolean; lastCheck: number }>;
+  setYtAutoUpdate(opts: { enabled: boolean }): Promise<{ enabled: boolean; lastCheck: number }>;
   ytSearch(opts: { query: string }): Promise<{ results: YoutubeSearchResult[] }>;
   ytDownload(opts: { videoId: string }): Promise<NativeDownload>;
   ytCancel(opts: { videoId: string }): Promise<void>;
@@ -90,6 +92,10 @@ export interface MusikNative {
   addListener(
     event: 'mediaAction',
     cb: (e: { action: MediaAction; positionMs?: number }) => void,
+  ): Promise<ListenerHandle>;
+  addListener(
+    event: 'ytUpdate',
+    cb: (e: { state: 'updating' | 'updated' | 'uptodate' | 'failed'; version?: string }) => void,
   ): Promise<ListenerHandle>;
   addListener(event: 'sharedText', cb: (e: { text: string }) => void): Promise<ListenerHandle>;
   addListener(

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import { id } from '@musik/ui';
   import { formatBytes } from '@musik/core';
   import type { Player } from './player.svelte';
@@ -26,13 +26,41 @@
   let ytVersion = $state('');
   let ytMsg = $state('');
   let ytBusy = $state(false);
+  let ytAuto = $state(true);
+  let ytLastCheck = $state(0);
   onMount(() => {
     void saveFolder.load();
+    void native
+      ?.ytAutoUpdate()
+      .then((r) => {
+        ytAuto = r.enabled;
+        ytLastCheck = r.lastCheck;
+      })
+      .catch(() => undefined);
+    // Automatic update runs in the background (app start, after a failed download).
+    const sub = native?.addListener('ytUpdate', (e) => {
+      if (e.version) ytVersion = e.version;
+      if (e.state === 'updating') ytMsg = t.ytUpdating;
+      else if (e.state === 'updated') ytMsg = t.ytUpdated;
+      else if (e.state === 'uptodate') ytMsg = t.ytUpToDate;
+      else if (e.state === 'failed') ytMsg = t.ytFailed;
+      if (e.state !== 'updating' && e.state !== 'failed') ytLastCheck = Date.now();
+    });
+    onDestroy(() => void sub?.then((h) => h.remove()).catch(() => undefined));
     void native
       ?.ytVersion()
       .then((r) => (ytVersion = r.version))
       .catch(() => undefined);
   });
+  async function setAuto(enabled: boolean) {
+    ytAuto = enabled;
+    try {
+      await native?.setYtAutoUpdate({ enabled });
+    } catch {
+      /* keep the shown value; the setting is re-read next time */
+    }
+  }
+
   async function updateYtdlp() {
     if (!native || ytBusy) return;
     ytBusy = true;
@@ -173,6 +201,18 @@
       <h3>{t.ytdlp}</h3>
       <p class="muted" id="yt-version">{t.ytVersion}: {ytVersion || '–'}</p>
       <p class="muted">{t.ytNote}</p>
+      <label class="check">
+        <input
+          type="checkbox"
+          id="yt-auto"
+          checked={ytAuto}
+          onchange={(e) => setAuto(e.currentTarget.checked)}
+        />
+        <span>{t.ytAuto}</span>
+      </label>
+      <p class="muted" id="yt-last">
+        {t.ytLast}: {ytLastCheck ? new Date(ytLastCheck).toLocaleString('id-ID') : t.ytNever}
+      </p>
       <button type="button" class="primary" id="yt-update" onclick={updateYtdlp} disabled={ytBusy}
         >{t.ytUpdate}</button
       >

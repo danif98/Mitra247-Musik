@@ -86,6 +86,8 @@ public class MusikNativePlugin extends Plugin {
             if (positionMs >= 0) data.put("positionMs", positionMs);
             notifyListeners("mediaAction", data, true);
         });
+        // A new yt-dlp is checked for when the app opens (at most every few days).
+        worker.execute(this::autoUpdateIfDue);
     }
 
     @Override
@@ -553,16 +555,94 @@ public class MusikNativePlugin extends Plugin {
         });
     }
 
-    /** Download the newest yt-dlp (YouTube changes often; old versions stop working). */
-    @PluginMethod
-    public void ytUpdate(PluginCall call) {
-        worker.execute(() -> {
+    private static final String PREF_YT_AUTO = "ytAutoUpdate";
+    private static final String PREF_YT_LAST = "ytLastCheck";
+    private static final String PREF_YT_ATTEMPT = "ytLastAttempt";
+    private static final long AUTO_UPDATE_EVERY_MS = 3L * 24 * 60 * 60 * 1000;
+    private static final long AUTO_UPDATE_RETRY_MS = 6L * 60 * 60 * 1000;
+    private static final long RETRY_AFTER_FAILURE_MS = 30L * 60 * 1000;
+
+    /** Held while yt-dlp is being replaced: searches and downloads wait instead of failing. */
+    private final Object updateLock = new Object();
+
+    private void notifyUpdate(String state, String version) {
+        JSObject d = new JSObject();
+        d.put("state", state);
+        if (version != null) d.put("version", version);
+        notifyListeners("ytUpdate", d);
+    }
+
+    /** Download the newest yt-dlp and record the time of the check. */
+    private YoutubeDL.UpdateStatus performUpdate(String reason) throws Exception {
+        synchronized (updateLock) {
+            long now = System.currentTimeMillis();
+            prefs().edit().putLong(PREF_YT_ATTEMPT, now).apply();
+            notifyUpdate("updating", null);
             try {
                 ensureYoutubeDl();
                 YoutubeDL.UpdateStatus status = YoutubeDL.getInstance().updateYoutubeDL(
                     getContext().getApplicationContext(),
                     YoutubeDL.UpdateChannel._STABLE
                 );
+                prefs().edit().putLong(PREF_YT_LAST, System.currentTimeMillis()).apply();
+                String version = String.valueOf(YoutubeDL.getInstance().version(getContext()));
+                Log.i("MusikNative", "yt-dlp update (" + reason + "): " + status + ", version " + version);
+                notifyUpdate(status == YoutubeDL.UpdateStatus.DONE ? "updated" : "uptodate", version);
+                return status;
+            } catch (Exception e) {
+                Log.w("MusikNative", "yt-dlp update (" + reason + ") failed: " + e.getClass().getSimpleName());
+                notifyUpdate("failed", null);
+                throw e;
+            }
+        }
+    }
+
+    /** Update unless one was tried within `minGapMs`; true only when a newer yt-dlp was installed. */
+    private boolean updateYoutubeDl(String reason, long minGapMs) {
+        if (System.currentTimeMillis() - prefs().getLong(PREF_YT_ATTEMPT, 0) < minGapMs) return false;
+        try {
+            return performUpdate(reason) == YoutubeDL.UpdateStatus.DONE;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void autoUpdateIfDue() {
+        if (!prefs().getBoolean(PREF_YT_AUTO, true)) return;
+        synchronized (running) {
+            if (!running.isEmpty()) return; // never swap yt-dlp under a running download
+        }
+        if (System.currentTimeMillis() - prefs().getLong(PREF_YT_LAST, 0) < AUTO_UPDATE_EVERY_MS) return;
+        updateYoutubeDl("auto", AUTO_UPDATE_RETRY_MS);
+    }
+
+    /**
+     * Run yt-dlp. When it fails in a way that looks like YouTube changed (not a private video, bot
+     * check or network problem), try a newer yt-dlp once (at most every 30 minutes) and run again.
+     */
+    private YoutubeDLResponse runYoutubeDl(
+        YoutubeDLRequest req,
+        String processId,
+        kotlin.jvm.functions.Function3<? super Float, ? super Long, ? super String, kotlin.Unit> callback
+    ) throws Exception {
+        synchronized (updateLock) {
+            // wait here while an update is in progress
+        }
+        try {
+            return YoutubeDL.getInstance().execute(req, processId, callback);
+        } catch (Exception first) {
+            if (!"failed".equals(classify(String.valueOf(first.getMessage())))) throw first;
+            if (!updateYoutubeDl("after failure", RETRY_AFTER_FAILURE_MS)) throw first;
+            return YoutubeDL.getInstance().execute(req, processId, callback);
+        }
+    }
+
+    /** Manual "Perbarui yt-dlp" button. */
+    @PluginMethod
+    public void ytUpdate(PluginCall call) {
+        worker.execute(() -> {
+            try {
+                YoutubeDL.UpdateStatus status = performUpdate("manual");
                 JSObject r = new JSObject();
                 r.put("status", String.valueOf(status));
                 r.put("version", String.valueOf(YoutubeDL.getInstance().version(getContext())));
@@ -571,6 +651,23 @@ public class MusikNativePlugin extends Plugin {
                 call.reject("Gagal memperbarui yt-dlp. Periksa koneksi internet.", "network");
             }
         });
+    }
+
+    /** {enabled, lastCheck (ms since epoch, 0 = never)}. */
+    @PluginMethod
+    public void ytAutoUpdate(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("enabled", prefs().getBoolean(PREF_YT_AUTO, true));
+        r.put("lastCheck", prefs().getLong(PREF_YT_LAST, 0));
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void setYtAutoUpdate(PluginCall call) {
+        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", true));
+        prefs().edit().putBoolean(PREF_YT_AUTO, enabled).apply();
+        if (enabled) worker.execute(this::autoUpdateIfDue);
+        ytAutoUpdate(call);
     }
 
     @PluginMethod
@@ -588,7 +685,7 @@ public class MusikNativePlugin extends Plugin {
                 req.addOption("--dump-json");
                 req.addOption("--no-warnings");
                 req.addOption("--ignore-config");
-                YoutubeDLResponse resp = YoutubeDL.getInstance().execute(req, "search-" + System.nanoTime(), null);
+                YoutubeDLResponse resp = runYoutubeDl(req, "search-" + System.nanoTime(), null);
                 JSObject r = new JSObject();
                 r.put("results", parseSearch(resp.getOut()));
                 call.resolve(r);
@@ -671,7 +768,7 @@ public class MusikNativePlugin extends Plugin {
                 req.addOption("-o", new File(dir, "%(id)s.%(ext)s").getAbsolutePath());
 
                 final boolean[] converting = { false };
-                YoutubeDL.getInstance().execute(req, videoId, (progress, eta, line) -> {
+                runYoutubeDl(req, videoId, (progress, eta, line) -> {
                     JSObject p = new JSObject();
                     p.put("videoId", videoId);
                     p.put("percent", Math.max(0, Math.min(100, Math.round(progress))));

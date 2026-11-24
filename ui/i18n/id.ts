@@ -143,8 +143,11 @@ export const id = {
     ytdlp: 'yt-dlp di HP',
     ytVersion: 'Versi',
     ytNote:
-      'Unduhan YouTube berjalan di HP ini, tanpa server. YouTube sering berubah; bila unduhan gagal, perbarui yt-dlp.',
-    ytUpdate: 'Perbarui yt-dlp',
+      'Unduhan YouTube berjalan di HP ini, tanpa server. YouTube sering berubah, jadi yt-dlp diperiksa saat aplikasi dibuka (tiap 3 hari) dan diperbarui otomatis bila unduhan gagal. Perlu internet.',
+    ytAuto: 'Perbarui yt-dlp otomatis',
+    ytLast: 'Terakhir diperiksa',
+    ytNever: 'belum pernah',
+    ytUpdate: 'Perbarui sekarang',
     ytUpdating: 'Memperbarui…',
     ytUpdated: 'yt-dlp diperbarui.',
     ytUpToDate: 'yt-dlp sudah versi terbaru.',

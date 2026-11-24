@@ -19,7 +19,7 @@ Di PWA, kode yang berbicara dengan plugin ada di `app-pwa/src/native.ts` (antarm
 3. PWA membaca berkas itu, menyimpannya ke Library (IndexedDB/OPFS), lalu menghapus berkas sementara.
 4. Lagu dibuka di tab Putar; tempo dan transpose berjalan seperti lagu lain.
 
-yt-dlp bawaan APK cepat usang karena YouTube sering berubah. Setelan, bagian "yt-dlp di HP", punya tombol **Perbarui yt-dlp**.
+yt-dlp bawaan APK (2025.11.12) cepat usang karena YouTube sering berubah, sehingga diperbarui otomatis: saat aplikasi dibuka bila pemeriksaan terakhir lebih dari 3 hari lalu (HP baru: langsung di pembukaan pertama, sekitar 4 detik, perlu internet), dan sekali setelah unduhan atau pencarian gagal dengan galat umum (jeda minimal 30 menit), lalu perintah diulang. Pembaruan tidak berjalan saat ada unduhan aktif dan permintaan baru menunggu sampai selesai. Setelan, bagian "yt-dlp di HP", punya sakelar otomatis, waktu pemeriksaan terakhir, dan tombol **Perbarui sekarang**. Versi terbaru disimpan di folder internal aplikasi di HP itu.
 
 ## Membangun
 
