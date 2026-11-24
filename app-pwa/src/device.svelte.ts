@@ -18,6 +18,8 @@ export class DeviceMusic {
   volume = $state<string | null>(null);
   path = $state('');
   loaded = $state(false);
+  /** Entries Android still lists although the file is gone (hidden from the list). */
+  hidden = $state(0);
   loading = $state(false);
   opening = $state('');
   error = $state('');
@@ -66,7 +68,22 @@ export class DeviceMusic {
     else this.path = parentFolder(this.path);
   }
 
-  /** Ask for the audio permission if needed, then read the list. */
+  /** After a refresh: leave a folder (or storage) that has no songs any more. */
+  private fixPlace(): void {
+    for (let i = 0; i < 32 && this.volume !== null; i++) {
+      const l = listFolder(this.songs, this.volume, this.path);
+      if (
+        this.path === ''
+          ? this.songs.some((s) => s.volume === this.volume)
+          : l.folders.length + l.songs.length > 0
+      ) {
+        return;
+      }
+      this.up();
+    }
+  }
+
+  /** Ask for the audio permission if needed, then read the list (also used to refresh it). */
   async load(): Promise<void> {
     if (!native || this.loading) return;
     this.loading = true;
@@ -80,6 +97,7 @@ export class DeviceMusic {
       const list = await native.listAudio();
       this.songs = list.songs;
       this.volumes = list.volumes ?? [];
+      this.hidden = list.hidden ?? 0;
       // A single storage with music: skip the chooser.
       const first = list.songs[0]?.volume;
       if (
@@ -89,6 +107,7 @@ export class DeviceMusic {
       ) {
         this.volume = first;
       }
+      this.fixPlace();
       this.loaded = true;
     } catch (err) {
       this.error =
@@ -120,6 +139,7 @@ export class DeviceMusic {
       return await player.playLazy(list.map(toTrack), start);
     } catch {
       this.error = id.device.openFailed;
+      void this.load();
       return false;
     } finally {
       this.opening = '';

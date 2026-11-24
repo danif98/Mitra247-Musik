@@ -121,6 +121,46 @@
       >
     </div>
 
+    <div class="modes" role="group" aria-label={t.modes}>
+      <button
+        type="button"
+        id="mode-shuffle"
+        aria-pressed={player.shuffle}
+        aria-label={t.shuffle}
+        onclick={() => player.toggleShuffle()}
+      >
+        <Icon name="shuffle" size={20} /><span>{t.shuffle}</span>
+      </button>
+      <button
+        type="button"
+        id="mode-repeat"
+        aria-pressed={player.repeat !== 'off'}
+        aria-label={player.repeat === 'one'
+          ? t.repeatOne
+          : player.repeat === 'all'
+            ? t.repeatAll
+            : t.repeatOff}
+        onclick={() => player.cycleRepeat()}
+      >
+        <Icon name={player.repeat === 'one' ? 'repeatOne' : 'repeat'} size={20} /><span
+          >{player.repeat === 'one'
+            ? t.repeatOne
+            : player.repeat === 'all'
+              ? t.repeatAll
+              : t.repeatOff}</span
+        >
+      </button>
+      <button
+        type="button"
+        id="mode-autonext"
+        aria-pressed={player.autoNext}
+        aria-label={t.autoNext}
+        onclick={() => player.toggleAutoNext()}
+      >
+        <Icon name="autoNext" size={20} /><span>{t.autoNextShort}</span>
+      </button>
+    </div>
+
     <div class="grid">
       <Stepper
         label={t.tempo}
@@ -490,6 +530,26 @@
   }
   .play {
     min-height: 64px !important;
+  }
+  .modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .modes button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 6px;
+    font-size: 0.82rem;
+  }
+  .modes span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tools {
     display: grid;

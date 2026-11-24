@@ -30,6 +30,14 @@ export interface NativeVolume {
   removable: boolean;
 }
 
+export interface SaveFolder {
+  /** Tree URI of the chosen folder; empty when none is set (or it is gone). */
+  uri: string;
+  /** Readable path, e.g. "Penyimpanan internal / Music/Musik". */
+  label: string;
+  writable: boolean;
+}
+
 export interface NativeDownload {
   videoId: string;
   /** Absolute path of the temporary MP3 in the app cache. */
@@ -37,6 +45,12 @@ export interface NativeDownload {
   title: string;
   duration: number;
   size: number;
+  /** Set when a save folder is chosen and the MP3 was copied there. */
+  savedUri?: string;
+  savedName?: string;
+  savedFolder?: string;
+  /** A save folder is set but the copy failed (folder gone, read-only, ...). */
+  saveError?: boolean;
 }
 
 export type MediaAction = 'play' | 'pause' | 'next' | 'prev' | 'stop' | 'seek';
@@ -60,7 +74,10 @@ export interface MusikNative {
   audioPermission(): Promise<{ granted: boolean }>;
   requestAudioPermission(): Promise<{ granted: boolean }>;
   requestNotificationPermission(): Promise<{ granted: boolean }>;
-  listAudio(): Promise<{ songs: NativeSong[]; volumes: NativeVolume[] }>;
+  listAudio(): Promise<{ songs: NativeSong[]; volumes: NativeVolume[]; hidden?: number }>;
+  pickSaveFolder(): Promise<SaveFolder>;
+  getSaveFolder(): Promise<SaveFolder>;
+  clearSaveFolder(): Promise<SaveFolder>;
   setNowPlaying(state: NowPlaying): Promise<void>;
   clearNowPlaying(): Promise<void>;
   ytVersion(): Promise<{ version: string }>;

@@ -9,6 +9,7 @@ import { id } from '@musik/ui';
 import type { Player } from './player.svelte';
 import type { ServerSettings } from './server.svelte';
 import { native, nativeErrorCode, nativeFileUrl } from './native';
+import { saveFolder } from './save-folder.svelte';
 
 export type Phase = 'idle' | 'queued' | 'download' | 'convert' | 'saving' | 'done' | 'error';
 
@@ -37,6 +38,12 @@ export class YoutubeFlow {
   title = $state('');
   error = $state('');
   song = $state<SongMeta | null>(null);
+  /** Android: the MP3 copied to the chosen folder (and what happened to it). */
+  savedUri = $state('');
+  savedName = $state('');
+  savedFolder = $state('');
+  saveFailed = $state(false);
+  private savedDuration = 0;
 
   // Search by keyword (server runs yt-dlp ytsearch).
   query = $state('');
@@ -55,6 +62,10 @@ export class YoutubeFlow {
     this.title = '';
     this.error = '';
     this.song = null;
+    this.savedUri = '';
+    this.savedName = '';
+    this.savedFolder = '';
+    this.saveFailed = false;
   }
 
   async search(server: ServerSettings): Promise<void> {
@@ -140,28 +151,65 @@ export class YoutubeFlow {
       const done = await plugin.ytDownload({ videoId });
       this.title = done.title;
       this.phase = 'saving';
-      const res = await fetch(nativeFileUrl(done.path));
-      if (!res.ok) throw new ApiError('server', 'read failed');
-      const blob = await res.blob();
-      const name = `${done.title.replace(/[\\/:*?"<>|]+/g, '_')}.mp3`;
-      let song: SongMeta;
-      try {
-        song = await player.store.add(new File([blob], name, { type: 'audio/mpeg' }), 'youtube');
-      } catch {
-        this.fail(id.youtube.errors.save);
-        return;
-      } finally {
+      this.saveFailed = done.saveError === true;
+      if (done.savedUri) {
+        this.savedUri = done.savedUri;
+        this.savedName = done.savedName ?? '';
+        this.savedFolder = done.savedFolder ?? '';
+        this.savedDuration = done.duration;
+      }
+      // The Library copy is kept when asked for, and always when nothing was saved in the folder.
+      if (saveFolder.keepInLibrary || !done.savedUri) {
+        const res = await fetch(nativeFileUrl(done.path));
+        if (!res.ok) throw new ApiError('server', 'read failed');
+        const blob = await res.blob();
+        const name = `${done.title.replace(/[\\/:*?"<>|]+/g, '_')}.mp3`;
+        let song: SongMeta;
+        try {
+          song = await player.store.add(new File([blob], name, { type: 'audio/mpeg' }), 'youtube');
+        } catch {
+          this.fail(id.youtube.errors.save);
+          return;
+        } finally {
+          void plugin.ytCleanup({ videoId });
+        }
+        await player.refresh();
+        this.song = song;
+        this.title = song.title;
+      } else {
         void plugin.ytCleanup({ videoId });
       }
-      await player.refresh();
-      this.song = song;
-      this.title = song.title;
       this.phase = 'done';
     } catch (err) {
       this.fail(err instanceof ApiError ? describeError(err) : describeNativeError(err));
     } finally {
       void progress.remove();
     }
+  }
+
+  /** Play the MP3 that was saved only in the chosen folder (not kept in the Library). */
+  async playSaved(player: Player): Promise<boolean> {
+    if (!this.savedUri) return false;
+    const uri = this.savedUri;
+    return player.playLazy(
+      [
+        {
+          title: this.title,
+          fileName: this.savedName || `${this.title}.mp3`,
+          size: 0,
+          duration: this.savedDuration,
+          mime: 'audio/mpeg',
+          open: async () => {
+            const res = await fetch(nativeFileUrl(uri));
+            if (!res.ok) throw new Error('read');
+            return new File([await res.blob()], this.savedName || 'lagu.mp3', {
+              type: 'audio/mpeg',
+            });
+          },
+        },
+      ],
+      0,
+    );
   }
 
   private fail(message: string): void {

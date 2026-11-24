@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { formatBytes, formatDuration } from '@musik/core';
   import { id } from '@musik/ui';
   import type { DeviceMusic } from './device.svelte';
@@ -13,8 +14,9 @@
   let { player, device, onplay }: Props = $props();
   const t = id.device;
 
-  $effect(() => {
-    if (!device.loaded && !device.loading && !device.error) void device.load();
+  // Read the list again every time this view opens: files come and go outside the app.
+  onMount(() => {
+    void device.load();
   });
 
   async function open(song: NativeSong) {
@@ -57,6 +59,16 @@
     >
   </div>
 
+  <button
+    type="button"
+    id="device-refresh"
+    class="refresh"
+    onclick={() => device.load()}
+    disabled={device.loading}
+  >
+    ↻ {device.loading ? t.loading : t.refresh}
+  </button>
+
   {#if device.mode === 'all'}
     <input
       class="search"
@@ -67,8 +79,8 @@
     />
   {/if}
   <p class="muted" role="status" id="device-message">
-    {#if device.loading}{t.loading}{:else if device.loaded && device.mode === 'all'}{device.visible
-        .length}
+    {#if device.loading}{t.loading}{:else if device.hidden > 0}{device.hidden}
+      {t.hidden}{:else if device.loaded && device.mode === 'all'}{device.visible.length}
       {t.songs}{/if}
   </p>
   {#if device.error}
@@ -176,6 +188,9 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+  }
+  .refresh {
+    min-height: 40px;
   }
   .crumbs {
     display: flex;

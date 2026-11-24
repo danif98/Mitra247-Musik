@@ -9,7 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -47,6 +49,13 @@ public class PlaybackService extends Service {
     private static final String ACTION_CMD = "com.musik.tools.CMD";
     private static final String EXTRA_CMD = "cmd";
     private static final long WAKE_LOCK_MAX_MS = 6L * 60 * 60 * 1000;
+    /**
+     * A pause shorter than this keeps the service in the foreground. Between two songs the web app
+     * reports "paused" for a moment; leaving the foreground then would make Android refuse to
+     * bring the service back while the screen is off (ForegroundServiceStartNotAllowedException),
+     * which stopped the music at the end of every song.
+     */
+    private static final long DEMOTE_AFTER_PAUSE_MS = 90_000;
 
     private static PlaybackService instance;
     private static ActionListener listener;
@@ -55,6 +64,8 @@ public class PlaybackService extends Service {
     private PowerManager.WakeLock wakeLock;
     private State state = new State();
     private boolean foreground = false;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable demote = this::demoteAfterPause;
 
     public static void setListener(ActionListener l) {
         listener = l;
@@ -150,6 +161,7 @@ public class PlaybackService extends Service {
     @Override
     public void onDestroy() {
         instance = null;
+        handler.removeCallbacks(demote);
         releaseWakeLock();
         if (session != null) {
             session.setActive(false);
@@ -200,21 +212,45 @@ public class PlaybackService extends Service {
 
         Notification n = buildNotification(s);
         if (!foreground) {
-            if (Build.VERSION.SDK_INT >= 29) {
-                startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-            } else {
-                startForeground(NOTIFICATION_ID, n);
+            try {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+                } else {
+                    startForeground(NOTIFICATION_ID, n);
+                }
+                foreground = true;
+            } catch (RuntimeException e) {
+                // Android may refuse (app in the background, service was demoted): never crash the
+                // app for it, keep the session and the notification up to date instead.
+                notifyOnly(n);
             }
-            foreground = true;
         } else {
-            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            nm.notify(NOTIFICATION_ID, n);
+            notifyOnly(n);
         }
-        if (s.playing) acquireWakeLock();
-        else {
-            releaseWakeLock();
-            // Paused: the notification may be swiped away, but the service stays so Play still works.
-            stopForeground(false);
+        if (s.playing) {
+            handler.removeCallbacks(demote);
+            acquireWakeLock();
+        } else {
+            // Keep the foreground state and the wake lock through short pauses (song changes).
+            handler.removeCallbacks(demote);
+            handler.postDelayed(demote, DEMOTE_AFTER_PAUSE_MS);
+        }
+    }
+
+    private void notifyOnly(Notification n) {
+        try {
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, n);
+        } catch (RuntimeException ignored) {
+            // notification permission missing: playback still works
+        }
+    }
+
+    /** Paused for a while: let the notification be dismissed and free the CPU. */
+    private void demoteAfterPause() {
+        if (state.playing) return;
+        releaseWakeLock();
+        if (foreground) {
+            stopForeground(STOP_FOREGROUND_DETACH);
             foreground = false;
         }
     }
@@ -285,6 +321,7 @@ public class PlaybackService extends Service {
     }
 
     private void shutdown() {
+        handler.removeCallbacks(demote);
         releaseWakeLock();
         stopForeground(STOP_FOREGROUND_REMOVE);
         foreground = false;

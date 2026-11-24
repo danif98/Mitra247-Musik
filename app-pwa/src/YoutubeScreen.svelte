@@ -45,6 +45,8 @@
     if (flow.song) {
       await player.select(flow.song);
       onplay();
+    } else if (await flow.playSaved(player)) {
+      onplay();
     }
   }
 </script>
@@ -172,6 +174,11 @@
   {/if}
 
   {#if flow.phase === 'done'}
+    {#if flow.savedName}
+      <p class="muted" id="yt-saved">{t.savedTo} {flow.savedName} {t.savedIn} {flow.savedFolder}</p>
+    {:else if flow.saveFailed}
+      <p class="error" id="yt-save-failed">{t.saveFolderFailedNote}</p>
+    {/if}
     <div class="row">
       <button type="button" class="primary" id="yt-play" onclick={playNow}>{t.playNow}</button>
       <button

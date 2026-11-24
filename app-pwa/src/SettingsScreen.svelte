@@ -6,6 +6,7 @@
   import { maskToken, type ServerSettings } from './server.svelte';
   import { describeError } from './youtube.svelte';
   import { native } from './native';
+  import { saveFolder } from './save-folder.svelte';
 
   interface Props {
     player: Player;
@@ -26,6 +27,7 @@
   let ytMsg = $state('');
   let ytBusy = $state(false);
   onMount(() => {
+    void saveFolder.load();
     void native
       ?.ytVersion()
       .then((r) => (ytVersion = r.version))
@@ -127,6 +129,46 @@
   </div>
 
   {#if native}
+    <div class="panel">
+      <h3>{t.saveFolder}</h3>
+      <p class="muted" id="save-folder-label">
+        {saveFolder.isSet ? saveFolder.label : t.saveFolderNone}
+      </p>
+      <p class="muted">{t.saveFolderNote}</p>
+      <div class="seg">
+        <button
+          type="button"
+          class="primary"
+          id="save-folder-pick"
+          onclick={() => saveFolder.pick()}
+          disabled={saveFolder.busy}
+          >{saveFolder.isSet ? t.saveFolderChange : t.saveFolderPick}</button
+        >
+        <button
+          type="button"
+          id="save-folder-clear"
+          onclick={() => saveFolder.clear()}
+          disabled={saveFolder.busy || !saveFolder.isSet}>{t.saveFolderClear}</button
+        >
+      </div>
+      {#if saveFolder.isSet && !saveFolder.writable}
+        <p class="error" role="alert">{t.saveFolderReadOnly}</p>
+      {/if}
+      <label class="check">
+        <input
+          type="checkbox"
+          id="keep-in-library"
+          checked={saveFolder.keepInLibrary}
+          onchange={(e) => saveFolder.setKeepInLibrary(e.currentTarget.checked)}
+        />
+        <span>{t.keepInLibrary}</span>
+      </label>
+      <p class="muted">{t.keepInLibraryNote}</p>
+      {#if saveFolder.message}<p class="muted" id="save-folder-msg" role="status">
+          {saveFolder.message}
+        </p>{/if}
+    </div>
+
     <div class="panel">
       <h3>{t.ytdlp}</h3>
       <p class="muted" id="yt-version">{t.ytVersion}: {ytVersion || '–'}</p>
@@ -253,6 +295,16 @@
     display: grid;
     gap: 8px;
     grid-template-columns: 1fr 1fr;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--tap);
+  }
+  .check input {
+    width: 22px;
+    height: 22px;
   }
   a.btn {
     display: flex;

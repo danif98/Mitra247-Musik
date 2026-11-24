@@ -2,13 +2,19 @@ package com.musik.tools;
 
 import android.Manifest;
 import android.content.ContentUris;
+import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.util.Log;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -16,6 +22,9 @@ import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import androidx.activity.result.ActivityResult;
+import androidx.documentfile.provider.DocumentFile;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
@@ -24,8 +33,12 @@ import com.yausername.youtubedl_android.YoutubeDL;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 import com.yausername.youtubedl_android.YoutubeDLResponse;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -193,7 +206,10 @@ public class MusikNativePlugin extends Plugin {
             projection = all;
         }
         String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND " + MediaStore.Audio.Media.DURATION + " > 0";
-        JSArray songs = new JSArray();
+        // MediaStore keeps rows of files that were deleted or moved (until the next scan): drop them.
+        List<JSObject> found = new ArrayList<>();
+        List<Boolean> missing = new ArrayList<>();
+        List<String> stalePaths = new ArrayList<>();
         try (
             Cursor c = context.getContentResolver().query(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -222,12 +238,32 @@ public class MusikNativePlugin extends Plugin {
                     String[] place = placeOf(c, Build.VERSION.SDK_INT >= 29);
                     s.put("volume", place[0]);
                     s.put("folder", place[1]);
-                    songs.put(s);
+                    String data = c.getString(9);
+                    boolean gone = data != null && !data.isEmpty() && !new File(data).exists();
+                    found.add(s);
+                    missing.add(gone);
+                    if (gone) stalePaths.add(data);
                 }
+            }
+        }
+        JSArray songs = new JSArray();
+        int gone = stalePaths.size();
+        // If every row looks missing, file paths are probably not readable here: show them all.
+        boolean trust = gone < found.size();
+        for (int i = 0; i < found.size(); i++) {
+            if (!trust || !missing.get(i)) songs.put(found.get(i));
+        }
+        if (trust && gone > 0) {
+            // Ask Android to refresh its index for those paths so they disappear for good.
+            try {
+                MediaScannerConnection.scanFile(context, stalePaths.toArray(new String[0]), null, null);
+            } catch (Exception ignored) {
+                // best effort
             }
         }
         JSObject r = new JSObject();
         r.put("songs", songs);
+        r.put("hidden", trust ? gone : 0);
         r.put("volumes", storageVolumes(context));
         return r;
     }
@@ -313,7 +349,12 @@ public class MusikNativePlugin extends Plugin {
         s.speed = speed == null || speed <= 0f ? 1f : speed;
         s.hasPrev = Boolean.TRUE.equals(call.getBoolean("hasPrev", false));
         s.hasNext = Boolean.TRUE.equals(call.getBoolean("hasNext", false));
-        PlaybackService.update(getContext(), s);
+        try {
+            PlaybackService.update(getContext(), s);
+        } catch (RuntimeException e) {
+            // The notification is optional; never let it take the app down.
+            Log.w("MusikNative", "setNowPlaying failed: " + e.getClass().getSimpleName());
+        }
         call.resolve();
     }
 
@@ -321,6 +362,170 @@ public class MusikNativePlugin extends Plugin {
     public void clearNowPlaying(PluginCall call) {
         PlaybackService.stop(getContext());
         call.resolve();
+    }
+
+    // ------------------------------------------------------------------ folder for converted MP3s
+
+    private static final String PREFS = "musik";
+    private static final String PREF_SAVE_TREE = "saveTree";
+
+    private SharedPreferences prefs() {
+        return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    /** Let the user pick a folder (internal storage or SD card); the permission is kept across restarts. */
+    @PluginMethod
+    public void pickSaveFolder(PluginCall call) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION |
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        );
+        startActivityForResult(call, intent, "pickSaveFolderResult");
+    }
+
+    @ActivityCallback
+    private void pickSaveFolderResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        Intent data = result.getData();
+        if (result.getResultCode() != Activity.RESULT_OK || data == null || data.getData() == null) {
+            call.reject("Pemilihan folder dibatalkan.", "cancelled");
+            return;
+        }
+        Uri tree = data.getData();
+        int flags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+        try {
+            getContext().getContentResolver().takePersistableUriPermission(tree, flags);
+        } catch (Exception e) {
+            call.reject("Folder ini tidak bisa dipakai. Pilih folder lain.", "permission");
+            return;
+        }
+        releaseSaveFolder(tree.toString());
+        prefs().edit().putString(PREF_SAVE_TREE, tree.toString()).apply();
+        call.resolve(saveFolderInfo());
+    }
+
+    @PluginMethod
+    public void getSaveFolder(PluginCall call) {
+        call.resolve(saveFolderInfo());
+    }
+
+    @PluginMethod
+    public void clearSaveFolder(PluginCall call) {
+        releaseSaveFolder(null);
+        prefs().edit().remove(PREF_SAVE_TREE).apply();
+        call.resolve(saveFolderInfo());
+    }
+
+    /** Give up the permission of the folder that was set before (unless it is the one being kept). */
+    private void releaseSaveFolder(String keep) {
+        String old = prefs().getString(PREF_SAVE_TREE, null);
+        if (old == null || old.equals(keep)) return;
+        try {
+            getContext().getContentResolver().releasePersistableUriPermission(
+                Uri.parse(old),
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            );
+        } catch (Exception ignored) {
+            // already gone
+        }
+    }
+
+    /** {uri, label, writable}; empty uri when no folder is set or it is gone now. */
+    private JSObject saveFolderInfo() {
+        JSObject r = new JSObject();
+        r.put("uri", "");
+        r.put("label", "");
+        r.put("writable", false);
+        String tree = prefs().getString(PREF_SAVE_TREE, null);
+        if (tree == null) return r;
+        try {
+            Uri uri = Uri.parse(tree);
+            DocumentFile dir = DocumentFile.fromTreeUri(getContext(), uri);
+            if (dir == null || !dir.exists()) return r;
+            r.put("uri", tree);
+            r.put("label", treeLabel(uri));
+            r.put("writable", dir.canWrite());
+        } catch (Exception ignored) {
+            // unreadable setting: treated as not set
+        }
+        return r;
+    }
+
+    /** "Penyimpanan internal / Music/Musik" or "Kartu SD / USB / Lagu" from the tree's document id. */
+    private static String treeLabel(Uri tree) {
+        String id = DocumentsContract.getTreeDocumentId(tree);
+        int colon = id.indexOf(':');
+        String volume = colon < 0 ? id : id.substring(0, colon);
+        String path = colon < 0 ? "" : id.substring(colon + 1);
+        String root = volume.equals("primary") ? "Penyimpanan internal" : "Kartu SD / USB";
+        return path.isEmpty() ? root : root + " / " + path;
+    }
+
+    /** Absolute path of a document in the chosen tree (for the media scanner), or null. */
+    private static String documentPath(Uri document) {
+        try {
+            String id = DocumentsContract.getDocumentId(document);
+            int colon = id.indexOf(':');
+            if (colon < 0) return null;
+            String volume = id.substring(0, colon);
+            String rest = id.substring(colon + 1);
+            if (volume.equals("primary")) return new File(Environment.getExternalStorageDirectory(), rest).getAbsolutePath();
+            return "/storage/" + volume + "/" + rest;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String safeFileName(String title, String fallback) {
+        String n = title == null ? "" : title.replaceAll("[\\\\/:*?\"<>|\\x00-\\x1f]+", "_").trim();
+        while (n.startsWith(".")) n = n.substring(1);
+        if (n.length() > 120) n = n.substring(0, 120).trim();
+        return n.isEmpty() ? fallback : n;
+    }
+
+    /**
+     * Copy the converted MP3 into the chosen folder. Returns {} when no folder is set,
+     * {saveError: true} when it could not be written, else {savedUri, savedName, savedFolder}.
+     */
+    private JSObject copyToSaveFolder(File mp3, String title, String fallbackName) {
+        JSObject r = new JSObject();
+        String tree = prefs().getString(PREF_SAVE_TREE, null);
+        if (tree == null) return r;
+        try {
+            DocumentFile dir = DocumentFile.fromTreeUri(getContext(), Uri.parse(tree));
+            if (dir == null || !dir.exists() || !dir.canWrite()) {
+                r.put("saveError", true);
+                return r;
+            }
+            String base = safeFileName(title, fallbackName);
+            String name = base + ".mp3";
+            for (int n = 2; dir.findFile(name) != null && n < 1000; n++) name = base + " (" + n + ").mp3";
+            DocumentFile out = dir.createFile("audio/mpeg", name);
+            if (out == null) throw new IllegalStateException("create");
+            try (
+                InputStream in = new FileInputStream(mp3);
+                OutputStream os = getContext().getContentResolver().openOutputStream(out.getUri())
+            ) {
+                if (os == null) throw new IllegalStateException("open");
+                byte[] buf = new byte[64 * 1024];
+                int len;
+                while ((len = in.read(buf)) > 0) os.write(buf, 0, len);
+            }
+            String path = documentPath(out.getUri());
+            if (path != null) {
+                // Make the file show up in "Musik di HP" and other players without waiting.
+                MediaScannerConnection.scanFile(getContext(), new String[] { path }, new String[] { "audio/mpeg" }, null);
+            }
+            r.put("savedUri", out.getUri().toString());
+            r.put("savedName", out.getName());
+            r.put("savedFolder", treeLabel(Uri.parse(tree)));
+        } catch (Exception e) {
+            Log.w("MusikNative", "save to folder failed: " + e.getClass().getSimpleName());
+            r.put("saveError", true);
+        }
+        return r;
     }
 
     // ------------------------------------------------------------------ yt-dlp on the phone
@@ -502,6 +707,11 @@ public class MusikNativePlugin extends Plugin {
                 r.put("title", title);
                 r.put("duration", duration);
                 r.put("size", mp3.length());
+                JSObject saved = copyToSaveFolder(mp3, title, videoId);
+                for (java.util.Iterator<String> it = saved.keys(); it.hasNext();) {
+                    String key = it.next();
+                    r.put(key, saved.get(key));
+                }
                 call.resolve(r);
             } catch (Exception e) {
                 String detail = String.valueOf(e.getMessage());

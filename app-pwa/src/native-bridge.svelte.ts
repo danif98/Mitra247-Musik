@@ -29,7 +29,7 @@ export function bindNative(player: Player, onSharedUrl: (url: string) => void): 
       positionMs: Math.round(untrack(() => player.position) * 1000),
       playing,
       speed: player.tempo,
-      hasPrev: player.queueIndex > 0,
+      hasPrev: player.hasPrev,
       hasNext: player.hasNext,
     };
     if (playing && !askedNotifications) {

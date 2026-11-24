@@ -47,7 +47,15 @@ Belum diuji di perangkat: mode Folder (termasuk kartu SD), antrean dari folder, 
 - yt-dlp di HP: waktu unduh dan konversi, serta apakah YouTube meminta JavaScript runtime tambahan (yt-dlp terbaru memakainya untuk sebagian format); bila ya, unduhan gagal sampai ada solusinya.
 - Notifikasi (Android 13+ meminta izin saat lagu pertama diputar).
 - Seek dari lock screen: posisi diperkirakan dari kecepatan pemutaran dan baru dikoreksi saat status berubah.
-- Layanan hanya dimulai saat aplikasi di depan; Android menolak memulainya dari latar.
+- Layanan hanya dimulai saat aplikasi di depan; Android menolak memulainya dari latar. Karena itu layanan tetap di foreground selama jeda singkat antar lagu (90 detik) dan tidak turun lalu naik lagi.
+
+## Folder simpan MP3
+
+Setelan, bagian "Folder simpan MP3": `pickSaveFolder` membuka pemilih folder Android (`ACTION_OPEN_DOCUMENT_TREE`), izin baca-tulis dibuat permanen (`takePersistableUriPermission`) dan URI-nya disimpan di SharedPreferences. Setelah konversi, `ytDownload` menyalin MP3 ke folder itu lewat `DocumentFile` (nama dari judul, `(2)`, `(3)` bila sudah ada) lalu meminta media scanner memindai berkasnya, jadi muncul di "Musik di HP". Android 11 ke atas tidak mengizinkan memilih akar penyimpanan atau folder Download; pilih atau buat subfolder (mis. `Music/Musik`). Opsi "Simpan juga di Library aplikasi" mengatur apakah salinan kedua (dengan tempo dan nada per lagu yang diingat) disimpan di Library; bila mati, lagu diputar langsung dari berkas di folder.
+
+## Daftar musik di HP
+
+Daftar dibaca ulang setiap tampilan dibuka. MediaStore menyimpan baris berkas yang sudah dihapus sampai pemindaian berikutnya, jadi plugin memeriksa keberadaan berkas dan menyembunyikan yang hilang (bila semua tampak hilang, jalur berkas dianggap tidak terbaca dan semuanya ditampilkan). Jalur yang hilang dikirim ke `MediaScannerConnection` agar indeks Android ikut bersih.
 
 ## Catatan teknis
 

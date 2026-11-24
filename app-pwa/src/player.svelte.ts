@@ -20,8 +20,17 @@ import {
   setB,
   type LoopRange,
   type Preset,
-  nextIndex,
-  previousAction,
+  advance,
+  hasNextTrack,
+  hasPreviousTrack,
+  nextRepeat,
+  previous as previousTrack,
+  reshuffle,
+  sanitizePlayMode,
+  sequentialOrder,
+  shuffleOrder,
+  type PlayMode,
+  type RepeatMode,
   sortSongs,
   titleFromFileName,
   storageSupported,
@@ -51,6 +60,16 @@ function loadMetro(): MetroSettings {
     };
   } catch {
     return { bpm: 100, beatsPerBar: 4, countIn: false };
+  }
+}
+
+const MODE_KEY = 'musik.playmode';
+
+function loadPlayMode(): PlayMode {
+  try {
+    return sanitizePlayMode(JSON.parse(localStorage.getItem(MODE_KEY) ?? '{}'));
+  } catch {
+    return sanitizePlayMode(null);
   }
 }
 
@@ -84,6 +103,10 @@ export class Player {
   /** Playback queue (library order, or the files picked with "Buka & putar") and the current index. */
   queue = $state<SongMeta[]>([]);
   queueIndex = $state(-1);
+  /** Auto next, repeat and shuffle (kept on this device). */
+  autoNext = $state(loadPlayMode().autoNext);
+  repeat = $state<RepeatMode>(loadPlayMode().repeat);
+  shuffle = $state(loadPlayMode().shuffle);
   playing = $state(false);
   position = $state(0);
   duration = $state(0);
@@ -119,7 +142,52 @@ export class Player {
   private readonly tempLoaders = new Map<string, () => Promise<File>>();
 
   get hasNext(): boolean {
-    return nextIndex(this.queue.length, this.queueIndex) !== null;
+    return hasNextTrack(this.playOrder(), this.queueIndex, this.playMode);
+  }
+
+  get hasPrev(): boolean {
+    return hasPreviousTrack(this.playOrder(), this.queueIndex, this.playMode);
+  }
+
+  get playMode(): PlayMode {
+    return { autoNext: this.autoNext, repeat: this.repeat, shuffle: this.shuffle };
+  }
+
+  /** Random play order for the current queue; rebuilt when the queue changes or shuffle is toggled. */
+  private shuffled: number[] | null = null;
+
+  /** Play order: a permutation of the queue indices (sequential when shuffle is off). */
+  private playOrder(): number[] {
+    const n = this.queue.length;
+    if (!this.shuffle) return sequentialOrder(n);
+    if (!this.shuffled || this.shuffled.length !== n) {
+      this.shuffled = shuffleOrder(n, this.queueIndex);
+    }
+    return this.shuffled;
+  }
+
+  toggleAutoNext(): void {
+    this.autoNext = !this.autoNext;
+    this.saveMode();
+  }
+
+  cycleRepeat(): void {
+    this.repeat = nextRepeat(this.repeat);
+    this.saveMode();
+  }
+
+  toggleShuffle(): void {
+    this.shuffle = !this.shuffle;
+    this.shuffled = null; // a new order starts with the playing track
+    this.saveMode();
+  }
+
+  private saveMode(): void {
+    try {
+      localStorage.setItem(MODE_KEY, JSON.stringify(this.playMode));
+    } catch {
+      /* storage unavailable: the setting only lasts for this session */
+    }
   }
 
   /** True when the current track is a picked file that is not stored in the library. */
@@ -226,6 +294,7 @@ export class Player {
 
   /** Play a library song; the queue becomes the library list in its current order. */
   async select(song: SongMeta, autoplay = true): Promise<void> {
+    this.shuffled = null;
     this.queue = [...this.songs];
     const at = this.queue.findIndex((s) => s.id === song.id);
     if (at < 0) this.queue = [song];
@@ -257,6 +326,7 @@ export class Player {
         peaks: new Float32Array(0),
       };
     });
+    this.shuffled = null;
     this.queue = items;
     this.queueIndex = 0;
     this.log.event('files:open', { count: items.length });
@@ -288,6 +358,7 @@ export class Player {
         peaks: new Float32Array(0),
       };
     });
+    this.shuffled = null;
     this.queue = items;
     this.queueIndex = at;
     this.log.event('files:open', { count: items.length });
@@ -315,20 +386,35 @@ export class Player {
   }
 
   async next(): Promise<void> {
-    const ni = nextIndex(this.queue.length, this.queueIndex);
-    if (ni === null) return;
-    this.queueIndex = ni;
-    await this.load(this.queue[ni]!, true);
+    const step = advance(this.playOrder(), this.queueIndex, 'manual', this.playMode);
+    if (step.kind === 'track') await this.goTo(step.index, step.wrapped);
   }
 
   async prev(): Promise<void> {
-    const action = previousAction(this.queueIndex, this.audio.currentTime);
+    const action = previousTrack(
+      this.playOrder(),
+      this.queueIndex,
+      this.audio.currentTime,
+      this.playMode,
+    );
     if (action.kind === 'restart') {
       this.seek(0);
       return;
     }
-    this.queueIndex = action.index;
-    await this.load(this.queue[action.index]!, true);
+    await this.goTo(action.index, false);
+  }
+
+  /** Switch to a queue index; a new round with shuffle gets a fresh random order. */
+  private async goTo(index: number, wrapped: boolean): Promise<void> {
+    let at = index;
+    if (wrapped && this.shuffle) {
+      this.shuffled = reshuffle(this.queue.length, this.queueIndex);
+      at = this.shuffled[0] ?? index;
+    }
+    const song = this.queue[at];
+    if (!song) return;
+    this.queueIndex = at;
+    await this.load(song, true);
   }
 
   /** Stop = pause and return to the start. */
@@ -339,8 +425,15 @@ export class Player {
   }
 
   private async onEnded(): Promise<void> {
-    if (this.hasNext) await this.next();
-    else this.playing = false;
+    const step = advance(this.playOrder(), this.queueIndex, 'ended', this.playMode);
+    if (step.kind === 'restart') {
+      this.seek(0);
+      await this.play();
+    } else if (step.kind === 'track') {
+      await this.goTo(step.index, step.wrapped);
+    } else {
+      this.playing = false;
+    }
   }
 
   private async load(song: SongMeta, autoplay: boolean): Promise<void> {

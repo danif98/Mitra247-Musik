@@ -2,6 +2,14 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.3.1 (2026-11-24)
+
+- Android, **perbaikan**: musik berhenti saat layar mati di akhir lagu. Log HP menunjukkan aplikasi crash (`ForegroundServiceStartNotAllowedException`): jeda singkat antar lagu menurunkan layanan dari foreground dan Android 12+ menolak menaikkannya lagi di latar belakang. Layanan kini bertahan di foreground sampai jeda 90 detik, wake lock ikut ditahan, dan penolakan Android tidak lagi menjatuhkan aplikasi. Terbukti di A23: lagu berganti otomatis dengan layar mati, nol crash.
+- Pemutar: **Auto next** (hidup/mati), **Ulangi** (mati, semua, 1 lagu), dan **Acak**; tiga tombol di layar Putar, tersimpan di perangkat. Acak memutar setiap lagu sekali per putaran; dengan Ulangi semua, putaran baru diacak ulang dan tidak dimulai dengan lagu yang baru diputar. Tombol Berikutnya/Sebelumnya dan notifikasi mengikuti urutan. Logika murni di `core/library/playmode.ts`.
+- Musik di HP: daftar dibaca ulang setiap kali tampilan dibuka, ada tombol **Muat ulang daftar**, entri MediaStore yang berkasnya sudah dihapus atau dipindah disembunyikan (dan Android diminta menyegarkan indeksnya), dan tampilan folder keluar dari folder yang sudah kosong.
+- Android: **Folder simpan MP3** di Setelan (pilih folder internal atau kartu SD lewat pemilih folder Android, izin tersimpan). MP3 hasil konversi YouTube disalin ke folder itu dengan nama judul (nomor ditambah bila sudah ada) dan langsung muncul di Musik di HP. Opsi **Simpan juga di Library aplikasi** (aktif bawaan; mati = hanya berkas di folder). Bila penyalinan gagal, lagu tetap disimpan di Library.
+- Uji: `core/library/playmode.test.ts`, `e2e/lazyqueue.mjs` (mode putar dan tombol).
+
 ## 0.3.0 (2026-11-23)
 
 - Server: `GET /api/search?q=` (token wajib) mencari YouTube lewat yt-dlp `ytsearch10:` tanpa mengunduh. Hasil: id, judul, kanal, durasi, thumbnail (dibuat dari id, bukan URL dari yt-dlp). Siaran langsung dan video di atas batas durasi disaring. Kata kunci maks. 100 karakter, hanya sebagai satu argumen setelah `--`. Batas 15 pencarian/menit per IP, maks. 2 pencarian bersamaan, cache 5 menit.
