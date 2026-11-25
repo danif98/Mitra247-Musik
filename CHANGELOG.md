@@ -2,6 +2,14 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.3.3 (2026-11-25)
+
+- **YouTube: pencarian berhalaman.** Hasil diurutkan dari yang terbaru (`ytsearchdate`), 15 per halaman, dan halaman berikutnya dimuat otomatis saat daftar digulir (tombol **Muat lebih banyak** sebagai cadangan; maks. 150 hasil). Server: `GET /api/search?q=&offset=` kini mengembalikan `hasMore`. Android: `ytSearch` menerima `offset`.
+- Tiap hasil punya **Putar** (cuplikan lewat embed YouTube di panel yang menempel di atas layar; pemutar utama dijeda) dan **Konversi**. Konversi tidak lagi membuka layar Putar atau memutar lagu sendiri; lagu diputar hanya lewat tombol **Putar** di antrean.
+- **Antrean konversi**: video diproses satu per satu, dengan jeda acak 5-10 detik (hitung mundur terlihat) sebelum video berikutnya. Selama antrean jalan, hasil lain tetap bisa digulir, dicuplik, atau ditambah. Item gagal punya **Coba lagi**; item bisa dihapus.
+- **Judul disingkat** menjadi "Lagu - Artis" (mis. "Sheila On 7 - Dan (Official Music Video)" menjadi "Dan - Sheila On 7"); tanpa pemisah, nama kanal dipakai sebagai artis. Dipakai di daftar, antrean, nama berkas MP3, dan judul di Library. Logika di `core/api/title.ts`.
+- Uji: `core/api/title.test.ts`, `server/src/search.test.ts`, `e2e/ytsearch.mjs` (halaman, cuplikan, antrean, jeda), `e2e/m2.mjs`.
+
 ## 0.3.2 (2026-11-24)
 
 - Layar **Putar** didesain ulang: kartu "sedang diputar" (sampul gradien dari judul, asal daftar, nomor urut, artis, lencana tempo / kunci / loop / Minus One), gelombang suara, deretan kontrol modern (Acak, Sebelumnya, Putar besar, Berikutnya, Ulangi; lalu 5 detik mundur, Berhenti, 5 detik maju, Auto next), dan dua tab: **Antrean** dan **Latihan**. Latihan memuat tempo dan kunci, loop A-B, equalizer, metronom, volume, dan Minus One dalam kartu yang tertata. Tab terakhir yang dipakai diingat.

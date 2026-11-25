@@ -95,9 +95,11 @@ describe('ApiClient', () => {
     const results = [
       { videoId: 'aaaaaaaaaaa', title: 'T', channel: null, duration: 60, thumbnail: 'u' },
     ];
-    const { c, calls } = client(() => reply(200, { query: 'a&b c', results }));
-    expect(await c.search('a&b c')).toEqual(results);
+    const { c, calls } = client(() => reply(200, { query: 'a&b c', results, hasMore: true }));
+    expect(await c.search('a&b c')).toEqual({ results, hasMore: true });
     expect(calls[0]!.url).toBe('https://srv.example/app/api/search?q=a%26b%20c');
+    await c.search('x', 15);
+    expect(calls[1]!.url).toBe('https://srv.example/app/api/search?q=x&offset=15');
     const h = calls[0]!.init.headers as Record<string, string>;
     expect(h['authorization']).toBe('Bearer tok');
   });

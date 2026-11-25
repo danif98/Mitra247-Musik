@@ -41,6 +41,8 @@ const SERVER = 'https://musik-srv.example';
 const TOKEN = 'e2e-test-token-0123456789';
 const searches = [];
 const jobUrls = [];
+const jobTimes = [];
+const jobVideo = new Map();
 let searchMode = 'ok';
 
 const { server, port } = await startStaticServer(outDir, 0);
@@ -84,49 +86,54 @@ await context.route(`${SERVER}/**`, (route) => {
     return route.fulfill(json(401, { error: 'unauthorized' }));
   }
   if (url.pathname === '/api/search') {
-    searches.push(url.searchParams.get('q'));
+    const offset = Number(url.searchParams.get('offset') ?? 0);
+    searches.push(`${url.searchParams.get('q')}@${offset}`);
     if (searchMode === 'fail') return route.fulfill(json(502, { error: 'search_failed' }));
-    if (searchMode === 'none') return route.fulfill(json(200, { query: 'x', results: [] }));
+    if (searchMode === 'none') {
+      return route.fulfill(json(200, { query: 'x', results: [], hasMore: false }));
+    }
+    const mk = (videoId, title, channel, duration) => ({
+      videoId,
+      title,
+      channel,
+      duration,
+      thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+    });
+    // Page 1: two results and more to come; page 2 (offset 15): one result, the end.
+    const results =
+      offset === 0
+        ? [
+            mk('aaaaaaaaaaa', 'Kanal A - Lagu Satu (Official Video)', 'Kanal A', 185),
+            mk('bbbbbbbbbbb', 'Lagu Dua', null, 3725),
+          ]
+        : [mk('ccccccccccc', 'Lagu Tiga', 'Kanal C', 200)];
     return route.fulfill(
-      json(200, {
-        query: url.searchParams.get('q'),
-        results: [
-          {
-            videoId: 'aaaaaaaaaaa',
-            title: 'Lagu Satu',
-            channel: 'Kanal A',
-            duration: 185,
-            thumbnail: 'https://i.ytimg.com/vi/aaaaaaaaaaa/mqdefault.jpg',
-          },
-          {
-            videoId: 'bbbbbbbbbbb',
-            title: 'Lagu Dua',
-            channel: null,
-            duration: 3725,
-            thumbnail: 'https://i.ytimg.com/vi/bbbbbbbbbbb/mqdefault.jpg',
-          },
-        ],
-      }),
+      json(200, { query: url.searchParams.get('q'), offset, results, hasMore: offset === 0 }),
     );
   }
   if (url.pathname === '/api/jobs' && req.method() === 'POST') {
-    jobUrls.push(JSON.parse(req.postData() ?? '{}').url);
+    const jobUrl = JSON.parse(req.postData() ?? '{}').url;
+    jobUrls.push(jobUrl);
+    jobTimes.push(Date.now());
+    const vid = /v=([A-Za-z0-9_-]{11})/.exec(jobUrl)?.[1] ?? 'aaaaaaaaaaa';
+    jobVideo.set('0'.repeat(31) + String(jobUrls.length), vid);
     return route.fulfill(
-      json(202, { id: '0'.repeat(31) + '1', videoId: 'aaaaaaaaaaa', status: 'queued' }),
+      json(202, { id: '0'.repeat(31) + String(jobUrls.length), videoId: vid, status: 'queued' }),
     );
   }
   if (/^\/api\/jobs\/[0-9a-f]{32}$/.test(url.pathname)) {
+    const jobId = url.pathname.split('/').pop();
     return route.fulfill(
       json(200, {
-        id: '0'.repeat(31) + '1',
-        videoId: 'aaaaaaaaaaa',
+        id: jobId,
+        videoId: jobVideo.get(jobId) ?? 'aaaaaaaaaaa',
         status: 'done',
         stage: null,
         title: 'Lagu Satu',
         duration: 3,
         size: wav.length,
         error: null,
-        downloadUrl: '/api/files/' + '0'.repeat(31) + '1.mp3?exp=1&sig=x',
+        downloadUrl: `/api/files/${jobId}.mp3?exp=1&sig=x`,
       }),
     );
   }
@@ -159,40 +166,86 @@ try {
   await page.fill('#yt-query', '  lagu  nostalgia ');
   await page.press('#yt-query', 'Enter');
   await page.waitForSelector('#yt-results > li');
-  check('Enter submits the search', searches.length === 1, JSON.stringify(searches));
+  check('Enter submits the search', searches[0] === 'lagu  nostalgia@0', JSON.stringify(searches));
+
+  // ------------------------------------------------------------------ pagination (infinite scroll)
+  await page.waitForSelector('#yt-end');
   check(
-    'results list shows title, channel and duration',
-    (await page.locator('#yt-results > li').count()) === 2 &&
-      /Lagu Satu/.test(await page.locator('#yt-results > li').nth(0).innerText()) &&
-      /Kanal A/.test(await page.locator('#yt-results > li').nth(0).innerText()) &&
-      /3:05/.test(await page.locator('#yt-results > li').nth(0).innerText()),
-    (await page.locator('#yt-results > li').nth(0).innerText()).replace(/\s+/g, ' '),
+    'the next page loads by itself and the list ends',
+    searches.length === 2 && searches[1] === 'lagu  nostalgia@15',
+    JSON.stringify(searches),
+  );
+  check(
+    'results of both pages are listed once each',
+    (await page.locator('#yt-results > li').count()) === 3,
+  );
+  const first = (await page.locator('#yt-results > li').nth(0).innerText()).replace(/\s+/g, ' ');
+  check(
+    'title is shortened to "Song - Artist", with channel and duration',
+    /Lagu Satu - Kanal A/.test(first) && !/Official/.test(first) && /3:05/.test(first),
+    first,
   );
   check(
     'hour-long duration is formatted',
     /1:02:05/.test(await page.locator('#yt-results > li').nth(1).innerText()),
-    (await page.locator('#yt-results > li').nth(1).innerText()).replace(/\s+/g, ' '),
   );
-  check('each result has a thumbnail', (await page.locator('#yt-results img').count()) === 2);
+  check('each result has a thumbnail', (await page.locator('#yt-results img').count()) === 3);
   await page.screenshot({ path: path.join(artifacts, 'ytsearch-results.png'), fullPage: true });
 
-  // ------------------------------------------------------------------ pick = convert + save + play
-  await page.locator('#yt-results button[data-video="aaaaaaaaaaa"]').click();
-  await page.waitForSelector('#tab-play[aria-current="page"]');
+  // ------------------------------------------------------------------ preview
+  await page.locator('#yt-results li[data-video="bbbbbbbbbbb"] .preview-btn').click();
+  await page.waitForSelector('#yt-preview iframe');
+  const src = await page.locator('#yt-preview iframe').getAttribute('src');
+  check('preview embeds the chosen video', /\/embed\/bbbbbbbbbbb/.test(src ?? ''), String(src));
+  check('preview does not convert by itself', jobUrls.length === 0);
+  await page.click('#yt-preview-close');
+  check('preview can be closed', (await page.locator('#yt-preview').count()) === 0);
+
+  // ------------------------------------------------------------------ convert queue
+  await page.locator('#yt-results li[data-video="aaaaaaaaaaa"] .convert-btn').click();
+  await page.locator('#yt-results li[data-video="ccccccccccc"] .convert-btn').click();
+  await page.locator('#yt-results li[data-video="bbbbbbbbbbb"] .preview-btn').click();
+  await page.waitForSelector('#yt-queue li[data-video="aaaaaaaaaaa"][data-status="done"]');
   check(
-    'picking a result sends its watch URL to the job endpoint',
-    jobUrls[0] === 'https://www.youtube.com/watch?v=aaaaaaaaaaa',
-    String(jobUrls[0]),
+    'convert puts videos in the queue; the first runs alone',
+    (await page.locator('#yt-queue > li').count()) === 2 && jobUrls.length >= 1,
+    JSON.stringify(jobUrls),
+  );
+  check(
+    'can still preview another video while the queue runs',
+    (await page.locator('#yt-preview iframe').count()) === 1,
+  );
+  await page.waitForSelector('#yt-pause');
+  check('a pause between videos is shown', true);
+  await page.waitForSelector('#yt-queue li[data-video="ccccccccccc"][data-status="done"]', {
+    timeout: 20000,
+  });
+  const gap = jobTimes[1] - jobTimes[0];
+  check('the second video starts 5-10 s after the first', gap >= 4900 && gap <= 11500, `${gap} ms`);
+  check(
+    'first job is the first pick (queue order)',
+    jobUrls[0] === 'https://www.youtube.com/watch?v=aaaaaaaaaaa' &&
+      jobUrls[1] === 'https://www.youtube.com/watch?v=ccccccccccc',
+    JSON.stringify(jobUrls),
   );
   const state = await page.evaluate(() => ({
     songs: window.__musik.player.songs.map((s) => ({ title: s.title, source: s.source })),
-    current: window.__musik.player.current?.title ?? null,
   }));
   check(
-    'song is saved in the Library from source youtube and opened in the player',
-    state.songs.length === 1 && state.songs[0].source === 'youtube' && state.current !== null,
+    'both songs are in the Library from source youtube, named "Song - Artist"',
+    state.songs.length === 2 &&
+      state.songs.every((s) => s.source === 'youtube') &&
+      state.songs.some((s) => s.title === 'Lagu Satu - Kanal A'),
     JSON.stringify(state),
   );
+  check(
+    'finished conversion stays on the YouTube screen and plays nothing',
+    (await page.locator('#tab-youtube[aria-current="page"]').count()) === 1 &&
+      (await page.evaluate(() => window.__musik.player.playing)) !== true,
+  );
+  await page.locator('#yt-queue li[data-video="aaaaaaaaaaa"] .yt-play').click();
+  await page.waitForSelector('#tab-play[aria-current="page"]');
+  check('Play on a finished item opens it in the player', true);
 
   // ------------------------------------------------------------------ empty + error
   await page.click('#tab-youtube');

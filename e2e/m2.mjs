@@ -91,16 +91,24 @@ const tab = (name) => page.click(`#tab-${name}`);
 const ytUrl = (id) => `https://youtu.be/${id}`;
 
 async function runJob(url) {
+  const before = await page.evaluate(() => window.__musik.flow.queue.length);
   await page.fill('#yt-url', url);
   await page.click('#yt-save');
-  await page.waitForFunction(() => ['done', 'error'].includes(window.__musik.flow.phase), null, {
-    timeout: 30000,
+  await page.waitForFunction(
+    (n) => {
+      const f = window.__musik.flow;
+      const last = f.queue[f.queue.length - 1];
+      return f.urlError || (f.queue.length > n && ['done', 'error'].includes(last.status));
+    },
+    before,
+    { timeout: 30000 },
+  );
+  return page.evaluate(() => {
+    const f = window.__musik.flow;
+    if (f.urlError) return { phase: 'error', error: f.urlError, title: '' };
+    const q = f.queue[f.queue.length - 1];
+    return { phase: q.status === 'done' ? 'done' : 'error', error: q.error, title: q.title };
   });
-  return page.evaluate(() => ({
-    phase: window.__musik.flow.phase,
-    error: window.__musik.flow.error,
-    title: window.__musik.flow.title,
-  }));
 }
 
 try {
@@ -179,14 +187,8 @@ try {
     ok.phase === 'done' && /Judul Uji SLOW/.test(ok.title),
     JSON.stringify(ok),
   );
-  const stepTexts = await page.$$eval('#yt-steps li', (els) =>
-    els.map((e) => ({ step: e.dataset.step, done: e.classList.contains('done') })),
-  );
-  check(
-    'status steps are shown and completed',
-    stepTexts.length === 5 && stepTexts.slice(0, 4).every((s) => s.done),
-    JSON.stringify(stepTexts),
-  );
+  const doneText = await page.locator('#yt-queue li[data-status="done"]').first().innerText();
+  check('the queue item shows it is finished', /Selesai/.test(doneText), doneText);
   const song = await page.evaluate(() => {
     const s = window.__musik.player.songs[0];
     return s
@@ -200,7 +202,7 @@ try {
   );
   check('CORS header returned for the PWA origin', corsHeader === appOrigin, String(corsHeader));
   await page.screenshot({ path: path.join(artifacts, 'm2-youtube.png'), fullPage: true });
-  await page.click('#yt-play');
+  await page.click('.yt-play');
   await page.waitForFunction(() => window.__musik.player.position > 0.5, null, { timeout: 15000 });
   check('"Putar sekarang" plays the downloaded song', true);
   await page.evaluate(() => window.__musik.player.pause());
@@ -263,10 +265,12 @@ try {
   await tab('youtube');
   await page.fill('#yt-url', ytUrl('OKAYxxxxxxx'));
   await page.click('#yt-save');
-  await page.waitForSelector('#yt-error', { timeout: 15000 });
+  await page.waitForSelector('#yt-queue li[data-status="error"]', { timeout: 15000 });
   check(
     'offline: conversion fails with the network message',
-    /Tidak bisa terhubung/.test((await page.textContent('#yt-error')) ?? ''),
+    /Tidak bisa terhubung/.test(
+      (await page.locator('#yt-queue li[data-status="error"]').last().innerText()) ?? '',
+    ),
   );
   await context.setOffline(false);
 

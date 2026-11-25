@@ -64,7 +64,8 @@ import org.json.JSONObject;
 )
 public class MusikNativePlugin extends Plugin {
 
-    private static final int SEARCH_RESULTS = 10;
+    private static final int SEARCH_RESULTS = 15;
+    private static final int SEARCH_MAX_OFFSET = 150;
     private static final int MAX_QUERY = 100;
     private static final int MAX_DURATION_SEC = 20 * 60;
     private static final Pattern VIDEO_ID = Pattern.compile("^[A-Za-z0-9_-]{11}$");
@@ -693,14 +694,18 @@ public class MusikNativePlugin extends Plugin {
         worker.execute(() -> {
             try {
                 ensureYoutubeDl();
-                YoutubeDLRequest req = new YoutubeDLRequest("ytsearch" + SEARCH_RESULTS + ":" + query);
+                // "ytsearchdate" = newest uploads first. Later pages search deeper and keep the last page.
+                YoutubeDLRequest req = new YoutubeDLRequest("ytsearchdate" + (offset + SEARCH_RESULTS) + ":" + query);
                 req.addOption("--flat-playlist");
+                if (offset > 0) req.addOption("--playlist-items", (offset + 1) + "-" + (offset + SEARCH_RESULTS));
                 req.addOption("--dump-json");
                 req.addOption("--no-warnings");
                 req.addOption("--ignore-config");
                 YoutubeDLResponse resp = runYoutubeDl(req, "search-" + System.nanoTime(), null);
                 JSObject r = new JSObject();
-                r.put("results", parseSearch(resp.getOut()));
+                String out = resp.getOut();
+                r.put("results", parseSearch(out));
+                r.put("hasMore", countEntries(out) >= SEARCH_RESULTS && offset + SEARCH_RESULTS < SEARCH_MAX_OFFSET);
                 call.resolve(r);
             } catch (Exception e) {
                 logFailure("ytSearch", String.valueOf(e.getMessage()));
@@ -714,6 +719,13 @@ public class MusikNativePlugin extends Plugin {
         String q = input.replaceAll("[\\u0000-\\u001f\\u007f]+", " ").replaceAll("\\s+", " ").trim();
         if (q.isEmpty()) return null;
         return q.length() > MAX_QUERY ? q.substring(0, MAX_QUERY) : q;
+    }
+
+    /** JSON lines yt-dlp returned, before filtering: a full page means there may be more. */
+    static int countEntries(String output) {
+        int n = 0;
+        for (String line : output.split("\r?\n")) if (line.startsWith("{")) n++;
+        return n;
     }
 
     /** Same filtering as the server: valid id, known length, not live, within the length limit. */
@@ -747,6 +759,7 @@ public class MusikNativePlugin extends Plugin {
     @PluginMethod
     public void ytDownload(PluginCall call) {
         String videoId = call.getString("videoId", "");
+        final String wantedTitle = call.getString("title", "");
         if (!VIDEO_ID.matcher(videoId).matches()) {
             call.reject("ID video tidak valid.", "invalid_url");
             return;
@@ -810,6 +823,10 @@ public class MusikNativePlugin extends Plugin {
                     } catch (Exception ignored) {
                         // keep the id as title
                     }
+                }
+                // The app sends a shortened "Song - Artist" title; keep the original as the fallback.
+                if (wantedTitle != null && !wantedTitle.trim().isEmpty()) {
+                    title = wantedTitle.trim().length() > 150 ? wantedTitle.trim().substring(0, 150) : wantedTitle.trim();
                 }
                 JSObject r = new JSObject();
                 r.put("videoId", videoId);

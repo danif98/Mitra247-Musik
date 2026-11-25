@@ -7,6 +7,7 @@ export * from './library/meta';
 export * from './library/peaks';
 export * from './library/store';
 export * from './api/client';
+export * from './api/title';
 export * from './library/queue';
 export * from './audio/eq';
 export * from './audio/metronome';

@@ -65,6 +65,12 @@ export interface YoutubeSearchResult {
   thumbnail: string;
 }
 
+/** One page of search results; `hasMore` is true while further pages can be loaded. */
+export interface YoutubeSearchPage {
+  results: YoutubeSearchResult[];
+  hasMore: boolean;
+}
+
 /** "https://host/path/" -> "https://host/path"; null when it is not an http(s) URL. */
 export function normalizeBaseUrl(input: string): string | null {
   const text = input.trim();
@@ -164,12 +170,17 @@ export class ApiClient {
     }
   }
 
-  /** Search YouTube through the server (metadata only; nothing is downloaded). */
-  async search(query: string): Promise<YoutubeSearchResult[]> {
-    const body = (await this.request(`/api/search?q=${encodeURIComponent(query)}`)) as {
+  /** Search YouTube, newest first, through the server (metadata only; nothing is downloaded). */
+  async search(query: string, offset = 0): Promise<YoutubeSearchPage> {
+    const more = offset > 0 ? `&offset=${offset}` : '';
+    const body = (await this.request(`/api/search?q=${encodeURIComponent(query)}${more}`)) as {
       results?: YoutubeSearchResult[];
+      hasMore?: boolean;
     };
-    return Array.isArray(body.results) ? body.results : [];
+    return {
+      results: Array.isArray(body.results) ? body.results : [],
+      hasMore: body.hasMore === true,
+    };
   }
 
   async createJob(url: string): Promise<JobView> {

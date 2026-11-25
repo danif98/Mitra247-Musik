@@ -10,7 +10,10 @@ import path from 'node:path';
 import type { Clock } from './limits';
 
 export const SEARCH_MAX_QUERY = 100;
-export const SEARCH_RESULTS = 10;
+/** Results asked from yt-dlp per page; the app loads further pages while scrolling. */
+export const SEARCH_RESULTS = 15;
+/** Deepest result position a client may reach (keeps one search request small). */
+export const SEARCH_MAX_OFFSET = 150;
 
 export interface SearchResult {
   videoId: string;
@@ -19,6 +22,12 @@ export interface SearchResult {
   /** Seconds. */
   duration: number;
   thumbnail: string;
+}
+
+/** One page of results; `hasMore` is true while YouTube returned a full page. */
+export interface SearchPage {
+  results: SearchResult[];
+  hasMore: boolean;
 }
 
 export type SearchErrorCode = 'blocked' | 'timeout' | 'server_misconfigured' | 'failed';
@@ -57,14 +66,26 @@ export function cleanQuery(input: unknown): string | null {
   return q === '' ? null : q.slice(0, SEARCH_MAX_QUERY);
 }
 
+/** Page start from the query string: a whole number within limits, else 0. */
+export function cleanOffset(input: unknown): number {
+  const n = typeof input === 'string' && /^\d{1,4}$/.test(input) ? Number(input) : 0;
+  return Math.min(n, SEARCH_MAX_OFFSET);
+}
+
+/**
+ * `ytsearchdateN` asks YouTube for the newest uploads first. Pages beyond the first re-run the
+ * search for offset+N entries and keep only the last N with --playlist-items.
+ */
 export function buildSearchArgs(
   o: Pick<SearchOptions, 'dataDir' | 'jsRuntime' | 'proxy'>,
   query: string,
   cookiesCopy?: string,
+  offset = 0,
 ): string[] {
   return [
     '--ignore-config',
     '--flat-playlist',
+    ...(offset > 0 ? ['--playlist-items', `${offset + 1}-${offset + SEARCH_RESULTS}`] : []),
     '--dump-json',
     '--no-warnings',
     '--cache-dir',
@@ -73,13 +94,22 @@ export function buildSearchArgs(
     ...(o.proxy ? ['--proxy', o.proxy] : []),
     ...(cookiesCopy ? ['--cookies', cookiesCopy] : []),
     '--',
-    `ytsearch${SEARCH_RESULTS}:${query}`,
+    `ytsearchdate${offset + SEARCH_RESULTS}:${query}`,
   ];
 }
 
 /** Maps yt-dlp JSON lines to results. Drops live/unknown length, over-limit and malformed entries. */
 export function parseSearchOutput(output: string, maxDurationSec: number): SearchResult[] {
+  return parseSearchPage(output, maxDurationSec).results;
+}
+
+/** Like parseSearchOutput, plus how many entries yt-dlp returned before filtering. */
+export function parseSearchPage(
+  output: string,
+  maxDurationSec: number,
+): { results: SearchResult[]; raw: number } {
   const results: SearchResult[] = [];
+  let raw = 0;
   const seen = new Set<string>();
   for (const line of output.split(/\r?\n/)) {
     if (!line.startsWith('{')) continue;
@@ -92,6 +122,7 @@ export function parseSearchOutput(output: string, maxDurationSec: number): Searc
     const videoId = typeof e['id'] === 'string' ? e['id'] : '';
     const title = typeof e['title'] === 'string' ? e['title'].trim() : '';
     const duration = typeof e['duration'] === 'number' ? Math.round(e['duration']) : 0;
+    raw++;
     if (!VIDEO_ID.test(videoId) || !title || duration <= 0 || duration > maxDurationSec) continue;
     if (seen.has(videoId)) continue;
     seen.add(videoId);
@@ -105,7 +136,7 @@ export function parseSearchOutput(output: string, maxDurationSec: number): Searc
       thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
     });
   }
-  return results;
+  return { results, raw };
 }
 
 function classify(output: string): SearchErrorCode {
@@ -116,31 +147,31 @@ function classify(output: string): SearchErrorCode {
 
 /** Small in-memory cache: repeated searches do not hit YouTube again (and cannot be spammed). */
 export class SearchCache {
-  private readonly map = new Map<string, { at: number; results: SearchResult[] }>();
+  private readonly map = new Map<string, { at: number; page: SearchPage }>();
   constructor(
     private readonly ttlMs = 5 * 60_000,
     private readonly max = 50,
     private readonly now: Clock = Date.now,
   ) {}
-  get(key: string): SearchResult[] | undefined {
+  get(key: string): SearchPage | undefined {
     const hit = this.map.get(key);
     if (!hit) return undefined;
     if (this.now() - hit.at > this.ttlMs) {
       this.map.delete(key);
       return undefined;
     }
-    return hit.results;
+    return hit.page;
   }
-  set(key: string, results: SearchResult[]): void {
+  set(key: string, page: SearchPage): void {
     if (this.map.size >= this.max) {
       const oldest = this.map.keys().next().value;
       if (oldest !== undefined) this.map.delete(oldest);
     }
-    this.map.set(key, { at: this.now(), results });
+    this.map.set(key, { at: this.now(), page });
   }
 }
 
-export function searchYoutube(o: SearchOptions, query: string): Promise<SearchResult[]> {
+export function searchYoutube(o: SearchOptions, query: string, offset = 0): Promise<SearchPage> {
   return new Promise((resolve, reject) => {
     if (!o.ytdlpPath) return reject(new SearchError('server_misconfigured'));
     let cookiesCopy: string | undefined;
@@ -171,7 +202,7 @@ export function searchYoutube(o: SearchOptions, query: string): Promise<SearchRe
       cleanup();
       fn();
     };
-    const args = [...(o.ytdlpPrefixArgs ?? []), ...buildSearchArgs(o, query, cookiesCopy)];
+    const args = [...(o.ytdlpPrefixArgs ?? []), ...buildSearchArgs(o, query, cookiesCopy, offset)];
     let child: ReturnType<typeof spawn>;
     try {
       child = spawn(o.ytdlpPath, args, {
@@ -200,7 +231,13 @@ export function searchYoutube(o: SearchOptions, query: string): Promise<SearchRe
     });
     child.on('close', (code) => {
       finish(() => {
-        if (code === 0) return resolve(parseSearchOutput(out, o.maxDurationSec));
+        if (code === 0) {
+          const { results, raw } = parseSearchPage(out, o.maxDurationSec);
+          return resolve({
+            results,
+            hasMore: raw >= SEARCH_RESULTS && offset + SEARCH_RESULTS < SEARCH_MAX_OFFSET,
+          });
+        }
         const kind = classify(err);
         o.logError?.(`search failed (exit ${code}, ${kind})`);
         reject(new SearchError(kind));

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { formatDuration, type YoutubeSearchResult } from '@musik/core';
+  import { formatDuration } from '@musik/core';
   import { id } from '@musik/ui';
   import type { Player } from './player.svelte';
   import type { ServerSettings } from './server.svelte';
-  import type { YoutubeFlow } from './youtube.svelte';
+  import type { FoundVideo, QueueItem, YoutubeFlow } from './youtube.svelte';
   import { native } from './native';
 
   interface Props {
@@ -16,14 +16,13 @@
   let { player, server, flow, ongoSettings, onplay }: Props = $props();
   const t = id.youtube;
 
-  const steps = $derived([
-    { key: 'queued', label: t.steps.queued },
-    { key: 'download', label: t.steps.download },
-    { key: 'convert', label: t.steps.convert },
-    { key: 'saving', label: t.steps.saving },
-    { key: 'done', label: t.steps.done },
-  ]);
-  const order = ['queued', 'download', 'convert', 'saving', 'done'];
+  const stepLabel: Record<string, string> = {
+    queued: t.steps.queued,
+    download: t.steps.download,
+    convert: t.steps.convert,
+    saving: t.steps.saving,
+    done: t.steps.done,
+  };
 
   async function paste() {
     try {
@@ -33,21 +32,39 @@
     }
   }
 
-  /** Pick a search result: convert it, store it in the Library, then open it in the player. */
-  async function pick(r: YoutubeSearchResult) {
-    if (flow.active) return;
-    flow.url = `https://www.youtube.com/watch?v=${r.videoId}`;
-    await flow.start(server, player);
-    if (flow.phase === 'done') await playNow();
+  function convert(r: FoundVideo) {
+    flow.enqueue(r.videoId, r.label, server, player);
   }
 
-  async function playNow() {
-    if (flow.song) {
-      await player.select(flow.song);
-      onplay();
-    } else if (await flow.playSaved(player)) {
-      onplay();
-    }
+  async function playItem(item: QueueItem) {
+    if (await flow.play(item, player)) onplay();
+  }
+
+  /** Loads the next page when the end of the list comes near the screen (infinite scroll). */
+  function nearEnd(node: HTMLElement) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void flow.loadMore(server);
+      },
+      { rootMargin: '500px' },
+    );
+    io.observe(node);
+    return { destroy: () => io.disconnect() };
+  }
+
+  const previewSrc = $derived(
+    flow.previewId
+      ? `https://www.youtube-nocookie.com/embed/${flow.previewId}?autoplay=1&playsinline=1&rel=0`
+      : '',
+  );
+  const previewItem = $derived(flow.previewId ? flow.itemFor(flow.previewId) : undefined);
+  const previewQueued = $derived(previewItem !== undefined && previewItem.status !== 'error');
+  const finished = $derived(flow.queue.some((q) => q.status === 'done' || q.status === 'error'));
+
+  function convertPreview() {
+    const r = flow.results.find((x) => x.videoId === flow.previewId);
+    if (r) convert(r);
+    else flow.enqueue(flow.previewId, flow.previewTitle, server, player);
   }
 </script>
 
@@ -58,6 +75,40 @@
     <div class="panel">
       <p id="need-server">{t.needServer}</p>
       <button type="button" class="primary" onclick={ongoSettings}>{t.goSettings}</button>
+    </div>
+  {/if}
+
+  {#if flow.previewId}
+    <div class="preview" id="yt-preview">
+      <div class="preview-head">
+        <strong class="name">{flow.previewTitle}</strong>
+        <button type="button" id="yt-preview-close" onclick={() => flow.closePreview()}
+          >{t.preview.close}</button
+        >
+      </div>
+      <iframe
+        title={t.preview.title}
+        src={previewSrc}
+        allow="autoplay; encrypted-media; picture-in-picture"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen
+      ></iframe>
+      <p class="muted">{t.preview.note}</p>
+      <div class="row">
+        <a
+          class="btn"
+          href={`https://www.youtube.com/watch?v=${flow.previewId}`}
+          target="_blank"
+          rel="noopener noreferrer">{t.preview.open}</a
+        >
+        <button
+          type="button"
+          class="primary"
+          id="yt-preview-convert"
+          disabled={previewQueued}
+          onclick={convertPreview}>{previewQueued ? t.search.queued : t.preview.convert}</button
+        >
+      </div>
     </div>
   {/if}
 
@@ -78,14 +129,13 @@
         maxlength="100"
         placeholder={t.search.placeholder}
         bind:value={flow.query}
-        disabled={flow.active}
       />
     </label>
     <button
       type="submit"
       class="primary"
       id="yt-search"
-      disabled={flow.active || flow.searching || flow.query.trim() === ''}
+      disabled={flow.searching || flow.query.trim() === ''}
       >{flow.searching ? t.search.searching : t.search.button}</button
     >
   </form>
@@ -101,28 +151,121 @@
       <p class="muted">{t.search.pickHint}</p>
       <ul class="results" id="yt-results">
         {#each flow.results as r (r.videoId)}
-          <li>
-            <button
-              type="button"
-              class="result"
-              data-video={r.videoId}
-              aria-label={`${t.search.pick}: ${r.title}`}
-              disabled={flow.active}
-              onclick={() => pick(r)}
-            >
+          {@const item = flow.itemFor(r.videoId)}
+          <li data-video={r.videoId}>
+            <div class="result">
               <img src={r.thumbnail} alt="" width="120" height="68" loading="lazy" />
               <span class="info">
-                <span class="name">{r.title}</span>
+                <span class="name">{r.label}</span>
                 <span class="meta"
                   >{r.channel ? `${r.channel} · ` : ''}{formatDuration(r.duration)}</span
                 >
+                <span class="actions">
+                  <button
+                    type="button"
+                    class="preview-btn"
+                    aria-label={`${t.search.preview}: ${r.label}`}
+                    aria-pressed={flow.previewId === r.videoId}
+                    onclick={() => flow.openPreview(r, player)}>▶ {id.player.play}</button
+                  >
+                  <button
+                    type="button"
+                    class="convert-btn"
+                    aria-label={`${t.search.convert}: ${r.label}`}
+                    disabled={item !== undefined && item.status !== 'error'}
+                    onclick={() => convert(r)}
+                    >{item && item.status === 'done'
+                      ? t.search.converted
+                      : item && item.status !== 'error'
+                        ? t.search.queued
+                        : t.search.convert}</button
+                  >
+                </span>
               </span>
-            </button>
+            </div>
           </li>
         {/each}
       </ul>
+      {#if flow.hasMore}
+        {#key flow.results.length}
+          <div class="sentinel" use:nearEnd></div>
+        {/key}
+        <button
+          type="button"
+          id="yt-more"
+          disabled={flow.loadingMore}
+          onclick={() => flow.loadMore(server)}
+          >{flow.loadingMore ? t.search.loadingMore : t.search.more}</button
+        >
+      {:else}
+        <p class="muted center" id="yt-end">{t.search.end}</p>
+      {/if}
     {/if}
   {/if}
+
+  <section class="queue" aria-label={t.queue.title}>
+    <h2>{t.queue.title}</h2>
+    <p class="muted">{t.queue.hint}</p>
+    {#if flow.queue.length === 0}
+      <p class="muted" id="yt-queue-empty">{t.queue.empty}</p>
+    {:else}
+      <ol class="queue-list" id="yt-queue">
+        {#each flow.queue as item (item.videoId)}
+          <li data-video={item.videoId} data-status={item.status}>
+            <span class="name">{item.title}</span>
+            <span
+              class="state"
+              class:ok={item.status === 'done'}
+              class:bad={item.status === 'error'}
+              aria-live="polite"
+            >
+              {#if item.status === 'waiting'}
+                {t.queue.waiting}
+              {:else if item.status === 'error'}
+                {item.error}
+              {:else}
+                {stepLabel[item.phase] ?? ''}
+              {/if}
+            </span>
+            {#if item.status === 'done' && item.savedName}
+              <span class="muted">{t.savedTo} {item.savedName} {t.savedIn} {item.savedFolder}</span>
+            {:else if item.status === 'done' && item.saveFailed}
+              <span class="error">{t.saveFolderFailedNote}</span>
+            {/if}
+            <span class="actions">
+              {#if item.status === 'done'}
+                <button type="button" class="primary yt-play" onclick={() => playItem(item)}
+                  >{t.queue.play}</button
+                >
+              {:else if item.status === 'error'}
+                <button
+                  type="button"
+                  onclick={() => flow.enqueue(item.videoId, item.title, server, player)}
+                  >{t.queue.retry}</button
+                >
+              {/if}
+              {#if item.status !== 'running'}
+                <button
+                  type="button"
+                  aria-label={`${t.queue.remove}: ${item.title}`}
+                  onclick={() => flow.remove(item.videoId)}>✕</button
+                >
+              {/if}
+            </span>
+          </li>
+        {/each}
+      </ol>
+      {#if flow.waitSec > 0}
+        <p class="muted" id="yt-pause" aria-live="polite">
+          {t.queue.pauseNext}: {flow.waitSec}
+          {t.queue.seconds}
+        </p>
+      {/if}
+      {#if finished}
+        <button type="button" onclick={() => flow.clearFinished()}>{t.queue.clearDone}</button>
+      {/if}
+    {/if}
+  </section>
 
   <p class="muted sep">{t.search.or}</p>
 
@@ -135,61 +278,22 @@
       autocomplete="off"
       placeholder={t.placeholder}
       bind:value={flow.url}
-      disabled={flow.active}
     />
   </label>
   <div class="row">
-    <button type="button" onclick={paste} disabled={flow.active}>{t.paste}</button>
+    <button type="button" onclick={paste}>{t.paste}</button>
     <button
       type="button"
       class="primary"
       id="yt-save"
-      onclick={() => flow.start(server, player)}
-      disabled={flow.active || flow.url.trim() === ''}>{flow.active ? t.busy : t.save}</button
+      onclick={() => flow.addUrl(server, player)}
+      disabled={flow.url.trim() === ''}>{t.save}</button
     >
   </div>
+  {#if flow.urlError}
+    <p class="error" role="alert" id="yt-error">{flow.urlError}</p>
+  {/if}
   <p class="muted">{t.hint}</p>
-
-  {#if flow.phase !== 'idle'}
-    <ol class="steps" id="yt-steps" aria-live="polite">
-      {#each steps as step (step.key)}
-        {@const idx = order.indexOf(step.key)}
-        {@const cur = order.indexOf(flow.phase)}
-        <li
-          class:done={flow.phase !== 'error' && cur > idx}
-          class:current={flow.phase === step.key}
-          data-step={step.key}
-        >
-          {step.label}
-        </li>
-      {/each}
-    </ol>
-    {#if flow.title}
-      <p id="yt-title"><strong>{flow.title}</strong></p>
-    {/if}
-  {/if}
-
-  {#if flow.phase === 'error'}
-    <p class="error" role="alert" id="yt-error">{flow.error}</p>
-  {/if}
-
-  {#if flow.phase === 'done'}
-    {#if flow.savedName}
-      <p class="muted" id="yt-saved">{t.savedTo} {flow.savedName} {t.savedIn} {flow.savedFolder}</p>
-    {:else if flow.saveFailed}
-      <p class="error" id="yt-save-failed">{t.saveFolderFailedNote}</p>
-    {/if}
-    <div class="row">
-      <button type="button" class="primary" id="yt-play" onclick={playNow}>{t.playNow}</button>
-      <button
-        type="button"
-        onclick={() => {
-          flow.reset();
-          flow.url = '';
-        }}>{t.another}</button
-      >
-    </div>
-  {/if}
 </section>
 
 <style>
@@ -201,12 +305,19 @@
     margin: 0;
     font-size: 1.3rem;
   }
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
   p {
     margin: 0;
   }
   .muted {
     color: var(--muted);
     font-size: 0.9rem;
+  }
+  .center {
+    text-align: center;
   }
   .error {
     color: var(--bad);
@@ -250,19 +361,12 @@
     display: grid;
     grid-template-columns: 120px 1fr;
     gap: 10px;
-    align-items: center;
-    width: 100%;
-    min-height: var(--tap);
+    align-items: start;
     padding: 6px;
-    text-align: left;
     border-radius: var(--radius);
     border: 1px solid var(--panel-2);
     background: var(--panel);
     color: var(--fg);
-    font: inherit;
-  }
-  .result:disabled {
-    opacity: 0.6;
   }
   .result img {
     width: 120px;
@@ -287,24 +391,79 @@
     color: var(--muted);
     font-size: 0.85rem;
   }
-  .steps {
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .actions button {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+  .sentinel {
+    height: 1px;
+  }
+  .preview {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    outline: 2px solid var(--accent);
+  }
+  .preview-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .preview iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 6px;
+    background: #000;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap);
+    border-radius: var(--radius);
+    border: 1px solid var(--panel-2);
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .queue {
+    display: grid;
+    gap: 8px;
+  }
+  .queue-list {
     margin: 0;
     padding: 0;
     list-style: none;
     display: grid;
     gap: 6px;
   }
-  .steps li {
+  .queue-list li {
+    display: grid;
+    gap: 2px;
     padding: 8px 12px;
     border-radius: var(--radius);
     background: var(--panel);
-    color: var(--muted);
   }
-  .steps li.done {
+  .state {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .state.ok {
     color: var(--ok);
   }
-  .steps li.current {
-    color: var(--fg);
-    outline: 2px solid var(--accent);
+  .state.bad {
+    color: var(--bad);
   }
 </style>

@@ -6,7 +6,7 @@ import { configProblems, isValidProxy, type Config } from './config';
 import { JOB_ID, JobManager, type Job } from './jobs';
 import { AuthLockout, SlidingWindowLimiter, type Clock } from './limits';
 import { LINK_TTL_MS, signLink, verifyLink } from './signing';
-import { SearchCache, SearchError, cleanQuery, searchYoutube } from './search';
+import { SearchCache, SearchError, cleanOffset, cleanQuery, searchYoutube } from './search';
 import { getYtdlpInfo } from './ytdlp';
 import { parseYoutubeUrl, type UrlRejection } from './youtube-url';
 
@@ -272,10 +272,11 @@ export function createApp(
         );
         return;
       }
-      const key = query.toLowerCase();
+      const offset = cleanOffset(url.searchParams.get('offset'));
+      const key = `${offset}:${query.toLowerCase()}`;
       const cached = searchCache.get(key);
       if (cached) {
-        sendJson(res, 200, { query, results: cached }, corsHeaders);
+        sendJson(res, 200, { query, offset, ...cached }, corsHeaders);
         return;
       }
       const lim = searchLimiter.hit(ip);
@@ -293,7 +294,7 @@ export function createApp(
       }
       activeSearches++;
       try {
-        const results = await searchYoutube(
+        const page = await searchYoutube(
           {
             dataDir: config.dataDir,
             ytdlpPath: config.ytdlpPath,
@@ -305,9 +306,10 @@ export function createApp(
             logError: (m) => console.error(`[musik] ${m}`),
           },
           query,
+          offset,
         );
-        searchCache.set(key, results);
-        sendJson(res, 200, { query, results }, corsHeaders);
+        searchCache.set(key, page);
+        sendJson(res, 200, { query, offset, ...page }, corsHeaders);
       } catch (err) {
         const code = err instanceof SearchError ? err.code : 'failed';
         sendJson(

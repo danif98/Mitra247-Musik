@@ -93,8 +93,11 @@ export interface MusikNative {
   ytUpdate(): Promise<{ status: string; version: string }>;
   ytAutoUpdate(): Promise<{ enabled: boolean; lastCheck: number }>;
   setYtAutoUpdate(opts: { enabled: boolean }): Promise<{ enabled: boolean; lastCheck: number }>;
-  ytSearch(opts: { query: string }): Promise<{ results: YoutubeSearchResult[] }>;
-  ytDownload(opts: { videoId: string }): Promise<NativeDownload>;
+  ytSearch(opts: {
+    query: string;
+    offset?: number;
+  }): Promise<{ results: YoutubeSearchResult[]; hasMore: boolean }>;
+  ytDownload(opts: { videoId: string; title?: string }): Promise<NativeDownload>;
   ytCancel(opts: { videoId: string }): Promise<void>;
   ytCleanup(opts: { videoId: string }): Promise<void>;
   getSharedText(): Promise<{ text: string }>;
