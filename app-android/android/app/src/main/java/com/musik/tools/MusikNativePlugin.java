@@ -691,6 +691,7 @@ public class MusikNativePlugin extends Plugin {
             call.reject("Kata kunci kosong.", "invalid_query");
             return;
         }
+        final int offset = Math.max(0, Math.min(SEARCH_MAX_OFFSET, call.getInt("offset", 0)));
         worker.execute(() -> {
             try {
                 ensureYoutubeDl();
