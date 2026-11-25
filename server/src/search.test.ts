@@ -42,14 +42,18 @@ describe('buildSearchArgs', () => {
       15,
     );
     expect(args).toEqual(expect.arrayContaining(['--playlist-items', '16-30']));
-    expect(args.at(-1)).toBe('ytsearchdate30:q');
+    expect(args.at(-1)).toBe('https://www.youtube.com/results?search_query=q&sp=CAISAhAB');
   });
   it('passes the query as one argument after --, so it cannot become an option', () => {
     const args = buildSearchArgs(
       { dataDir: '/d', jsRuntime: undefined, proxy: undefined },
       '--exec evil',
     );
-    expect(args.slice(-2)).toEqual(['--', 'ytsearchdate15:--exec evil']);
+    expect(args.slice(-2)).toEqual([
+      '--',
+      'https://www.youtube.com/results?search_query=--exec%20evil&sp=CAISAhAB',
+    ]);
+    expect(args).toEqual(expect.arrayContaining(['--playlist-items', '1-15']));
     expect(args).toContain('--flat-playlist');
     expect(args).not.toContain('--proxy');
   });
@@ -130,7 +134,9 @@ describe('GET /api/search', () => {
     expect(body.results[1].duration).toBe(240);
     const argv = JSON.parse(fs.readFileSync(path.join(s.dataDir, 'search-argv.json'), 'utf8'));
     expect(argv.args.at(-2)).toBe('--');
-    expect(argv.args.at(-1)).toBe('ytsearchdate15:lagu "; rm -rf /');
+    expect(argv.args.at(-1)).toBe(
+      `https://www.youtube.com/results?search_query=${encodeURIComponent('lagu "; rm -rf /')}&sp=CAISAhAB`,
+    );
     expect(body.hasMore).toBe(false);
     expect(JSON.stringify(argv)).not.toContain(TOKEN);
   });

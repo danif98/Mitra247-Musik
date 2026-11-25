@@ -1,5 +1,5 @@
 /**
- * YouTube search through yt-dlp (`ytsearchN:<query>` with --flat-playlist): one metadata request,
+ * YouTube search through yt-dlp (a youtube.com/results URL with --flat-playlist): one metadata request,
  * nothing is downloaded. The query is user input; it is length-limited, stripped of control
  * characters and only ever passed as a single argument after `--` (never through a shell).
  */
@@ -72,9 +72,13 @@ export function cleanOffset(input: unknown): number {
   return Math.min(n, SEARCH_MAX_OFFSET);
 }
 
+/** `sp` filter of the YouTube results page: sort by upload date (newest first), videos only. */
+const SORT_NEWEST_VIDEOS = 'CAISAhAB';
+
 /**
- * `ytsearchdateN` asks YouTube for the newest uploads first. Pages beyond the first re-run the
- * search for offset+N entries and keep only the last N with --playlist-items.
+ * Newest uploads first: yt-dlp has no `ytsearchdate:` any more, so the YouTube results page with the
+ * sort filter is read instead. --playlist-items bounds every request to one page (offset+1 to
+ * offset+N); without it yt-dlp would keep loading result pages.
  */
 export function buildSearchArgs(
   o: Pick<SearchOptions, 'dataDir' | 'jsRuntime' | 'proxy'>,
@@ -85,7 +89,8 @@ export function buildSearchArgs(
   return [
     '--ignore-config',
     '--flat-playlist',
-    ...(offset > 0 ? ['--playlist-items', `${offset + 1}-${offset + SEARCH_RESULTS}`] : []),
+    '--playlist-items',
+    `${offset + 1}-${offset + SEARCH_RESULTS}`,
     '--dump-json',
     '--no-warnings',
     '--cache-dir',
@@ -94,7 +99,7 @@ export function buildSearchArgs(
     ...(o.proxy ? ['--proxy', o.proxy] : []),
     ...(cookiesCopy ? ['--cookies', cookiesCopy] : []),
     '--',
-    `ytsearchdate${offset + SEARCH_RESULTS}:${query}`,
+    `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=${SORT_NEWEST_VIDEOS}`,
   ];
 }
 

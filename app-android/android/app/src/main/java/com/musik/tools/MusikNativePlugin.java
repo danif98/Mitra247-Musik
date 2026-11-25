@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -695,10 +696,12 @@ public class MusikNativePlugin extends Plugin {
         worker.execute(() -> {
             try {
                 ensureYoutubeDl();
-                // "ytsearchdate" = newest uploads first. Later pages search deeper and keep the last page.
-                YoutubeDLRequest req = new YoutubeDLRequest("ytsearchdate" + (offset + SEARCH_RESULTS) + ":" + query);
+                // YouTube results page sorted by upload date (yt-dlp has no ytsearchdate any more).
+                // --playlist-items bounds each request to one page.
+                String q = URLEncoder.encode(query, "UTF-8").replace("+", "%20");
+                YoutubeDLRequest req = new YoutubeDLRequest("https://www.youtube.com/results?search_query=" + q + "&sp=CAISAhAB");
                 req.addOption("--flat-playlist");
-                if (offset > 0) req.addOption("--playlist-items", (offset + 1) + "-" + (offset + SEARCH_RESULTS));
+                req.addOption("--playlist-items", (offset + 1) + "-" + (offset + SEARCH_RESULTS));
                 req.addOption("--dump-json");
                 req.addOption("--no-warnings");
                 req.addOption("--ignore-config");

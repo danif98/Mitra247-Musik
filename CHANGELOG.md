@@ -2,9 +2,13 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.3.4 (2026-11-25)
+
+- **Perbaikan**: pencarian YouTube di 0.3.3 gagal ("Unable to handle request: Unsupported url scheme ytsearchdate15"), di server maupun APK, karena yt-dlp tidak lagi punya `ytsearchdate:`. Pencarian kini membaca halaman hasil YouTube (`results?search_query=...`, hanya video), dibatasi satu halaman per permintaan dengan `--playlist-items`. Terbukti dengan yt-dlp 2026.10.26 asli dan di HP. **Batasan**: urutan "terbaru dulu" tidak bisa dijamin; permintaan urut tanggal (`sp=`) diabaikan YouTube lewat yt-dlp, jadi urutannya mengikuti YouTube (relevansi). Uji lama lolos karena yt-dlp palsu menerima awalan apa saja; yt-dlp palsu kini hanya mengenali URL halaman hasil.
+
 ## 0.3.3 (2026-11-25)
 
-- **YouTube: pencarian berhalaman.** Hasil diurutkan dari yang terbaru (`ytsearchdate`), 15 per halaman, dan halaman berikutnya dimuat otomatis saat daftar digulir (tombol **Muat lebih banyak** sebagai cadangan; maks. 150 hasil). Server: `GET /api/search?q=&offset=` kini mengembalikan `hasMore`. Android: `ytSearch` menerima `offset`.
+- **YouTube: pencarian berhalaman.** Hasil 15 per halaman, dan halaman berikutnya dimuat otomatis saat daftar digulir (tombol **Muat lebih banyak** sebagai cadangan; maks. 150 hasil). Server: `GET /api/search?q=&offset=` kini mengembalikan `hasMore`. Android: `ytSearch` menerima `offset`.
 - Tiap hasil punya **Putar** (cuplikan lewat embed YouTube di panel yang menempel di atas layar; pemutar utama dijeda) dan **Konversi**. Konversi tidak lagi membuka layar Putar atau memutar lagu sendiri; lagu diputar hanya lewat tombol **Putar** di antrean.
 - **Antrean konversi**: video diproses satu per satu, dengan jeda acak 5-10 detik (hitung mundur terlihat) sebelum video berikutnya. Selama antrean jalan, hasil lain tetap bisa digulir, dicuplik, atau ditambah. Item gagal punya **Coba lagi**; item bisa dihapus.
 - **Judul disingkat** menjadi "Lagu - Artis" (mis. "Sheila On 7 - Dan (Official Music Video)" menjadi "Dan - Sheila On 7"); tanpa pemisah, nama kanal dipakai sebagai artis. Dipakai di daftar, antrean, nama berkas MP3, dan judul di Library. Logika di `core/api/title.ts`.

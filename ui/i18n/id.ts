@@ -310,8 +310,7 @@ export const id = {
       button: 'Cari',
       searching: 'Mencari…',
       empty: 'Tidak ada hasil.',
-      pickHint:
-        'Hasil diurutkan dari yang terbaru. Putar untuk mendengar cuplikan, atau Konversi untuk memasukkan ke antrean.',
+      pickHint: 'Putar untuk mendengar cuplikan, atau Konversi untuk memasukkan ke antrean.',
       or: 'atau tempel URL',
       loadingMore: 'Memuat hasil berikutnya…',
       more: 'Muat lebih banyak',

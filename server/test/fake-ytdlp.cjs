@@ -14,11 +14,11 @@ if (args.includes('--version')) {
   console.log('2099.01.01-fake');
   process.exit(0);
 }
-// Search (ytsearchN:<query>): a query containing FAILQ exits 1, BOTQ is a bot check, NONE has no
+// Search (a youtube.com/results?search_query=<query> URL): a query containing FAILQ exits 1, BOTQ is a bot check, NONE has no
 // results. The received arguments go to search-argv.json in the data dir (parent of --cache-dir).
-const searchArg = args.find((a) => a.startsWith('ytsearch'));
+const searchArg = args.find((a) => a.includes('youtube.com/results?search_query='));
 if (searchArg) {
-  const q = searchArg.slice(searchArg.indexOf(':') + 1);
+  const q = decodeURIComponent(new URL(searchArg).searchParams.get('search_query') ?? '');
   const cacheDir = args[args.indexOf('--cache-dir') + 1];
   if (cacheDir) {
     fs.mkdirSync(path.dirname(cacheDir), { recursive: true });
