@@ -11,10 +11,11 @@ import {
   type SongMeta,
   type YoutubeSearchResult,
 } from '@musik/core';
-import { id } from '@musik/ui';
-import type { Player } from './player.svelte';
+import { idp } from './strings';
+import type { Player } from '../player.svelte';
 import type { ServerSettings } from './server.svelte';
-import { native, nativeErrorCode, nativeFileUrl, readNativeFile } from './native';
+import { native, nativeErrorCode, nativeFileUrl, readNativeFile } from '../native';
+import { nativeP } from './native-personal';
 import { saveFolder } from './save-folder.svelte';
 
 export type Phase = 'idle' | 'queued' | 'download' | 'convert' | 'saving' | 'done' | 'error';
@@ -32,7 +33,7 @@ export function randomGapMs(rand: () => number = Math.random): number {
 }
 
 export function describeError(err: unknown): string {
-  const texts = id.youtube.errors as ErrorTexts;
+  const texts = idp.youtube.errors as ErrorTexts;
   if (err instanceof ApiError) {
     if (err.code === 'job_failed') {
       return texts[err.details.jobError ?? 'failed'] ?? texts['failed']!;
@@ -44,7 +45,7 @@ export function describeError(err: unknown): string {
 
 /** Error text for a failure reported by the native plugin (it only sends a short code). */
 export function describeNativeError(err: unknown): string {
-  const texts = id.youtube.errors as ErrorTexts;
+  const texts = idp.youtube.errors as ErrorTexts;
   return texts[nativeErrorCode(err)] ?? texts['failed']!;
 }
 
@@ -117,7 +118,7 @@ export class YoutubeFlow {
     offset: number,
   ): Promise<{ results: YoutubeSearchResult[]; hasMore: boolean }> {
     return native
-      ? await native.ytSearch({ query: q, offset })
+      ? await nativeP!.ytSearch({ query: q, offset })
       : await server.client().search(q, offset);
   }
 
@@ -281,7 +282,7 @@ export class YoutubeFlow {
   private async run(item: QueueItem, server: ServerSettings, player: Player): Promise<void> {
     item.phase = 'queued';
     try {
-      if (native) await this.runNative(item, native, player);
+      if (native) await this.runNative(item, nativeP!, player);
       else await this.runServer(item, server, player);
       item.status = 'done';
       item.phase = 'done';
@@ -290,7 +291,7 @@ export class YoutubeFlow {
         err instanceof ApiError
           ? describeError(err)
           : err instanceof SaveError
-            ? id.youtube.errors.save
+            ? idp.youtube.errors.save
             : describeNativeError(err);
       item.status = 'error';
       item.phase = 'error';
@@ -316,7 +317,7 @@ export class YoutubeFlow {
   /** On the phone: yt-dlp runs inside the app, so no server (and no server IP block) is involved. */
   private async runNative(
     item: QueueItem,
-    plugin: NonNullable<typeof native>,
+    plugin: NonNullable<typeof nativeP>,
     player: Player,
   ): Promise<void> {
     const videoId = item.videoId;

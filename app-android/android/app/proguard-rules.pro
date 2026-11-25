@@ -19,3 +19,16 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Capacitor finds plugin methods by reflection: keep the app's plugins and their annotated methods.
+-keep @com.getcapacitor.annotation.CapacitorPlugin public class * {
+    @com.getcapacitor.annotation.PermissionCallback <methods>;
+    @com.getcapacitor.annotation.ActivityCallback <methods>;
+    @com.getcapacitor.PluginMethod public <methods>;
+}
+-keep public class com.musik.tools.** extends com.getcapacitor.Plugin { *; }
+-keepattributes *Annotation*, InnerClasses, Signature, EnclosingMethod
+
+# Keep line numbers for readable crash reports in Play Console.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatChangelogDate, inlineSegments, parseChangelog } from '@musik/core';
-  import changelogSource from '../../CHANGELOG.md?raw';
+  // CHANGELOG.md (personal) or CHANGELOG-PLAY.md (Google Play), chosen by the alias in vite.config.ts.
+  import changelogSource from '@changelog?raw';
 
   const entries = parseChangelog(changelogSource);
 </script>

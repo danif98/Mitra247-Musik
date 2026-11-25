@@ -5,16 +5,23 @@
   import PlayerScreen from './PlayerScreen.svelte';
   import LibraryScreen from './LibraryScreen.svelte';
   import SettingsScreen from './SettingsScreen.svelte';
-  import YoutubeScreen from './YoutubeScreen.svelte';
   import SearchScreen from './SearchScreen.svelte';
-  import { ServerSettings } from './server.svelte';
-  import { YoutubeFlow } from './youtube.svelte';
+  import {
+    PERSONAL,
+    PERSONAL_TAB,
+    PERSONAL_TAB_LABEL,
+    ServerSettings,
+    YoutubeFlow,
+    YoutubeScreen,
+    bindSharedLinks,
+    sharedUrlFromLocation,
+  } from '@personal';
   import { SearchFlow } from './search.svelte';
   import { DeviceMusic } from './device.svelte';
   import { bindNative } from './native-bridge.svelte';
-  import { Equalizer, MinusOne, extractYoutubeUrl } from '@musik/core';
+  import { Equalizer, MinusOne } from '@musik/core';
 
-  type Tab = 'play' | 'library' | 'search' | 'youtube' | 'settings';
+  type Tab = 'play' | 'library' | 'search' | typeof PERSONAL_TAB | 'settings';
   const player = new Player();
   const server = new ServerSettings();
   const flow = new YoutubeFlow();
@@ -22,10 +29,12 @@
   const device = new DeviceMusic();
   let tab = $state<Tab>('library');
 
-  // Android app: notification controls and links shared from the YouTube app.
-  bindNative(player, (url) => {
+  // Android app: notification controls.
+  bindNative(player);
+  // Personal edition: links shared to the Android app from other apps.
+  bindSharedLinks((url) => {
     flow.url = url;
-    tab = 'youtube';
+    tab = PERSONAL_TAB;
   });
 
   onMount(() => {
@@ -41,12 +50,12 @@
         Equalizer,
       };
     }
-    // Share Target / extension: ?url=...&text=... carries a YouTube link.
+    // Personal edition, Share Target / extension: ?url=...&text=... carries a link.
     const params = new URLSearchParams(location.search);
-    const shared = extractYoutubeUrl(params.get('url'), params.get('text'), params.get('title'));
+    const shared = sharedUrlFromLocation(params);
     if (shared) {
       flow.url = shared;
-      tab = 'youtube';
+      tab = PERSONAL_TAB;
       const keep = params.has('test') ? '?test' : '';
       history.replaceState(null, '', location.pathname + keep);
     }
@@ -63,7 +72,7 @@
     { key: 'play', label: id.nav.play },
     { key: 'library', label: id.nav.library },
     { key: 'search', label: id.nav.search },
-    { key: 'youtube', label: id.nav.youtube },
+    ...(PERSONAL ? [{ key: PERSONAL_TAB, label: PERSONAL_TAB_LABEL }] : []),
     { key: 'settings', label: id.nav.settings },
   ];
 </script>
@@ -75,7 +84,7 @@
     <LibraryScreen {player} {device} onplay={() => (tab = 'play')} />
   {:else if tab === 'search'}
     <SearchScreen {player} flow={searchFlow} onplay={() => (tab = 'play')} />
-  {:else if tab === 'youtube'}
+  {:else if PERSONAL && tab === PERSONAL_TAB}
     <YoutubeScreen
       {player}
       {server}
@@ -88,7 +97,7 @@
   {/if}
 </main>
 
-<nav aria-label="Navigasi">
+<nav aria-label="Navigasi" style:--tabs={tabs.length}>
   {#each tabs as item (item.key)}
     <button
       type="button"
@@ -110,7 +119,7 @@
     position: fixed;
     inset: auto 0 0 0;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(var(--tabs, 5), 1fr);
     gap: 4px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: var(--panel);

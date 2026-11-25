@@ -18,7 +18,7 @@ const common = {
   configFile: false,
   root: here,
   logLevel: 'warn',
-  define: { __TEST__: JSON.stringify(isTest) },
+  define: { __TEST__: JSON.stringify(isTest), __EDITION__: JSON.stringify('personal') },
 };
 
 // 1. Popup (HTML + Svelte)

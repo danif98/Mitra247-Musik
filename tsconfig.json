@@ -3,7 +3,11 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node", "vite/client", "chrome"]
+    "types": ["node", "vite/client", "chrome"],
+    "paths": {
+      "@personal": ["./app-pwa/src/personal/index.ts"],
+      "@changelog?raw": ["./CHANGELOG.md"]
+    }
   },
   "include": [
     "core",

@@ -2,8 +2,9 @@
  * Folder where converted MP3s are saved (Android app only). The folder itself and its permission
  * live in the native plugin; "also keep in the app library" is a per-device setting.
  */
-import { id } from '@musik/ui';
-import { native, nativeErrorCode } from './native';
+import { nativeErrorCode } from '../native';
+import { idp } from './strings';
+import { nativeP as native } from './native-personal';
 
 const KEEP_KEY = 'musik.keepInLibrary';
 
@@ -43,11 +44,11 @@ export class SaveFolder {
     this.message = '';
     try {
       this.apply(await native.pickSaveFolder());
-      if (this.isSet && !this.writable) this.message = id.settings.saveFolderReadOnly;
+      if (this.isSet && !this.writable) this.message = idp.settings.saveFolderReadOnly;
     } catch (err) {
       const code = nativeErrorCode(err);
       this.message =
-        code === 'cancelled' ? id.settings.saveFolderCancelled : id.settings.saveFolderFailed;
+        code === 'cancelled' ? idp.settings.saveFolderCancelled : idp.settings.saveFolderFailed;
     } finally {
       this.busy = false;
     }

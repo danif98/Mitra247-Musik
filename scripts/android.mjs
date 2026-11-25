@@ -1,16 +1,22 @@
-// Build the Android debug APK: web build -> cap sync -> Gradle.
-//   node scripts/android.mjs          build + sync + assembleDebug
-//   node scripts/android.mjs sync     build + sync only (no Gradle)
+// Build the Android app: web build -> cap sync -> Gradle. One source tree, two editions:
+//   node scripts/android.mjs                   personal edition, debug APK (com.mitra247.musictools)
+//   node scripts/android.mjs sync              personal: web build + cap sync only (no Gradle)
+//   node scripts/android.mjs play-sync         play: web build + cap sync only (no Gradle)
+//   node scripts/android.mjs play              Google Play edition: release AAB (com.mitra247.musicplayer)
+//                                              + the clean check (scripts/check-play-clean.mjs)
+//   node scripts/android.mjs play-apk          Google Play edition: debug APK for installing on a phone
 // Needs JDK 21 (JAVA_HOME) and the Android SDK with platform 36 (ANDROID_HOME). On Windows a short
 // TEMP folder is used: with the long temp path of some shells Gradle fails with "Unable to
 // establish loopback connection" (AF_UNIX socket path too long).
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { formatBytes, root } from './lib.mjs';
 
 const mode = process.argv[2] ?? 'debug';
+const play = mode.startsWith('play');
+const edition = play ? 'play' : 'personal';
 const androidDir = path.join(root, 'app-android');
 const gradleDir = path.join(androidDir, 'android');
 const isWin = process.platform === 'win32';
@@ -53,11 +59,42 @@ function run(cmd, args, cwd) {
   }
 }
 
-run(process.execPath, [path.join(root, 'scripts', 'build.mjs')], root);
+env.MUSIK_EDITION = edition;
+if (play) {
+  // Web app of the Play edition only: no server, and out/app (personal) stays as it is.
+  rmSync(path.join(root, 'out', 'app-play'), { recursive: true, force: true });
+  run(
+    process.execPath,
+    [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'build'],
+    path.join(root, 'app-pwa'),
+  );
+} else {
+  run(process.execPath, [path.join(root, 'scripts', 'build.mjs')], root);
+}
+// Both editions share one assets folder: start clean so no file of the other edition is left.
+rmSync(path.join(gradleDir, 'app', 'src', 'main', 'assets', 'public'), {
+  recursive: true,
+  force: true,
+});
 run('npx', ['cap', 'sync', 'android'], androidDir);
-if (mode === 'sync') process.exit(0);
+if (mode === 'sync' || mode === 'play-sync') process.exit(0);
 
 const gradlew = path.join(gradleDir, isWin ? 'gradlew.bat' : 'gradlew');
-run(isWin ? `"${gradlew}"` : gradlew, ['assembleDebug'], gradleDir);
-const apk = path.join(gradleDir, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
-console.log(`\nAPK: ${apk} (${formatBytes(statSync(apk).size)})`);
+const gradle = isWin ? `"${gradlew}"` : gradlew;
+if (mode === 'play') {
+  if (!existsSync(path.join(gradleDir, 'keystore.properties'))) {
+    console.warn(
+      '\nkeystore.properties not found: the AAB will be UNSIGNED and cannot be uploaded to Google Play.',
+    );
+  }
+  run(gradle, ['bundlePlayRelease'], gradleDir);
+  const outputs = path.join(gradleDir, 'app', 'build', 'outputs');
+  const aab = path.join(outputs, 'bundle', 'playRelease', 'app-play-release.aab');
+  console.log(`\nAAB: ${aab} (${formatBytes(statSync(aab).size)})`);
+  run(process.execPath, [path.join(root, 'scripts', 'check-play-clean.mjs'), aab], root);
+} else {
+  run(gradle, [play ? 'assemblePlayDebug' : 'assemblePersonalDebug'], gradleDir);
+  const name = `app-${edition}-debug.apk`;
+  const apk = path.join(gradleDir, 'app', 'build', 'outputs', 'apk', edition, 'debug', name);
+  console.log(`\nAPK: ${apk} (${formatBytes(statSync(apk).size)})`);
+}

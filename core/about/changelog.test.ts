@@ -77,6 +77,15 @@ describe('date formatting', () => {
     expect(formatBuildTime(d.getTime())).toBe('24 Nov 2026 09.05');
     expect(formatBuildTime('bukan tanggal')).toBe('-');
   });
+  it('reads CHANGELOG-PLAY.md: current version first, no personal-edition features', () => {
+    const md = readFileSync(path.join(__dirname, '..', '..', 'CHANGELOG-PLAY.md'), 'utf8');
+    const entries = parseChangelog(md);
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries[0]?.version).toBe(pkg.version);
+    for (const e of entries) expect(e.items.length).toBeGreaterThan(0);
+    expect(md.toLowerCase()).not.toMatch(/youtube|yt-dlp/);
+  });
   it('formats changelog dates', () => {
     expect(formatChangelogDate('2026-11-24')).toBe('24 Nov 2026');
     expect(formatChangelogDate('2026-05-03')).toBe('3 Mei 2026');

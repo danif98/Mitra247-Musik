@@ -2,10 +2,7 @@ package com.musik.tools;
 
 import android.Manifest;
 import android.content.ContentUris;
-import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -14,7 +11,6 @@ import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.util.Log;
-import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -22,38 +18,22 @@ import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
-import androidx.activity.result.ActivityResult;
-import androidx.documentfile.provider.DocumentFile;
-import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
-import com.yausername.ffmpeg.FFmpeg;
-import com.yausername.youtubedl_android.YoutubeDL;
-import com.yausername.youtubedl_android.YoutubeDLRequest;
-import com.yausername.youtubedl_android.YoutubeDLResponse;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
-import org.json.JSONObject;
 
 /**
- * Native features of the Android app, called from the web app:
+ * Native features of the Android app (all editions), called from the web app:
  *  - library of all music on the phone (MediaStore),
- *  - background playback: foreground service, media notification and lock screen controls,
- *  - YouTube search and MP3 download on the phone itself (yt-dlp + ffmpeg via youtubedl-android),
- *  - links shared to the app from the YouTube app.
+ *  - background playback: foreground service, media notification and lock screen controls.
+ * Extra features of the personal edition live in src/personal (MusikPersonalPlugin).
  */
 @CapacitorPlugin(
     name = "MusikNative",
@@ -65,31 +45,16 @@ import org.json.JSONObject;
 )
 public class MusikNativePlugin extends Plugin {
 
-    private static final int SEARCH_RESULTS = 15;
-    private static final int SEARCH_MAX_OFFSET = 150;
-    private static final int MAX_QUERY = 100;
-    private static final int MAX_DURATION_SEC = 20 * 60;
-    private static final Pattern VIDEO_ID = Pattern.compile("^[A-Za-z0-9_-]{11}$");
-
-    private static String sharedText = null;
-    private static MusikNativePlugin current = null;
-
     private final ExecutorService worker = Executors.newFixedThreadPool(2);
-    private final Object initLock = new Object();
-    private boolean ytReady = false;
-    private final Set<String> running = new HashSet<>();
 
     @Override
     public void load() {
-        current = this;
         PlaybackService.setListener((action, positionMs) -> {
             JSObject data = new JSObject();
             data.put("action", action);
             if (positionMs >= 0) data.put("positionMs", positionMs);
             notifyListeners("mediaAction", data, true);
         });
-        // A new yt-dlp is checked for when the app opens (at most every few days).
-        worker.execute(this::autoUpdateIfDue);
     }
 
     @Override
@@ -97,7 +62,6 @@ public class MusikNativePlugin extends Plugin {
         PlaybackService.setListener(null);
         PlaybackService.stop(getContext());
         worker.shutdownNow();
-        if (current == this) current = null;
     }
 
     // ------------------------------------------------------------------ about
@@ -113,30 +77,6 @@ public class MusikNativePlugin extends Plugin {
         call.resolve(r);
     }
 
-    // ------------------------------------------------------------------ shared links
-
-    /** Remember a link shared to the app (YouTube "Share" -> Musik Tools). */
-    static void rememberShared(Intent intent) {
-        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
-        String text = intent.getStringExtra(Intent.EXTRA_TEXT);
-        if (text != null && !text.isEmpty()) sharedText = text;
-    }
-
-    static void announceShared() {
-        MusikNativePlugin p = current;
-        if (p == null || sharedText == null) return;
-        JSObject data = new JSObject();
-        data.put("text", sharedText);
-        p.notifyListeners("sharedText", data, true);
-    }
-
-    @PluginMethod
-    public void getSharedText(PluginCall call) {
-        JSObject r = new JSObject();
-        r.put("text", sharedText == null ? "" : sharedText);
-        sharedText = null;
-        call.resolve(r);
-    }
 
     // ------------------------------------------------------------------ permissions
 
@@ -381,526 +321,5 @@ public class MusikNativePlugin extends Plugin {
         call.resolve();
     }
 
-    // ------------------------------------------------------------------ folder for converted MP3s
 
-    private static final String PREFS = "musik";
-    private static final String PREF_SAVE_TREE = "saveTree";
-
-    private SharedPreferences prefs() {
-        return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-    }
-
-    /** Let the user pick a folder (internal storage or SD card); the permission is kept across restarts. */
-    @PluginMethod
-    public void pickSaveFolder(PluginCall call) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        intent.addFlags(
-            Intent.FLAG_GRANT_READ_URI_PERMISSION |
-            Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
-            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-        );
-        startActivityForResult(call, intent, "pickSaveFolderResult");
-    }
-
-    @ActivityCallback
-    private void pickSaveFolderResult(PluginCall call, ActivityResult result) {
-        if (call == null) return;
-        Intent data = result.getData();
-        if (result.getResultCode() != Activity.RESULT_OK || data == null || data.getData() == null) {
-            call.reject("Pemilihan folder dibatalkan.", "cancelled");
-            return;
-        }
-        Uri tree = data.getData();
-        int flags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
-        try {
-            getContext().getContentResolver().takePersistableUriPermission(tree, flags);
-        } catch (Exception e) {
-            call.reject("Folder ini tidak bisa dipakai. Pilih folder lain.", "permission");
-            return;
-        }
-        releaseSaveFolder(tree.toString());
-        prefs().edit().putString(PREF_SAVE_TREE, tree.toString()).apply();
-        call.resolve(saveFolderInfo());
-    }
-
-    @PluginMethod
-    public void getSaveFolder(PluginCall call) {
-        call.resolve(saveFolderInfo());
-    }
-
-    @PluginMethod
-    public void clearSaveFolder(PluginCall call) {
-        releaseSaveFolder(null);
-        prefs().edit().remove(PREF_SAVE_TREE).apply();
-        call.resolve(saveFolderInfo());
-    }
-
-    /** Give up the permission of the folder that was set before (unless it is the one being kept). */
-    private void releaseSaveFolder(String keep) {
-        String old = prefs().getString(PREF_SAVE_TREE, null);
-        if (old == null || old.equals(keep)) return;
-        try {
-            getContext().getContentResolver().releasePersistableUriPermission(
-                Uri.parse(old),
-                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            );
-        } catch (Exception ignored) {
-            // already gone
-        }
-    }
-
-    /** {uri, label, writable}; empty uri when no folder is set or it is gone now. */
-    private JSObject saveFolderInfo() {
-        JSObject r = new JSObject();
-        r.put("uri", "");
-        r.put("label", "");
-        r.put("writable", false);
-        String tree = prefs().getString(PREF_SAVE_TREE, null);
-        if (tree == null) return r;
-        try {
-            Uri uri = Uri.parse(tree);
-            DocumentFile dir = DocumentFile.fromTreeUri(getContext(), uri);
-            if (dir == null || !dir.exists()) return r;
-            r.put("uri", tree);
-            r.put("label", treeLabel(uri));
-            r.put("writable", dir.canWrite());
-        } catch (Exception ignored) {
-            // unreadable setting: treated as not set
-        }
-        return r;
-    }
-
-    /** "Penyimpanan internal / Music/Musik" or "Kartu SD / USB / Lagu" from the tree's document id. */
-    private static String treeLabel(Uri tree) {
-        String id = DocumentsContract.getTreeDocumentId(tree);
-        int colon = id.indexOf(':');
-        String volume = colon < 0 ? id : id.substring(0, colon);
-        String path = colon < 0 ? "" : id.substring(colon + 1);
-        String root = volume.equals("primary") ? "Penyimpanan internal" : "Kartu SD / USB";
-        return path.isEmpty() ? root : root + " / " + path;
-    }
-
-    /** Absolute path of a document in the chosen tree (for the media scanner), or null. */
-    private static String documentPath(Uri document) {
-        try {
-            String id = DocumentsContract.getDocumentId(document);
-            int colon = id.indexOf(':');
-            if (colon < 0) return null;
-            String volume = id.substring(0, colon);
-            String rest = id.substring(colon + 1);
-            if (volume.equals("primary")) return new File(Environment.getExternalStorageDirectory(), rest).getAbsolutePath();
-            return "/storage/" + volume + "/" + rest;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static String safeFileName(String title, String fallback) {
-        String n = title == null ? "" : title.replaceAll("[\\\\/:*?\"<>|\\x00-\\x1f]+", "_").trim();
-        while (n.startsWith(".")) n = n.substring(1);
-        if (n.length() > 120) n = n.substring(0, 120).trim();
-        return n.isEmpty() ? fallback : n;
-    }
-
-    /**
-     * Copy the converted MP3 into the chosen folder. Returns {} when no folder is set,
-     * {saveError: true} when it could not be written, else {savedUri, savedName, savedFolder}.
-     */
-    private JSObject copyToSaveFolder(File mp3, String title, String fallbackName) {
-        JSObject r = new JSObject();
-        String tree = prefs().getString(PREF_SAVE_TREE, null);
-        if (tree == null) return r;
-        try {
-            DocumentFile dir = DocumentFile.fromTreeUri(getContext(), Uri.parse(tree));
-            if (dir == null || !dir.exists() || !dir.canWrite()) {
-                r.put("saveError", true);
-                return r;
-            }
-            String base = safeFileName(title, fallbackName);
-            String name = base + ".mp3";
-            for (int n = 2; dir.findFile(name) != null && n < 1000; n++) name = base + " (" + n + ").mp3";
-            DocumentFile out = dir.createFile("audio/mpeg", name);
-            if (out == null) throw new IllegalStateException("create");
-            try (
-                InputStream in = new FileInputStream(mp3);
-                OutputStream os = getContext().getContentResolver().openOutputStream(out.getUri())
-            ) {
-                if (os == null) throw new IllegalStateException("open");
-                byte[] buf = new byte[64 * 1024];
-                int len;
-                while ((len = in.read(buf)) > 0) os.write(buf, 0, len);
-            }
-            String path = documentPath(out.getUri());
-            if (path != null) {
-                // Make the file show up in "Musik di HP" and other players without waiting.
-                MediaScannerConnection.scanFile(getContext(), new String[] { path }, new String[] { "audio/mpeg" }, null);
-            }
-            r.put("savedUri", out.getUri().toString());
-            r.put("savedName", out.getName());
-            r.put("savedFolder", treeLabel(Uri.parse(tree)));
-        } catch (Exception e) {
-            Log.w("MusikNative", "save to folder failed: " + e.getClass().getSimpleName());
-            r.put("saveError", true);
-        }
-        return r;
-    }
-
-    // ------------------------------------------------------------------ yt-dlp on the phone
-
-    private void ensureYoutubeDl() throws Exception {
-        synchronized (initLock) {
-            if (ytReady) return;
-            YoutubeDL.getInstance().init(getContext().getApplicationContext());
-            FFmpeg.getInstance().init(getContext().getApplicationContext());
-            ytReady = true;
-        }
-    }
-
-    @PluginMethod
-    public void ytVersion(PluginCall call) {
-        worker.execute(() -> {
-            try {
-                ensureYoutubeDl();
-                JSObject r = new JSObject();
-                r.put("version", String.valueOf(YoutubeDL.getInstance().version(getContext())));
-                call.resolve(r);
-            } catch (Exception e) {
-                call.reject("yt-dlp belum siap.", "unavailable");
-            }
-        });
-    }
-
-    private static final String PREF_YT_AUTO = "ytAutoUpdate";
-    private static final String PREF_YT_LAST = "ytLastCheck";
-    private static final String PREF_YT_ATTEMPT = "ytLastAttempt";
-    private static final long AUTO_UPDATE_EVERY_MS = 3L * 24 * 60 * 60 * 1000;
-    private static final long AUTO_UPDATE_RETRY_MS = 6L * 60 * 60 * 1000;
-    private static final long RETRY_AFTER_FAILURE_MS = 30L * 60 * 1000;
-
-    /** Held while yt-dlp is being replaced: searches and downloads wait instead of failing. */
-    private final Object updateLock = new Object();
-
-    private void notifyUpdate(String state, String version) {
-        JSObject d = new JSObject();
-        d.put("state", state);
-        if (version != null) d.put("version", version);
-        notifyListeners("ytUpdate", d);
-    }
-
-    /** Download the newest yt-dlp and record the time of the check. */
-    private YoutubeDL.UpdateStatus performUpdate(String reason) throws Exception {
-        synchronized (updateLock) {
-            long now = System.currentTimeMillis();
-            prefs().edit().putLong(PREF_YT_ATTEMPT, now).apply();
-            notifyUpdate("updating", null);
-            try {
-                ensureYoutubeDl();
-                YoutubeDL.UpdateStatus status = YoutubeDL.getInstance().updateYoutubeDL(
-                    getContext().getApplicationContext(),
-                    YoutubeDL.UpdateChannel._STABLE
-                );
-                prefs().edit().putLong(PREF_YT_LAST, System.currentTimeMillis()).apply();
-                String version = String.valueOf(YoutubeDL.getInstance().version(getContext()));
-                Log.i("MusikNative", "yt-dlp update (" + reason + "): " + status + ", version " + version);
-                notifyUpdate(status == YoutubeDL.UpdateStatus.DONE ? "updated" : "uptodate", version);
-                return status;
-            } catch (Exception e) {
-                Log.w("MusikNative", "yt-dlp update (" + reason + ") failed: " + e.getClass().getSimpleName());
-                notifyUpdate("failed", null);
-                throw e;
-            }
-        }
-    }
-
-    /** Update unless one was tried within `minGapMs`; true only when a newer yt-dlp was installed. */
-    private boolean updateYoutubeDl(String reason, long minGapMs) {
-        if (System.currentTimeMillis() - prefs().getLong(PREF_YT_ATTEMPT, 0) < minGapMs) return false;
-        try {
-            return performUpdate(reason) == YoutubeDL.UpdateStatus.DONE;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private void autoUpdateIfDue() {
-        if (!prefs().getBoolean(PREF_YT_AUTO, true)) return;
-        synchronized (running) {
-            if (!running.isEmpty()) return; // never swap yt-dlp under a running download
-        }
-        if (System.currentTimeMillis() - prefs().getLong(PREF_YT_LAST, 0) < AUTO_UPDATE_EVERY_MS) return;
-        updateYoutubeDl("auto", AUTO_UPDATE_RETRY_MS);
-    }
-
-    /**
-     * Run yt-dlp. When it fails in a way that looks like YouTube changed (not a private video, bot
-     * check or network problem), try a newer yt-dlp once (at most every 30 minutes) and run again.
-     */
-    private YoutubeDLResponse runYoutubeDl(
-        YoutubeDLRequest req,
-        String processId,
-        kotlin.jvm.functions.Function3<? super Float, ? super Long, ? super String, kotlin.Unit> callback
-    ) throws Exception {
-        synchronized (updateLock) {
-            // wait here while an update is in progress
-        }
-        try {
-            return YoutubeDL.getInstance().execute(req, processId, callback);
-        } catch (Exception first) {
-            if (!"failed".equals(classify(String.valueOf(first.getMessage())))) throw first;
-            if (!updateYoutubeDl("after failure", RETRY_AFTER_FAILURE_MS)) throw first;
-            return YoutubeDL.getInstance().execute(req, processId, callback);
-        }
-    }
-
-    /** Manual "Perbarui yt-dlp" button. */
-    @PluginMethod
-    public void ytUpdate(PluginCall call) {
-        worker.execute(() -> {
-            try {
-                YoutubeDL.UpdateStatus status = performUpdate("manual");
-                JSObject r = new JSObject();
-                r.put("status", String.valueOf(status));
-                r.put("version", String.valueOf(YoutubeDL.getInstance().version(getContext())));
-                call.resolve(r);
-            } catch (Exception e) {
-                call.reject("Gagal memperbarui yt-dlp. Periksa koneksi internet.", "network");
-            }
-        });
-    }
-
-    /** {enabled, lastCheck (ms since epoch, 0 = never)}. */
-    @PluginMethod
-    public void ytAutoUpdate(PluginCall call) {
-        JSObject r = new JSObject();
-        r.put("enabled", prefs().getBoolean(PREF_YT_AUTO, true));
-        r.put("lastCheck", prefs().getLong(PREF_YT_LAST, 0));
-        call.resolve(r);
-    }
-
-    @PluginMethod
-    public void setYtAutoUpdate(PluginCall call) {
-        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", true));
-        prefs().edit().putBoolean(PREF_YT_AUTO, enabled).apply();
-        if (enabled) worker.execute(this::autoUpdateIfDue);
-        ytAutoUpdate(call);
-    }
-
-    @PluginMethod
-    public void ytSearch(PluginCall call) {
-        String query = cleanQuery(call.getString("query"));
-        if (query == null) {
-            call.reject("Kata kunci kosong.", "invalid_query");
-            return;
-        }
-        final int offset = Math.max(0, Math.min(SEARCH_MAX_OFFSET, call.getInt("offset", 0)));
-        worker.execute(() -> {
-            try {
-                ensureYoutubeDl();
-                // YouTube results page sorted by upload date (yt-dlp has no ytsearchdate any more).
-                // --playlist-items bounds each request to one page.
-                String q = URLEncoder.encode(query, "UTF-8").replace("+", "%20");
-                YoutubeDLRequest req = new YoutubeDLRequest("https://www.youtube.com/results?search_query=" + q + "&sp=CAISAhAB");
-                req.addOption("--flat-playlist");
-                req.addOption("--playlist-items", (offset + 1) + "-" + (offset + SEARCH_RESULTS));
-                req.addOption("--dump-json");
-                req.addOption("--no-warnings");
-                req.addOption("--ignore-config");
-                YoutubeDLResponse resp = runYoutubeDl(req, "search-" + System.nanoTime(), null);
-                JSObject r = new JSObject();
-                String out = resp.getOut();
-                r.put("results", parseSearch(out));
-                r.put("hasMore", countEntries(out) >= SEARCH_RESULTS && offset + SEARCH_RESULTS < SEARCH_MAX_OFFSET);
-                call.resolve(r);
-            } catch (Exception e) {
-                logFailure("ytSearch", String.valueOf(e.getMessage()));
-                call.reject("Pencarian gagal.", classify(String.valueOf(e.getMessage())));
-            }
-        });
-    }
-
-    static String cleanQuery(String input) {
-        if (input == null) return null;
-        String q = input.replaceAll("[\\u0000-\\u001f\\u007f]+", " ").replaceAll("\\s+", " ").trim();
-        if (q.isEmpty()) return null;
-        return q.length() > MAX_QUERY ? q.substring(0, MAX_QUERY) : q;
-    }
-
-    /** JSON lines yt-dlp returned, before filtering: a full page means there may be more. */
-    static int countEntries(String output) {
-        int n = 0;
-        for (String line : output.split("\r?\n")) if (line.startsWith("{")) n++;
-        return n;
-    }
-
-    /** Same filtering as the server: valid id, known length, not live, within the length limit. */
-    static JSArray parseSearch(String output) {
-        JSArray results = new JSArray();
-        Set<String> seen = new HashSet<>();
-        for (String line : output.split("\\r?\\n")) {
-            if (!line.startsWith("{")) continue;
-            try {
-                JSONObject e = new JSONObject(line);
-                String id = e.optString("id", "");
-                String title = e.optString("title", "").trim();
-                double duration = e.isNull("duration") ? 0 : e.optDouble("duration", 0);
-                if (!VIDEO_ID.matcher(id).matches() || title.isEmpty()) continue;
-                if (duration <= 0 || duration > MAX_DURATION_SEC || !seen.add(id)) continue;
-                String channel = e.optString("channel", e.optString("uploader", ""));
-                JSObject item = new JSObject();
-                item.put("videoId", id);
-                item.put("title", title.length() > 200 ? title.substring(0, 200) : title);
-                item.put("channel", channel.isEmpty() || channel.equals("null") ? JSONObject.NULL : channel);
-                item.put("duration", Math.round(duration));
-                item.put("thumbnail", "https://i.ytimg.com/vi/" + id + "/mqdefault.jpg");
-                results.put(item);
-            } catch (Exception ignored) {
-                // not a JSON line: skip
-            }
-        }
-        return results;
-    }
-
-    @PluginMethod
-    public void ytDownload(PluginCall call) {
-        String videoId = call.getString("videoId", "");
-        final String wantedTitle = call.getString("title", "");
-        if (!VIDEO_ID.matcher(videoId).matches()) {
-            call.reject("ID video tidak valid.", "invalid_url");
-            return;
-        }
-        synchronized (running) {
-            if (!running.add(videoId)) {
-                call.reject("Video ini sedang diproses.", "busy");
-                return;
-            }
-        }
-        worker.execute(() -> {
-            try {
-                ensureYoutubeDl();
-                File dir = new File(getContext().getCacheDir(), "ytdl/" + videoId);
-                deleteRecursively(dir);
-                if (!dir.mkdirs()) throw new IllegalStateException("cache");
-
-                YoutubeDLRequest req = new YoutubeDLRequest("https://www.youtube.com/watch?v=" + videoId);
-                req.addOption("--ignore-config");
-                req.addOption("--no-playlist");
-                req.addOption("--no-warnings");
-                req.addOption("--newline");
-                req.addOption("--restrict-filenames");
-                req.addOption("--no-mtime");
-                req.addOption("-f", "ba");
-                req.addOption("-x");
-                req.addOption("--audio-format", "mp3");
-                req.addOption("--audio-quality", "2");
-                req.addOption("--match-filters", "duration<=" + MAX_DURATION_SEC);
-                req.addOption("--max-filesize", "100M");
-                req.addOption("--write-info-json");
-                req.addOption("-o", new File(dir, "%(id)s.%(ext)s").getAbsolutePath());
-
-                final boolean[] converting = { false };
-                runYoutubeDl(req, videoId, (progress, eta, line) -> {
-                    JSObject p = new JSObject();
-                    p.put("videoId", videoId);
-                    p.put("percent", Math.max(0, Math.min(100, Math.round(progress))));
-                    // Once conversion started it never goes back to "download" (later yt-dlp lines
-                    // such as "Deleting original file" would otherwise flip the stage).
-                    if (line != null && line.contains("[ExtractAudio]")) converting[0] = true;
-                    p.put("stage", converting[0] ? "convert" : "download");
-                    notifyListeners("ytProgress", p);
-                    return kotlin.Unit.INSTANCE;
-                });
-
-                File mp3 = new File(dir, videoId + ".mp3");
-                if (!mp3.isFile() || mp3.length() == 0) {
-                    // yt-dlp exits 0 without a file when --match-filters rejects the video.
-                    call.reject("Video terlalu panjang (batas 20 menit).", "too_long");
-                    return;
-                }
-                String title = videoId;
-                long duration = 0;
-                File info = new File(dir, videoId + ".info.json");
-                if (info.isFile()) {
-                    try {
-                        JSONObject j = new JSONObject(new String(Files.readAllBytes(info.toPath()), StandardCharsets.UTF_8));
-                        title = firstNonEmpty(j.optString("title", ""), videoId);
-                        duration = Math.round(j.optDouble("duration", 0));
-                    } catch (Exception ignored) {
-                        // keep the id as title
-                    }
-                }
-                // The app sends a shortened "Song - Artist" title; keep the original as the fallback.
-                if (wantedTitle != null && !wantedTitle.trim().isEmpty()) {
-                    title = wantedTitle.trim().length() > 150 ? wantedTitle.trim().substring(0, 150) : wantedTitle.trim();
-                }
-                JSObject r = new JSObject();
-                r.put("videoId", videoId);
-                r.put("path", mp3.getAbsolutePath());
-                r.put("title", title);
-                r.put("duration", duration);
-                r.put("size", mp3.length());
-                JSObject saved = copyToSaveFolder(mp3, title, videoId);
-                for (java.util.Iterator<String> it = saved.keys(); it.hasNext();) {
-                    String key = it.next();
-                    r.put(key, saved.get(key));
-                }
-                call.resolve(r);
-            } catch (Exception e) {
-                String detail = String.valueOf(e.getMessage());
-                logFailure("ytDownload", detail);
-                call.reject("Unduhan gagal.", classify(detail));
-            } finally {
-                synchronized (running) {
-                    running.remove(videoId);
-                }
-            }
-        });
-    }
-
-    @PluginMethod
-    public void ytCancel(PluginCall call) {
-        String videoId = call.getString("videoId", "");
-        try {
-            YoutubeDL.getInstance().destroyProcessById(videoId);
-        } catch (Exception ignored) {
-            // nothing running
-        }
-        call.resolve();
-    }
-
-    /** Delete the temporary MP3 once the web app has stored it in its own library. */
-    @PluginMethod
-    public void ytCleanup(PluginCall call) {
-        String videoId = call.getString("videoId", "");
-        if (VIDEO_ID.matcher(videoId).matches()) {
-            deleteRecursively(new File(getContext().getCacheDir(), "ytdl/" + videoId));
-        }
-        call.resolve();
-    }
-
-    /** Error code (same names as the server jobs) from yt-dlp's message; never the message itself. */
-    static String classify(String detail) {
-        String d = detail.toLowerCase();
-        if (d.contains("sign in to confirm") || d.contains("not a bot") || d.contains("http error 429")) return "blocked";
-        if (d.contains("private video") || d.contains("unavailable") || d.contains("members-only") || d.contains("age")) return "unavailable";
-        if (d.contains("unable to resolve host") || d.contains("network is unreachable") || d.contains("timed out")) return "network";
-        return "failed";
-    }
-
-    /** Last lines of yt-dlp's message for adb logcat; URLs and paths are removed. */
-    private static void logFailure(String what, String detail) {
-        String[] lines = detail.split("\r?\n");
-        StringBuilder sb = new StringBuilder();
-        for (int i = Math.max(0, lines.length - 6); i < lines.length; i++) {
-            sb.append(lines[i].replaceAll("https?://\\S+", "<url>").replaceAll("/data/\\S+", "<path>")).append(" | ");
-        }
-        Log.w("MusikNative", what + " failed: " + sb);
-    }
-
-    private static void deleteRecursively(File f) {
-        if (!f.exists()) return;
-        File[] children = f.listFiles();
-        if (children != null) for (File c : children) deleteRecursively(c);
-        //noinspection ResultOfMethodCallIgnored
-        f.delete();
-    }
 }

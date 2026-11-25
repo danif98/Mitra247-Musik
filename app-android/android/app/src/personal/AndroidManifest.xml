@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal edition only: native libraries are extracted (the on-device downloader runs python and
+     ffmpeg from them) and links shared from other apps open the app. Not part of the Play build. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:extractNativeLibs="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

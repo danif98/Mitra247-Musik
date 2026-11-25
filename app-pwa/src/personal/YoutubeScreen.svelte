@@ -1,10 +1,11 @@
 <script lang="ts">
   import { formatDuration } from '@musik/core';
   import { id } from '@musik/ui';
-  import type { Player } from './player.svelte';
+  import { idp } from './strings';
+  import type { Player } from '../player.svelte';
   import type { ServerSettings } from './server.svelte';
   import type { FoundVideo, QueueItem, YoutubeFlow } from './youtube.svelte';
-  import { native } from './native';
+  import { native } from '../native';
 
   interface Props {
     player: Player;
@@ -14,7 +15,7 @@
     onplay: () => void;
   }
   let { player, server, flow, ongoSettings, onplay }: Props = $props();
-  const t = id.youtube;
+  const t = idp.youtube;
 
   const stepLabel: Record<string, string> = {
     queued: t.steps.queued,

@@ -3,6 +3,7 @@ package com.musik.tools;
 import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
 
 public class MainActivity extends BridgeActivity {
 
@@ -10,14 +11,14 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Plugins written in this app must be registered before super.onCreate().
         registerPlugin(MusikNativePlugin.class);
+        for (Class<? extends Plugin> plugin : EditionHooks.extraPlugins()) registerPlugin(plugin);
         super.onCreate(savedInstanceState);
-        MusikNativePlugin.rememberShared(getIntent());
+        EditionHooks.onCreateIntent(getIntent());
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        MusikNativePlugin.rememberShared(intent);
-        MusikNativePlugin.announceShared();
+        EditionHooks.onNewIntent(intent);
     }
 }

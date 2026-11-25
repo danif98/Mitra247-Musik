@@ -21,16 +21,37 @@ Di PWA, kode yang berbicara dengan plugin ada di `app-pwa/src/native.ts` (antarm
 
 yt-dlp bawaan APK (2025.11.12) cepat usang karena YouTube sering berubah, sehingga diperbarui otomatis: saat aplikasi dibuka bila pemeriksaan terakhir lebih dari 3 hari lalu (HP baru: langsung di pembukaan pertama, sekitar 4 detik, perlu internet), dan sekali setelah unduhan atau pencarian gagal dengan galat umum (jeda minimal 30 menit), lalu perintah diulang. Pembaruan tidak berjalan saat ada unduhan aktif dan permintaan baru menunggu sampai selesai. Setelan, bagian "yt-dlp di HP", punya sakelar otomatis, waktu pemeriksaan terakhir, dan tombol **Perbarui sekarang**. Versi terbaru disimpan di folder internal aplikasi di HP itu.
 
+## Dua edisi
+
+Satu repo menghasilkan dua aplikasi lewat Gradle product flavors (dimensi `edition`):
+
+| Edisi      | applicationId              | Nama         | Keluaran | Isi                                    |
+| ---------- | -------------------------- | ------------ | -------- | -------------------------------------- |
+| `personal` | `com.mitra247.musictools`  | Musik Tools  | APK      | Lengkap, termasuk modul pribadi        |
+| `play`     | `com.mitra247.musicplayer` | Music Player | AAB      | Tanpa modul pribadi, untuk Google Play |
+
+- Sumber bersama di `app/src/main/`. Khusus edisi di `app/src/personal/` dan `app/src/play/` (`EditionHooks`, manifest, plugin). `MainActivity` mendaftarkan plugin tambahan lewat `EditionHooks.extraPlugins()`.
+- Plugin `MusikNative` (semua edisi): `listAudio`, izin, `setNowPlaying`, `appInfo`, dan kejadian `mediaAction`. Plugin `MusikPersonal` (hanya `personal`): modul pribadi.
+- `namespace` tetap `com.musik.tools`; `applicationId` dan nama aplikasi dari `resValue` per flavor.
+- Dua `applicationId` berbeda berarti kedua edisi bisa terpasang bersamaan. Mengganti `com.musik.tools` ke `com.mitra247.musictools` membuat aplikasi baru; Library lama tidak ikut pindah.
+- Web: `MUSIK_EDITION=play` membuat `out/app-play` dengan stub `app-pwa/src/personal-stub/` dan `CHANGELOG-PLAY.md`. `scripts/android.mjs` mengatur semuanya; `scripts/check-play-clean.mjs` memastikan edisi Play bersih.
+- Penandatanganan release: `app-android/android/keystore.properties` (storeFile, storePassword, keyAlias, keyPassword), tidak masuk git. Tanpa berkas itu AAB tidak bertanda tangan dan tidak bisa diunggah.
+- R8 (`minifyEnabled`, `shrinkResources`) aktif hanya untuk build Play. Aturan keep ada di `app/proguard-rules.pro`. Belum diuji di perangkat.
+
+Rancangan dan daftar perubahan manifest: `README-IT.md` bagian 3. Status rilis Play: `docs/PLAYSTORE.md`.
+
 ## Membangun
 
 Prasyarat: JDK 21 (`JAVA_HOME`), Android SDK dengan platform 36 dan build-tools 36.0.0 (`ANDROID_HOME`).
 
 ```powershell
-npm run android:apk      # build web, cap sync, Gradle assembleDebug
+npm run android:apk      # edisi pribadi: build web, cap sync, assemblePersonalDebug
+npm run android:play:aab # edisi Play: AAB release + pemeriksaan kebersihan
+npm run android:play:apk # edisi Play: APK debug untuk dicoba di HP
 npm run android:sync     # hanya build web dan cap sync
 ```
 
-Hasil: `app-android/android/app/build/outputs/apk/debug/app-debug.apk` (sekitar 59 MB, hanya `arm64-v8a`). Salin ke HP lalu pasang (izinkan sumber tidak dikenal). Atau `adb install -r app-debug.apk` dengan USB debugging.
+Hasil edisi pribadi: `app-android/android/app/build/outputs/apk/personal/debug/app-personal-debug.apk` (sekitar 56 MB, hanya `arm64-v8a`). Edisi Play: `.../bundle/playRelease/app-play-release.aab` (sekitar 1,6 MB). Salin ke HP lalu pasang (izinkan sumber tidak dikenal). Atau `adb install -r app-personal-debug.apk` dengan USB debugging.
 
 Catatan Windows: `scripts/android.mjs` memakai `TEMP=C:\gt`. Dengan folder temp yang terlalu panjang Gradle gagal dengan "Unable to establish loopback connection".
 
@@ -69,6 +90,6 @@ Daftar dibaca ulang setiap tampilan dibuka. MediaStore menyimpan baris berkas ya
 
 ## Batasan
 
-- Hanya `arm64-v8a` (HP modern). Emulator x86 tidak didukung tanpa mengubah `abiFilters`.
+- Edisi pribadi hanya `arm64-v8a` (pustaka downloader). Edisi Play mendukung semua ABI.
 - Lagu hasil YouTube disimpan di Library aplikasi, bukan di folder Musik HP.
 - Mengunduh dari YouTube melanggar ketentuan layanan YouTube dan bisa melanggar hak cipta; untuk penggunaan pribadi.

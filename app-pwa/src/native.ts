@@ -4,7 +4,6 @@
  * bundled; the plugin itself lives in app-android.
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import type { YoutubeSearchResult } from '@musik/core';
 
 export interface NativeSong {
   id: string;
@@ -30,35 +29,12 @@ export interface NativeVolume {
   removable: boolean;
 }
 
-export interface SaveFolder {
-  /** Tree URI of the chosen folder; empty when none is set (or it is gone). */
-  uri: string;
-  /** Readable path, e.g. "Penyimpanan internal / Music/Musik". */
-  label: string;
-  writable: boolean;
-}
-
 export interface AppInfo {
   versionName: string;
   versionCode: number;
   /** ms since epoch: when this APK was built. */
   buildTime: number;
   packageName: string;
-}
-
-export interface NativeDownload {
-  videoId: string;
-  /** Absolute path of the temporary MP3 in the app cache. */
-  path: string;
-  title: string;
-  duration: number;
-  size: number;
-  /** Set when a save folder is chosen and the MP3 was copied there. */
-  savedUri?: string;
-  savedName?: string;
-  savedFolder?: string;
-  /** A save folder is set but the copy failed (folder gone, read-only, ...). */
-  saveError?: boolean;
 }
 
 export type MediaAction = 'play' | 'pause' | 'next' | 'prev' | 'stop' | 'seek';
@@ -84,35 +60,11 @@ export interface MusikNative {
   requestAudioPermission(): Promise<{ granted: boolean }>;
   requestNotificationPermission(): Promise<{ granted: boolean }>;
   listAudio(): Promise<{ songs: NativeSong[]; volumes: NativeVolume[]; hidden?: number }>;
-  pickSaveFolder(): Promise<SaveFolder>;
-  getSaveFolder(): Promise<SaveFolder>;
-  clearSaveFolder(): Promise<SaveFolder>;
   setNowPlaying(state: NowPlaying): Promise<void>;
   clearNowPlaying(): Promise<void>;
-  ytVersion(): Promise<{ version: string }>;
-  ytUpdate(): Promise<{ status: string; version: string }>;
-  ytAutoUpdate(): Promise<{ enabled: boolean; lastCheck: number }>;
-  setYtAutoUpdate(opts: { enabled: boolean }): Promise<{ enabled: boolean; lastCheck: number }>;
-  ytSearch(opts: {
-    query: string;
-    offset?: number;
-  }): Promise<{ results: YoutubeSearchResult[]; hasMore: boolean }>;
-  ytDownload(opts: { videoId: string; title?: string }): Promise<NativeDownload>;
-  ytCancel(opts: { videoId: string }): Promise<void>;
-  ytCleanup(opts: { videoId: string }): Promise<void>;
-  getSharedText(): Promise<{ text: string }>;
   addListener(
     event: 'mediaAction',
     cb: (e: { action: MediaAction; positionMs?: number }) => void,
-  ): Promise<ListenerHandle>;
-  addListener(
-    event: 'ytUpdate',
-    cb: (e: { state: 'updating' | 'updated' | 'uptodate' | 'failed'; version?: string }) => void,
-  ): Promise<ListenerHandle>;
-  addListener(event: 'sharedText', cb: (e: { text: string }) => void): Promise<ListenerHandle>;
-  addListener(
-    event: 'ytProgress',
-    cb: (e: { videoId: string; percent: number; stage: 'download' | 'convert' }) => void,
   ): Promise<ListenerHandle>;
 }
 

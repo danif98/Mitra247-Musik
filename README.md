@@ -1,93 +1,149 @@
-# Musik Tools
+# Music Player
 
-Alat latihan musik pribadi: pemutar, pengubah tempo (tanpa mengubah nada), transpose, Minus One (DSP klasik, tanpa AI), loop A-B, equalizer, metronom, dan unduh YouTube ke MP3. Berjalan sebagai **PWA di Android**, sebagai **aplikasi Android (APK)** dengan pemutaran latar belakang dan musik di HP (patokan: Samsung Galaxy A23), dan di **Chrome desktop** (PWA + ekstensi). Lisensi **GPL-3.0**.
+Aplikasi pemutar musik untuk **latihan**. Cocok untuk pemain musik, penyanyi, guru les, kelompok paduan suara atau band: lagu bisa diperlambat tanpa mengubah nada, nadanya bisa dinaikkan atau diturunkan, dan suara vokal bisa dikurangi supaya Anda bisa bernyanyi atau bermain bersama lagu.
 
-Sumber kebenaran produk: [`docs/PRD.md`](docs/PRD.md). Hanya untuk penggunaan pribadi; mengunduh dari YouTube melanggar Ketentuan Layanan YouTube dan menjadi risiko pemilik (lihat PRD 6.7).
+Dokumen ini untuk **Tim Operasional**: apa yang bisa dilakukan aplikasi, cara memakainya, dan jawaban atas pertanyaan yang sering muncul. Penjelasan teknis ada di [`README-IT.md`](README-IT.md). Materi penjualan ada di [`PRESENTASI.md`](PRESENTASI.md). Kebijakan privasi ada di [`PRIVACYPOLICY.md`](PRIVACYPOLICY.md).
 
-## Fitur
+## Ringkasan
 
-| Area             | Isi                                                                                                                                                                                                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pemutar          | Library lokal (OPFS + IndexedDB), waveform, kartu sedang diputar, tab Antrean (ketuk untuk melompat) dan Latihan, prev / stop / play-pause / next, ±5 detik, Auto next / Ulangi / Acak, lagu dan daftar terakhir diingat, **Buka & putar** tanpa menyimpan, Media Session |
-| Tempo dan nada   | Tempo 0,25-2× dan kunci ±12 semitone, Rubber Band WASM (R2 bawaan, R3 opsional), tanpa putus saat diubah                                                                                                                                                                  |
-| Minus One        | Dasar, Jaga bass, Fokus vokal + kekuatan / batas bass / lebar pita vokal                                                                                                                                                                                                  |
-| Latihan          | Loop A-B, equalizer 5 pita, metronom + hitung masuk, preset per lagu otomatis                                                                                                                                                                                             |
-| Cari musik legal | Layar Cari: Internet Archive, Openverse, Wikimedia Commons; cari per judul / artis, urut menurut artis, judul, ukuran, tahun; hanya lisensi CC / domain publik; unduh langsung ke Library dengan atribusi, tanpa server                                                   |
-| YouTube ke MP3   | Layar YouTube: tempel URL atau **cari** (judul, durasi, thumbnail) lalu pilih untuk diunduh dan diputar; Share Target Android; server Node pure JS (`/api/jobs`, `/api/search`, antrean, token, batas laju, retensi 1 jam)                                                |
-| Aplikasi Android | APK (Capacitor): pemutaran latar belakang + notifikasi + kontrol layar kunci, tab **Musik di HP** (folder internal / kartu SD, antrean per folder), yt-dlp langsung di HP tanpa server, bagikan dari aplikasi YouTube                                                     |
-| Ekstensi Chrome  | Tempo, transpose, Minus One pada `<video>`/`<audio>` di tab aktif; tombol Simpan sebagai MP3 membuka PWA                                                                                                                                                                  |
+| Hal             | Penjelasan                                                               |
+| --------------- | ------------------------------------------------------------------------ |
+| Nama            | Music Player                                                             |
+| Pembuat         | Mitra247                                                                 |
+| Platform        | Android 7.0 ke atas (diuji utama di Samsung Galaxy A23)                  |
+| Bahasa tampilan | Indonesia                                                                |
+| Perlu akun?     | Tidak                                                                    |
+| Ada iklan?      | Tidak                                                                    |
+| Perlu internet? | Hanya untuk fitur **Cari**. Memutar dan berlatih berjalan tanpa internet |
+| Data pengguna   | Tetap di HP pengguna. Tidak dikirim ke server kami                       |
+| Status          | Dalam persiapan rilis di Google Play                                     |
 
-## Status
+## Modul aplikasi
 
-| Fase | Isi                                        | Status                                                                                                                                                        |
-| ---- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0   | Fondasi: pipeline audio, PWA, skrip deploy | Selesai; uji A23 lulus                                                                                                                                        |
-| M1   | MVP: pemutar, library, Minus One, ekstensi | Selesai; uji A23 lulus (ekstensi di YouTube belum)                                                                                                            |
-| M2   | YouTube ke MP3                             | Selesai; konversi nyata lulus di PC Windows + A23; **server cPanel belum**                                                                                    |
-| M3   | Antrean, loop, EQ, metronom, preset        | Selesai di kode dan uji otomatis; **belum diuji di A23**                                                                                                      |
-| M4   | Minus One lanjutan                         | Selesai di kode dan uji otomatis; **belum didengar di A23**                                                                                                   |
-| M6   | Cari dan unduh dari sumber legal (0.2.0)   | Selesai di kode dan uji otomatis; **belum dicoba di A23**                                                                                                     |
-| M5   | Opsional: APK, deteksi kunci               | APK 0.3.0: dibangun dan dicoba di A23 (pemutaran latar, cari dan unduh YouTube di HP lulus; folder dan antrean belum), `docs/ANDROID.md`; deteksi kunci belum |
+Aplikasi punya lima bagian di menu bawah.
 
-Rincian keputusan dan bukti per fase: `docs/DECISIONS_M0.md` ... `docs/DECISIONS_M4.md`, `docs/DECISIONS_SOURCES.md` (sumber legal). Daftar yang belum teruji ada di setiap berkas itu dan di `CHANGELOG.md`.
+### 1. Putar
 
-## Struktur
+Layar utama untuk mendengarkan dan berlatih. Terdiri dari dua tab: **Antrean** dan **Latihan**.
 
-| Folder         | Isi                                                                                           |
-| -------------- | --------------------------------------------------------------------------------------------- |
-| `core/`        | Mesin audio (Web Audio + AudioWorklet + Rubber Band WASM), library, klien API, logika latihan |
-| `ui/`          | Komponen Svelte bersama, tema, string Indonesia (`ui/i18n/id.ts`)                             |
-| `app-pwa/`     | PWA (Vite). Halaman lab audio di `/lab/`                                                      |
-| `app-android/` | Pembungkus Android (Capacitor 8) dan plugin native `MusikNative`; lihat `docs/ANDROID.md`     |
-| `ext-chrome/`  | Ekstensi MV3 (popup + content script), lihat README di dalamnya                               |
-| `server/`      | Layanan Node (CommonJS, tanpa dependensi runtime)                                             |
-| `scripts/`     | Skrip build / deploy lintas platform (Node)                                                   |
-| `e2e/`         | Uji Playwright                                                                                |
-| `docs/`        | PRD, keputusan, panduan deploy, daftar uji manual                                             |
+| Fitur             | Kegunaan                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tempo             | Memperlambat atau mempercepat lagu (0,25x sampai 2x) tanpa mengubah nada. Berguna untuk belajar bagian sulit pelan-pelan                                                        |
+| Kunci (transpose) | Menaikkan atau menurunkan nada sampai 12 semitone tanpa mengubah kecepatan. Menyesuaikan lagu dengan jangkauan suara penyanyi                                                   |
+| Minus One         | Mengurangi suara vokal agar Anda bisa bernyanyi sendiri. Ada tiga mode: Dasar, Jaga bass, Fokus vokal. Hasilnya bervariasi tergantung rekaman. Rekaman mono akan menjadi senyap |
+| Loop A-B          | Mengulang satu bagian lagu terus-menerus. Tandai titik A (awal) dan titik B (akhir)                                                                                             |
+| Equalizer         | Mengatur nada rendah, tengah, dan tinggi (5 pita)                                                                                                                               |
+| Metronom          | Ketukan pengatur tempo, dengan hitung masuk sebelum lagu mulai                                                                                                                  |
+| Preset per lagu   | Aplikasi mengingat tempo, kunci, dan pengaturan terakhir tiap lagu                                                                                                              |
+| Antrean           | Daftar lagu yang akan diputar. Ketuk lagu untuk langsung memutarnya                                                                                                             |
+| Mode putar        | **Acak**, **Ulangi** (mati / semua / 1 lagu), dan **Auto next**                                                                                                                 |
+| Lagu terakhir     | Saat aplikasi dibuka lagi, lagu dan posisi terakhir langsung siap dilanjutkan                                                                                                   |
 
-## Mulai cepat
+### 2. Library
 
-Butuh Node >= 20 (server mendukung Node >= 18) dan Git.
+Daftar lagu yang disimpan di dalam aplikasi.
 
-```powershell
-npm install
-npm run dev              # app di http://localhost:5173/ , lab di /lab/
-npm run lint
-npm run typecheck
-npm test                 # unit (core, server, skrip)
-npm run build            # -> out/app (PWA) dan out/server
-npm run build:ext        # ekstensi -> ext-chrome/dist
-npm run android:apk      # APK debug (butuh JDK 21 dan Android SDK 36, lihat docs/ANDROID.md)
-```
+- Tambahkan berkas musik (MP3, WAV, M4A, OGG, FLAC) dari HP.
+- Cari, ubah nama, atau hapus lagu.
+- Pilihan **Buka & putar** memutar berkas tanpa menyimpannya.
 
-Uji end-to-end (Playwright memakai Chrome sistem; ekstensi memakai Chromium dari cache Playwright):
+### 3. Musik di HP
 
-```powershell
-npm run test:e2e         # lab, aplikasi, alat latihan, Minus One, Cari (sumber legal, jaringan di-mock)
-node e2e/m2.mjs          # YouTube ke MP3 (server asli + yt-dlp palsu)
-node e2e/ext.mjs         # ekstensi
-```
+Menampilkan seluruh musik yang sudah ada di HP, termasuk di kartu SD.
 
-Uji di HP lewat USB atau di server sendiri: `docs/DEPLOY.md` (termasuk "Uji lokal: PC + HP lewat USB").
+- Mode **Folder**: telusuri musik per folder.
+- Mode **Semua lagu**: lihat dan cari semua lagu.
+- Mengetuk satu lagu memutar lagu itu dan memasukkan lagu lain di folder yang sama ke antrean.
+- Pemutaran tetap berjalan saat layar mati. Kontrol Putar, Jeda, Sebelumnya, dan Berikutnya muncul di notifikasi dan layar kunci.
 
-## Deploy
+### 4. Cari
 
-Build lokal, repo terpisah `musik-deploy` untuk hasil build, `git pull` manual di server, restart lewat cPanel. Langkah lengkap, variabel lingkungan, dan daftar periksa go-live: [`docs/DEPLOY.md`](docs/DEPLOY.md). Uji manual di server nyata: [`docs/TEST_SERVER.md`](docs/TEST_SERVER.md).
+Mencari musik yang **boleh diunduh secara legal** (berlisensi Creative Commons atau domain publik) dari Internet Archive, Openverse, dan Wikimedia Commons.
 
-## Dokumentasi
+- Cari berdasarkan judul, artis, atau semua kata.
+- Urutkan menurut relevansi, artis, judul, ukuran, atau tahun.
+- Unduh langsung ke Library. Nama pencipta dan jenis lisensi ikut tersimpan.
 
-| Berkas                                | Isi                                                      |
-| ------------------------------------- | -------------------------------------------------------- |
-| `docs/PRD.md`                         | Kebutuhan produk dan Decision Log                        |
-| `docs/FRONTEND.md`                    | Arsitektur UI, audio, PWA (rancangan awal)               |
-| `docs/DEPLOY.md`                      | Repo, build, deploy, restart, uji lokal                  |
-| `docs/DECISIONS_M0.md` ... `M4.md`    | Keputusan teknis dan bukti per fase (M3 terbagi A dan B) |
-| `docs/TEST_A23.md`                    | Daftar uji manual di HP, per fase                        |
-| `docs/TEST_SERVER.md`                 | Daftar uji manual di server cPanel                       |
-| `docs/ASSUMPTIONS.md`, `PROPOSALS.md` | Asumsi dan usulan di luar PRD                            |
-| `docs/CLAUDE_CODE_PROMPT.md`          | Prompt eksekusi per fase dan pelajaran yang dibawa       |
-| `CHANGELOG.md`                        | Ringkasan perubahan per versi                            |
+Penting: lisensi adalah klaim dari pengunggah dan tidak diperiksa oleh aplikasi. Bila ragu, buka halaman sumber lewat tombol yang tersedia.
 
-## Lisensi
+### 5. Setelan
 
-GPL-3.0 (lihat `LICENSE`), karena memakai Rubber Band. yt-dlp (Unlicense) dan ffmpeg dipanggil sebagai proses terpisah. Catatan lisensi pembungkus WASM ada di `docs/DECISIONS_M0.md`.
+- Kualitas mesin nada: **R2** (cepat, disarankan) atau **R3** (kualitas lebih tinggi, lebih berat).
+- Penyimpanan: ruang yang dipakai dan tombol menghapus semua data lokal.
+- Diagnostik: unduh catatan teknis bila perlu dikirim ke tim IT.
+- **Tentang**: versi aplikasi dan riwayat perubahan.
+
+## Izin yang diminta aplikasi
+
+| Izin            | Kapan muncul                                   | Alasan                                                      |
+| --------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| Musik dan audio | Saat membuka **Musik di HP**                   | Membaca daftar dan memutar lagu yang ada di HP              |
+| Notifikasi      | Saat lagu pertama diputar (Android 13 ke atas) | Menampilkan kontrol pemutaran di notifikasi dan layar kunci |
+| Internet        | Otomatis                                       | Untuk fitur **Cari** saja                                   |
+
+Aplikasi tidak meminta akses kontak, lokasi, kamera, atau mikrofon.
+
+## Pertanyaan yang sering muncul
+
+**Musik berhenti saat layar mati.**
+Matikan penghemat baterai untuk aplikasi ini: Setelan Android, Aplikasi, Music Player, Baterai, pilih "Tidak dibatasi".
+
+**Daftar Musik di HP kosong.**
+Izin musik mungkin ditolak. Buka Setelan Android, Aplikasi, Music Player, Izin, Musik dan audio, lalu pilih Izinkan. Lagu di folder yang diberi tanda `.nomedia` memang tidak tampil.
+
+**Lagu baru tidak muncul di daftar.**
+Buka **Musik di HP** lalu tekan **Muat ulang daftar**.
+
+**Suara vokal masih terdengar setelah Minus One.**
+Minus One bekerja dengan mengurangi suara yang ada di tengah. Hasilnya bergantung pada cara lagu direkam. Coba mode lain (Jaga bass atau Fokus vokal) dan atur kekuatannya.
+
+**Rekaman jadi senyap setelah Minus One.**
+Rekaman mono tidak punya perbedaan kiri dan kanan, jadi suaranya hilang seluruhnya. Matikan Minus One untuk rekaman seperti itu.
+
+**Hasil pencarian tidak bisa diunduh.**
+Sumber kadang menolak unduhan dari aplikasi. Buka halaman sumber, unduh berkasnya, lalu masukkan lewat **Library**.
+
+**Cara menghapus semua data.**
+Setelan, Penyimpanan, **Hapus semua data lokal**. Atau hapus (uninstall) aplikasi.
+
+**Apakah data saya dikirim ke pihak lain?**
+Tidak ada akun, pelacakan, atau iklan. Satu-satunya data yang keluar dari HP adalah kata kunci dan alamat IP ke layanan sumber musik saat Anda memakai **Cari**. Rincian: [`PRIVACYPOLICY.md`](PRIVACYPOLICY.md).
+
+## Batasan yang perlu diketahui
+
+- Hanya untuk Android. Tidak ada versi iPhone.
+- Kualitas Minus One tidak sama dengan pemisahan vokal berbasis AI. Ini pengurangan sederhana dan hasilnya berbeda-beda per lagu.
+- Pencarian musik hanya menampilkan karya berlisensi terbuka, jadi lagu komersial populer umumnya tidak ada.
+- Lagu di Library memakan ruang penyimpanan HP.
+- Belum semua fitur diuji pada banyak model HP. Patokan uji saat ini adalah Samsung Galaxy A23.
+
+## Bantuan
+
+Bila ada kendala, kirim ke Tim IT: model HP, versi Android, versi aplikasi (**Setelan, Tentang**), langkah yang dilakukan, dan jika ada, berkas **Unduh log diagnostik** dari Setelan.
+
+## Rencana Selanjutnya (To Do)
+
+### Menuju rilis Google Play
+
+1. Menyiapkan versi khusus Google Play dengan nama **Music Player**.
+2. Menyelesaikan kebijakan privasi di situs resmi (alamat harus aman memakai HTTPS).
+3. Menyiapkan tampilan toko: ikon, gambar sampul, tangkapan layar, dan deskripsi.
+4. Mengisi formulir Google Play (keamanan data, rating usia, penggunaan izin).
+5. Uji tertutup oleh 12 penguji selama 14 hari berturut-turut, sesuai syarat Google untuk akun baru.
+6. Mengajukan rilis ke publik setelah uji tertutup selesai.
+
+### Peningkatan kualitas
+
+1. Menguji di lebih banyak model HP dan versi Android.
+2. Menyelesaikan uji tertunda: mode Folder, kartu SD, antrean, dan tombol notifikasi.
+3. Memperbaiki aksesibilitas (label tombol, kontras warna, ukuran tombol).
+4. Memantau laporan kerusakan setelah rilis.
+
+### Fitur yang direncanakan
+
+1. Cadangan dan pemulihan Library serta pengaturan lagu.
+2. Loop A-B yang lebih teliti: waktu dalam angka, penyesuaian halus, beberapa loop bernama per lagu.
+3. Metronom dengan ketuk tempo, dan opsi mengikuti tempo lagu.
+4. Deteksi nada dasar dan BPM lagu secara otomatis.
+5. Grafik equalizer.
+6. Membagikan musik dari aplikasi lain langsung ke Music Player.

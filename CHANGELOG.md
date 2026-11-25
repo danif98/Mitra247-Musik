@@ -2,6 +2,15 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.4.0 (2026-11-25)
+
+- **Dua edisi dari satu repo.** Build Android kini punya dua product flavor: `personal` (`com.mitra247.musictools`, "Musik Tools", APK) dan `play` (`com.mitra247.musicplayer`, "Music Player", AAB untuk Google Play). Edisi `play` tidak memuat modul pribadi (kode, pustaka native, izin dan intent filter, layar, string, riwayat versi); `scripts/check-play-clean.mjs` memeriksanya pada hasil build web dan AAB.
+- **Perhatian**: `applicationId` edisi pribadi berubah dari `com.musik.tools` menjadi `com.mitra247.musictools`. Android menganggapnya aplikasi baru yang terpasang berdampingan dengan yang lama; Library dan setelan lama tidak ikut pindah. Simpan MP3 yang masih perlu, pasang versi baru, lalu hapus yang lama.
+- Plugin native dipecah: `MusikNative` (musik di HP, pemutaran latar, notifikasi; semua edisi) dan `MusikPersonal` (downloader, folder simpan MP3, tautan yang dibagikan; hanya edisi pribadi). Di web, kode pribadi berada di `app-pwa/src/personal/` dan diganti stub `personal-stub/` pada edisi Play (alias `@personal`).
+- Perintah baru: `npm run android:play:aab`, `android:play:apk`, `build:play`, `check:play-clean`, `test:e2e:play`. `npm run android:apk` tetap membangun APK edisi pribadi.
+- Edisi Play: R8 aktif (`minifyEnabled`, `shrinkResources`) dengan aturan keep untuk plugin Capacitor, semua ABI didukung, `allowBackup` mati, penandatanganan lewat `keystore.properties` (tidak masuk git). Riwayat versi memakai `CHANGELOG-PLAY.md`.
+- Uji: `e2e/play.mjs` (empat tab, tanpa panel pribadi, nama Music Player, riwayat versi Play) dan uji unit untuk `CHANGELOG-PLAY.md`.
+
 ## 0.3.4 (2026-11-25)
 
 - **Perbaikan**: pencarian YouTube di 0.3.3 gagal ("Unable to handle request: Unsupported url scheme ytsearchdate15"), di server maupun APK, karena yt-dlp tidak lagi punya `ytsearchdate:`. Pencarian kini membaca halaman hasil YouTube (`results?search_query=...`, hanya video), dibatasi satu halaman per permintaan dengan `--playlist-items`. Terbukti dengan yt-dlp 2026.10.26 asli dan di HP. **Batasan**: urutan "terbaru dulu" tidak bisa dijamin; permintaan urut tanggal (`sp=`) diabaikan YouTube lewat yt-dlp, jadi urutannya mengikuti YouTube (relevansi). Uji lama lolos karena yt-dlp palsu menerima awalan apa saja; yt-dlp palsu kini hanya mengenali URL halaman hasil.

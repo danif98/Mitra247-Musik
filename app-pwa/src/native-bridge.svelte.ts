@@ -1,14 +1,13 @@
 /**
  * Wires the player to the Android wrapper: media notification / lock screen controls while music
- * plays in the background, and YouTube links shared to the app. Does nothing in a plain browser.
+ * plays in the background. Does nothing in a plain browser.
  * Must be called while a component is initialising (it uses $effect).
  */
-import { extractYoutubeUrl } from '@musik/core';
 import { untrack } from 'svelte';
 import { native } from './native';
 import type { Player } from './player.svelte';
 
-export function bindNative(player: Player, onSharedUrl: (url: string) => void): void {
+export function bindNative(player: Player): void {
   const plugin = native;
   if (!plugin) return;
   let askedNotifications = false;
@@ -65,18 +64,7 @@ export function bindNative(player: Player, onSharedUrl: (url: string) => void): 
             break;
         }
       }),
-      plugin.addListener('sharedText', (e) => {
-        const url = extractYoutubeUrl(e.text);
-        if (url) onSharedUrl(url);
-      }),
     );
-    void plugin
-      .getSharedText()
-      .then((r) => {
-        const url = extractYoutubeUrl(r.text);
-        if (url) onSharedUrl(url);
-      })
-      .catch(() => undefined);
     return () => {
       for (const h of handles) void h.then((x) => x.remove()).catch(() => undefined);
     };

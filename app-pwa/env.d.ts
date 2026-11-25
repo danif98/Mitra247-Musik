@@ -4,3 +4,5 @@ declare const __BUILD__: string;
 declare const __APP_VERSION__: string;
 /** ISO time of this web build (injected by vite.config.ts). */
 declare const __BUILT_AT__: string;
+/** "personal" or "play" (Google Play), injected by vite.config.ts from MUSIK_EDITION. */
+declare const __EDITION__: 'personal' | 'play';

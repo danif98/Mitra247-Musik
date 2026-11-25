@@ -7,6 +7,7 @@
   import type { DeviceMusic } from './device.svelte';
   import DeviceMusicScreen from './DeviceMusicScreen.svelte';
   import { native } from './native';
+  import { personalSourceLabel } from '@personal';
 
   interface Props {
     player: Player;
@@ -139,12 +140,9 @@
             <button type="button" class="open" onclick={() => open(song)}>
               <span class="name">{song.title}</span>
               <span class="meta">
-                {formatDuration(song.duration)} · {formatBytes(song.size)} · {song.source ===
-                'youtube'
-                  ? t.fromYoutube
-                  : song.source === 'web'
-                    ? (song.credit?.license ?? t.fromWeb)
-                    : t.local}
+                {formatDuration(song.duration)} · {formatBytes(song.size)} · {personalSourceLabel(
+                  song.source,
+                ) ?? (song.source === 'web' ? (song.credit?.license ?? t.fromWeb) : t.local)}
                 {#if player.current?.id === song.id}· {t.now}{/if}
               </span>
             </button>

@@ -266,7 +266,7 @@ public class PlaybackService extends Service {
         );
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle(s.title.isEmpty() ? "Musik Tools" : s.title)
+            .setContentTitle(s.title.isEmpty() ? getString(R.string.app_name) : s.title)
             .setContentText(s.artist)
             .setContentIntent(content)
             .setOnlyAlertOnce(true)

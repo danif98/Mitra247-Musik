@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { id } from '@musik/ui';
+  import { id, idExt } from '@musik/ui';
   import Stepper from '@musik/ui/components/Stepper.svelte';
   import { buildAppLink, extractYoutubeUrl } from '@musik/core/api/client';
   import type { ExtRequest, ExtResponse, ExtStatus } from '../messages';
 
-  const t = id.ext;
+  const t = idExt;
   let status = $state<ExtStatus | null>(null);
   let message = $state<string>(t.loading);
   let tabId: number | null = null;

@@ -17,3 +17,8 @@ dist-test/
 .scratch-*
 data/
 .claude/
+
+# Android release signing (never commit)
+keystore.properties
+*.jks
+*.keystore

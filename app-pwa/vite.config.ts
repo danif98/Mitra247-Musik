@@ -8,6 +8,15 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Edition of this build (MUSIK_EDITION): "personal" (default) or "play" (Google Play). The play
+ * build swaps the personal-only code for stubs and uses its own change log, and writes to
+ * out/app-play, so the personal build in out/app is never touched.
+ */
+const edition = process.env.MUSIK_EDITION === 'play' ? 'play' : 'personal';
+const isPlay = edition === 'play';
+const appName = isPlay ? 'Music Player' : 'Musik Tools';
+
 /** Version from the root package.json (also used for the Android versionName). */
 function appVersion(): string {
   const pkg = JSON.parse(readFileSync(path.resolve(here, '../package.json'), 'utf8')) as {
@@ -25,6 +34,14 @@ function buildLabel(): string {
   const commit = git(['rev-parse', '--short', 'HEAD']) || 'nogit';
   const dirty = git(['status', '--porcelain']) ? '-dirty' : '';
   return `${commit}${dirty} ${new Date().toISOString().slice(0, 16).replace('T', ' ')}Z`;
+}
+
+/** Page titles carry the app name of the edition. */
+function editionTitles(): Plugin {
+  return {
+    name: 'musik-edition-titles',
+    transformIndexHtml: (html) => html.replace(/Musik Tools/g, appName),
+  };
 }
 
 /** vite-plugin-pwa injects a root-relative manifest href; fix it for pages in sub folders (lab/). */
@@ -50,7 +67,23 @@ export default defineConfig({
   root: here,
   // Relative base: the PWA can be hosted under any path on the server.
   base: './',
+  resolve: {
+    alias: [
+      {
+        find: /^@personal$/,
+        replacement: path.resolve(
+          here,
+          isPlay ? 'src/personal-stub/index.ts' : 'src/personal/index.ts',
+        ),
+      },
+      {
+        find: /^@changelog/,
+        replacement: path.resolve(here, isPlay ? '../CHANGELOG-PLAY.md' : '../CHANGELOG.md'),
+      },
+    ],
+  },
   define: {
+    __EDITION__: JSON.stringify(edition),
     __BUILD__: JSON.stringify(buildLabel()),
     __APP_VERSION__: JSON.stringify(appVersion()),
     __BUILT_AT__: JSON.stringify(new Date().toISOString()),
@@ -61,20 +94,24 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
       manifest: {
-        name: 'Musik Tools',
-        short_name: 'Musik',
+        name: appName,
+        short_name: isPlay ? 'Music Player' : 'Musik',
         description: 'Player, speed changer dan transpose untuk latihan musik.',
         lang: 'id',
         start_url: './',
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        // Android share sheet: sharing a YouTube link opens the app on the YouTube screen.
-        share_target: {
-          action: './',
-          method: 'GET',
-          params: { title: 'title', text: 'text', url: 'url' },
-        },
+        // Personal edition: the Android share sheet can send a link to the app.
+        ...(isPlay
+          ? {}
+          : {
+              share_target: {
+                action: './',
+                method: 'GET' as const,
+                params: { title: 'title', text: 'text', url: 'url' },
+              },
+            }),
         background_color: '#0f1115',
         theme_color: '#0f1115',
         icons: [
@@ -106,9 +143,10 @@ export default defineConfig({
       },
     }),
     fixManifestHref(),
+    editionTitles(),
   ],
   build: {
-    outDir: path.resolve(here, '../out/app'),
+    outDir: path.resolve(here, isPlay ? '../out/app-play' : '../out/app'),
     emptyOutDir: true,
     target: 'es2022',
     rollupOptions: {

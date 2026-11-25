@@ -18,7 +18,9 @@ const out = path.join(root, 'out');
 const pkg = readJson(path.join(root, 'package.json'));
 const PWA_BUDGET = 10 * 1024 * 1024;
 
-rmSync(out, { recursive: true, force: true });
+// Only this build's folders: out/app-play (Google Play edition) belongs to scripts/build-play.mjs.
+for (const name of ['app', 'server'])
+  rmSync(path.join(out, name), { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
 // 1. PWA (vite writes to out/app, see app-pwa/vite.config.ts)
