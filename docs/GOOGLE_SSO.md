@@ -1,6 +1,6 @@
 # Login Google dan cadangan Google Drive
 
-Status: **sudah diimplementasikan di kode (0.5.0), belum dikonfigurasi di Google Cloud dan belum diuji dengan Google sungguhan.** Berlaku untuk **semua edisi** (`personal` dan `play`). Terakhir diperbarui: 25 November 2026.
+Status: **sudah diimplementasikan (0.5.0) dan diuji dengan Google sungguhan di HP untuk kedua edisi (25 November 2026, kunci debug, akun test user).** Proyek Google Cloud `music-player-mitra247` sudah dibuat; yang tersisa: domain, status In production, dan SHA-1 kunci upload serta Play App Signing. Berlaku untuk **semua edisi** (`personal` dan `play`). Terakhir diperbarui: 25 November 2026.
 
 Legenda: ✅ sudah ada, ❌ belum ada, ⚠️ perlu diperbaiki atau diputuskan.
 
@@ -41,16 +41,16 @@ Google Drive → appDataFolder → musik-backup.json
 
 Tanpa langkah ini tombol masuk menampilkan "Login Google belum dikonfigurasi" (kode `config`).
 
-| #   | Langkah                                                                                                                                                                      | Status |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Buat proyek di Google Cloud Console                                                                                                                                          | ❌     |
-| 2   | Aktifkan **Google Drive API** (APIs & Services → Library)                                                                                                                    | ❌     |
-| 3   | **OAuth consent screen** (Google Auth Platform): jenis External, nama app, email dukungan, logo, domain, tautan kebijakan privasi (`https://mitra247.com/kebijakan-privasi`) | ❌     |
-| 4   | Tambahkan cakupan `.../auth/drive.appdata`, `email`, `profile` (semuanya tidak sensitif)                                                                                     | ❌     |
-| 5   | Verifikasi domain `mitra247.com` di Search Console (untuk tautan di consent screen)                                                                                          | ❌     |
-| 6   | Ubah status ke **In production** (mode Testing: maksimal 100 penguji dan token cepat kedaluwarsa)                                                                            | ❌     |
-| 7   | Buat **OAuth client ID** tipe **Android** untuk tiap `applicationId` dan SHA-1 (tabel di bawah)                                                                              | ❌     |
-| 8   | Tidak perlu client ID Web dan tidak perlu menaruh client ID di kode                                                                                                          | ✅     |
+| #   | Langkah                                                                                                                                                                      | Status                                                                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | Buat proyek di Google Cloud Console                                                                                                                                          | ✅ `music-player-mitra247`                                                                                        |
+| 2   | Aktifkan **Google Drive API** (APIs & Services → Library)                                                                                                                    | ✅                                                                                                                |
+| 3   | **OAuth consent screen** (Google Auth Platform): jenis External, nama app, email dukungan, logo, domain, tautan kebijakan privasi (`https://mitra247.com/kebijakan-privasi`) | ⚠️ nama, audiens External, kontak sudah; logo, tautan kebijakan privasi, dan domain menunggu HTTPS `mitra247.com` |
+| 4   | Tambahkan cakupan `.../auth/drive.appdata`, `email`, `profile` (semuanya tidak sensitif)                                                                                     | ✅                                                                                                                |
+| 5   | Verifikasi domain `mitra247.com` di Search Console (untuk tautan di consent screen)                                                                                          | ❌                                                                                                                |
+| 6   | Ubah status ke **In production** (mode Testing: maksimal 100 penguji dan token cepat kedaluwarsa)                                                                            | ❌                                                                                                                |
+| 7   | Buat **OAuth client ID** tipe **Android** untuk tiap `applicationId` dan SHA-1 (tabel di bawah)                                                                              | ⚠️ client dibuat untuk kedua nama paket dengan SHA-1 debug; SHA-1 upload dan Play App Signing menyusul            |
+| 8   | Tidak perlu client ID Web dan tidak perlu menaruh client ID di kode                                                                                                          | ✅                                                                                                                |
 
 ### OAuth client Android yang perlu dibuat
 
@@ -80,7 +80,7 @@ keytool -list -v -alias upload -keystore D:\rahasia\musicplayer-upload.jks
 | UI Akun, sinkron otomatis, keluar, hapus cadangan                                      | ✅                            |
 | Tes e2e dua "HP" dengan plugin dan Drive palsu (`e2e/account.mjs`)                     | ✅                            |
 | Tanda pengenal lagu di preset dan database v3                                          | ✅                            |
-| Pengujian dengan Google sungguhan di HP                                                | ❌                            |
+| Pengujian dengan Google sungguhan di HP (kedua edisi, kunci debug)                     | ✅                            |
 | Tombol sesuai **pedoman merek Google** ("Sign in with Google")                         | ⚠️ saat ini tombol teks biasa |
 | R8: aturan keep untuk `play-services-auth` diuji di perangkat (edisi Play)             | ❌                            |
 | HP tanpa Google Play services: pesan `unavailable` tampil (bagian Akun tetap terlihat) | ⚠️ perlu diuji                |
@@ -107,6 +107,12 @@ keytool -list -v -alias upload -keystore D:\rahasia\musicplayer-upload.jks
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | `play-services-auth` bersifat proprietary dan dibundel di APK. Risikonya jauh lebih kecil daripada AdMob tetapi tetap perlu ditinjau bersama pertanyaan lisensi Rubber Band (wrapper "GPLv2 saja", GPL-3.0) | ⚠️            |
 | Pendapat hukum tertulis sebelum rilis publik                                                                                                                                                                | ❌ disarankan |
+
+## 4b. Temuan dari uji di HP (sudah diperbaiki)
+
+- `AuthorizationClient` mengembalikan token tetapi **tanpa profil**: nama, email, foto kosong. Profil kini diambil dari `https://www.googleapis.com/oauth2/v3/userinfo` dengan token itu (`fetchProfile` di `account.svelte.ts`).
+- Objek plugin Capacitor tidak boleh dibungkus `$state` Svelte (proxy-nya menghilangkan method `signIn`). Dipakai `$state.raw`. Tes e2e kini memakai plugin palsu berbentuk Proxy supaya bug ini tertangkap.
+- Service worker PWA menyajikan bundel web lama satu kali setelah pembaruan APK. Di aplikasi Android service worker tidak didaftarkan lagi dan yang lama dihapus otomatis (`register-sw.ts`). Pembaruan dari versi sebelum perbaikan ini butuh sekitar dua kali buka aplikasi.
 
 ## 5. Menguji di HP
 

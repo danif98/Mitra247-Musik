@@ -38,6 +38,9 @@ async function driveRoute(route) {
       headers: { ...CORS, 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
+  if (url.pathname === '/oauth2/v3/userinfo') {
+    return json({ email: 'dina@example.com', name: 'Dina', picture: '' });
+  }
   if (url.pathname === '/drive/v3/files' && method === 'GET') {
     const id = [...drive.files.keys()][0];
     return json({ files: id ? [{ id }] : [] });
@@ -124,13 +127,16 @@ async function addSong(page) {
 function installPlugin(page, opts = {}) {
   return page.evaluate((o) => {
     const info = { email: 'dina@example.com', name: 'Dina', photoUrl: '', accessToken: 'tok-1' };
-    window.__musik.account.setProvider({
+    // Like the real Capacitor plugin: a Proxy whose methods are not own properties. A plain object
+    // hid a bug where the reactive state wrapper swallowed the methods on the device.
+    const methods = {
       signIn: async () => {
         if (o.fail) throw Object.assign(new Error('x'), { code: o.fail });
-        return info;
+        return o.noProfile ? { ...info, email: '', name: '', photoUrl: '' } : info;
       },
       getAccessToken: async () => info,
-    });
+    };
+    window.__musik.account.setProvider(new Proxy({}, { get: (_t, name) => methods[name] }));
   }, opts);
 }
 
@@ -241,6 +247,17 @@ try {
   );
   const tempo1 = await p1.evaluate(() => window.__musik.player.tempo);
   check('the preset saved last wins on the other phone', tempo1 === 1.25, String(tempo1));
+
+  // ---- the plugin returns a token without profile (as on the device): the profile comes from Google
+  await p1.click('#account-signout');
+  await p1.waitForSelector('#account-signin');
+  await installPlugin(p1, { noProfile: true });
+  await p1.click('#account-signin');
+  await p1.waitForSelector('#account-name');
+  check(
+    'a token without profile is completed from the userinfo endpoint',
+    (await p1.locator('#account-name').innerText()) === 'Dina',
+  );
 
   // ---- sign out keeps the backup; delete removes it
   await p1.click('#account-signout');

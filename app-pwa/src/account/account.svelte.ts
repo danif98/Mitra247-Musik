@@ -73,9 +73,23 @@ function errorCode(err: unknown): string {
   return nativeErrorCode(err);
 }
 
+/** Name, email and photo of the signed-in user (scopes email and profile). Empty values on failure. */
+async function fetchProfile(token: string): Promise<Partial<AccountUser>> {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    const p = (await res.json()) as { email?: string; name?: string; picture?: string };
+    return { email: p.email ?? '', name: p.name ?? '', photoUrl: p.picture ?? '' };
+  } catch {
+    return {};
+  }
+}
+
 export class Account {
   /** The sign-in plugin (null in a browser). Replaceable so tests can use a fake. */
-  provider = $state<AuthPlugin | null>(nativeAuth);
+  provider = $state.raw<AuthPlugin | null>(nativeAuth);
   user = $state<AccountUser | null>(readUser());
   busy = $state(false);
   message = $state('');
@@ -109,6 +123,9 @@ export class Account {
     this.say('');
     try {
       const info = await provider.signIn(this.user ? { account: this.user.email } : {});
+      // The authorization API returns a token but often no profile: ask Google for it.
+      if (!info.email) Object.assign(info, await fetchProfile(info.accessToken));
+      if (!info.email) throw new Error('failed');
       this.user = { email: info.email, name: info.name, photoUrl: info.photoUrl };
       put(USER_KEY, JSON.stringify(this.user));
     } catch (err) {
