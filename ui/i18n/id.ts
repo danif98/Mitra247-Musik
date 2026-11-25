@@ -168,6 +168,8 @@ export const id = {
     persisted: 'Dilindungi dari pembersihan otomatis',
     notPersisted: 'Belum dilindungi dari pembersihan otomatis',
     requestPersist: 'Minta perlindungan',
+    persistDenied:
+      'Permintaan ditolak oleh browser atau WebView. Itu normal: perlindungan hanya diberikan bila aplikasi dipasang atau sering dipakai. Lagu di Library tetap aman selama Anda tidak menghapus data aplikasi; untuk cadangan, simpan MP3 ke folder simpan (Android).',
     clearData: 'Hapus semua data lokal',
     clearConfirm: 'Hapus semua lagu dan setelan dari perangkat ini?',
     diag: 'Diagnostik',

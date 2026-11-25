@@ -121,6 +121,7 @@
 
   let usage = $state('');
   let persisted = $state<boolean | null>(null);
+  let persistDenied = $state(false);
 
   async function refresh() {
     try {
@@ -134,8 +135,10 @@
   onMount(refresh);
 
   async function requestPersist() {
-    await navigator.storage?.persist?.();
+    persistDenied = false;
+    const granted = (await navigator.storage?.persist?.()) ?? false;
     await refresh();
+    persistDenied = !granted;
   }
 
   async function clearAll() {
@@ -280,6 +283,9 @@
     <p class="muted">{persisted ? t.persisted : t.notPersisted}</p>
     {#if persisted === false}
       <button type="button" onclick={requestPersist}>{t.requestPersist}</button>
+      {#if persistDenied}
+        <p class="muted" role="status">{t.persistDenied}</p>
+      {/if}
     {/if}
     <button type="button" id="clear-data" onclick={clearAll}>{t.clearData}</button>
   </div>
