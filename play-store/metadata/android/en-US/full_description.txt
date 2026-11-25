@@ -1,0 +1,36 @@
+Music Player is a practice tool for musicians, right in your pocket. Slow down the hard parts, change the key to fit your voice, reduce the vocals to sing along, and repeat a section until it is smooth. Everything in one app, with no account and no ads.
+
+WHO IT IS FOR
+Guitarists, pianists, bassists, drummers, singers, music teachers, choirs, worship teams, and anyone who wants to practice along with a song.
+
+PRACTICE TOOLS
+• Tempo from 0.25x to 2x without changing pitch. Slow down a fast solo, then speed it up little by little.
+• Key (transpose) up or down by up to 12 semitones without changing speed.
+• Minus One: reduces sound in the center of the mix (usually the vocals). Three modes: Basic, Keep bass, and Vocal focus, with adjustable strength.
+• A-B loop: mark a start and an end and repeat it.
+• 5-band equalizer.
+• Metronome with a count-in before the song starts.
+• Per-song presets: the last tempo and key are remembered.
+
+YOUR MUSIC
+• In-app library: add MP3, WAV, M4A, OGG, or FLAC files.
+• Music on phone: browse the music already on your phone by folder, including the SD card.
+• Queue, shuffle, repeat, and auto next.
+• The last song and position are remembered when you reopen the app.
+• Playback keeps going with the screen off, with controls in the notification and on the lock screen.
+
+SEARCH LEGAL MUSIC
+Find and download music licensed under Creative Commons or in the public domain from the Internet Archive, Openverse, and Wikimedia Commons. The creator and license are saved with the song.
+
+PRIVACY
+• No account, no tracking, no ads.
+• Your music and settings stay on your phone. We run no server that receives data from the app.
+• The internet is used only when you use Search.
+• Minimal permissions: music and audio to read songs on your phone, and notifications for playback controls.
+
+GOOD TO KNOW
+• Minus One is a simple reduction, not AI vocal separation. Results vary by recording, and mono recordings become silent.
+• The license shown in search results is the uploader's claim. Check the source page if in doubt.
+• Open source (GPL-3.0).
+
+Privacy policy: https://mitra247.com/kebijakan-privasi

@@ -1,0 +1,36 @@
+Music Player adalah alat latihan musik di saku Anda. Perlambat bagian yang sulit, ganti kunci agar pas dengan suara Anda, kurangi vokal untuk bernyanyi bersama, dan ulangi satu bagian sampai lancar. Semuanya dalam satu aplikasi, tanpa akun dan tanpa iklan.
+
+UNTUK SIAPA
+Pemain gitar, piano, bass, drum, penyanyi, guru les, paduan suara, tim ibadah, dan siapa pun yang ingin berlatih bersama lagu.
+
+FITUR LATIHAN
+• Tempo 0,25x sampai 2x tanpa mengubah nada. Pelankan solo yang cepat lalu naikkan perlahan.
+• Kunci (transpose) naik atau turun sampai 12 semitone tanpa mengubah kecepatan.
+• Minus One: kurangi suara yang ada di tengah campuran (biasanya vokal). Tiga mode: Dasar, Jaga bass, dan Fokus vokal, dengan pengaturan kekuatan.
+• Loop A-B: tandai awal dan akhir lalu ulangi terus.
+• Equalizer 5 pita.
+• Metronom dengan hitung masuk sebelum lagu mulai.
+• Preset per lagu: tempo dan kunci terakhir diingat otomatis.
+
+MUSIK ANDA
+• Library di dalam aplikasi: tambahkan berkas MP3, WAV, M4A, OGG, atau FLAC.
+• Musik di HP: telusuri musik yang sudah ada di HP per folder, termasuk kartu SD.
+• Antrean, acak, ulangi, dan lanjut otomatis.
+• Lagu dan posisi terakhir diingat saat aplikasi dibuka lagi.
+• Pemutaran tetap berjalan saat layar mati, dengan kontrol di notifikasi dan layar kunci.
+
+CARI MUSIK LEGAL
+Cari dan unduh musik berlisensi Creative Commons atau domain publik dari Internet Archive, Openverse, dan Wikimedia Commons. Nama pencipta dan lisensi tersimpan bersama lagu.
+
+PRIVASI
+• Tanpa akun, tanpa pelacakan, tanpa iklan.
+• Musik dan setelan tetap di HP Anda. Kami tidak punya server yang menerima data dari aplikasi.
+• Internet hanya dipakai saat Anda memakai Cari.
+• Izin secukupnya: musik dan audio untuk membaca lagu di HP, dan notifikasi untuk kontrol pemutaran.
+
+CATATAN
+• Minus One adalah pengurangan sederhana, bukan pemisahan vokal berbasis AI. Hasilnya bervariasi tergantung rekaman, dan rekaman mono akan menjadi senyap.
+• Lisensi di hasil pencarian adalah klaim pengunggah. Periksa halaman sumber bila ragu.
+• Kode sumber terbuka (GPL-3.0).
+
+Kebijakan privasi: https://mitra247.com/kebijakan-privasi

@@ -1,0 +1,6 @@
+Rilis pertama Music Player.
+• Tempo 0,25x–2x tanpa mengubah nada dan kunci ±12 semitone
+• Minus One, loop A-B, equalizer, metronom, preset per lagu
+• Library, Musik di HP per folder, pemutaran di latar belakang
+• Cari musik berlisensi terbuka
+• Tanpa akun dan tanpa iklan

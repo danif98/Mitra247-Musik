@@ -1,0 +1,6 @@
+First release of Music Player.
+• Tempo 0.25x–2x without changing pitch, and key ±12 semitones
+• Minus One, A-B loop, equalizer, metronome, per-song presets
+• Library, Music on phone by folder, background playback
+• Search openly licensed music
+• No account and no ads

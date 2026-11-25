@@ -193,20 +193,21 @@ Urutan prioritas. Status: belum dikerjakan kecuali ditulis lain.
 
 ## 10. Dokumentasi
 
-| Berkas                             | Isi                                       |
-| ---------------------------------- | ----------------------------------------- |
-| `README.md`                        | Penjelasan umum untuk tim operasional     |
-| `README-IT.md`                     | Dokumen ini                               |
-| `PRESENTASI.md`                    | Materi presentasi tim Sales               |
-| `PRIVACYPOLICY.md`                 | Kebijakan privasi                         |
-| `docs/PLAYSTORE.md`                | Checklist rilis Google Play dan statusnya |
-| `docs/PRD.md`                      | Kebutuhan produk dan Decision Log         |
-| `docs/ANDROID.md`                  | Aplikasi Android, build, status uji       |
-| `docs/DEPLOY.md`                   | Repo, build, deploy edisi pribadi         |
-| `docs/DECISIONS_M0.md` ... `M4.md` | Keputusan teknis dan bukti per fase       |
-| `docs/DECISIONS_SOURCES.md`        | Sumber musik legal                        |
-| `docs/TEST_A23.md`                 | Daftar uji manual di HP                   |
-| `CHANGELOG.md`                     | Ringkasan perubahan per versi             |
+| Berkas                             | Isi                                                   |
+| ---------------------------------- | ----------------------------------------------------- |
+| `README.md`                        | Penjelasan umum untuk tim operasional                 |
+| `README-IT.md`                     | Dokumen ini                                           |
+| `PRESENTASI.md`                    | Materi presentasi tim Sales                           |
+| `PRIVACYPOLICY.md`                 | Kebijakan privasi                                     |
+| `play-store/`                      | Bahan listing Play (teks, gambar) dan jawaban Console |
+| `docs/PLAYSTORE.md`                | Checklist rilis Google Play dan statusnya             |
+| `docs/PRD.md`                      | Kebutuhan produk dan Decision Log                     |
+| `docs/ANDROID.md`                  | Aplikasi Android, build, status uji                   |
+| `docs/DEPLOY.md`                   | Repo, build, deploy edisi pribadi                     |
+| `docs/DECISIONS_M0.md` ... `M4.md` | Keputusan teknis dan bukti per fase                   |
+| `docs/DECISIONS_SOURCES.md`        | Sumber musik legal                                    |
+| `docs/TEST_A23.md`                 | Daftar uji manual di HP                               |
+| `CHANGELOG.md`                     | Ringkasan perubahan per versi                         |
 
 ## 11. Lisensi
 

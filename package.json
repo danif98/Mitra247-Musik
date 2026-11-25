@@ -38,6 +38,7 @@
     "android:play:apk": "node scripts/android.mjs play-apk",
     "android:play:sync": "node scripts/android.mjs play-sync",
     "build:play": "node scripts/build-play.mjs",
+    "play:listing": "node scripts/play-listing.mjs",
     "check:play-clean": "node scripts/check-play-clean.mjs"
   },
   "devDependencies": {

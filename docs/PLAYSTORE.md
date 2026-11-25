@@ -4,7 +4,7 @@ Edisi Play: **Music Player**, `applicationId` `com.mitra247.musicplayer`. Akun P
 
 Legenda: ✅ sudah ada, ❌ belum ada, ⚠️ perlu diperbaiki / dikonfirmasi.
 
-Terakhir diperbarui: 25 November 2026. Rancangan teknis dua edisi: [`README-IT.md`](../README-IT.md) bagian 3.
+Terakhir diperbarui: 25 November 2026. Bahan listing dan jawaban Console: [`play-store/README.md`](../play-store/README.md). Rancangan teknis dua edisi: [`README-IT.md`](../README-IT.md) bagian 3.
 
 ## 0. Keputusan yang sudah diambil
 
@@ -45,47 +45,47 @@ Terakhir diperbarui: 25 November 2026. Rancangan teknis dua edisi: [`README-IT.m
 
 ## 3. Manifest dan izin
 
-| Item                                                           | Status          |
-| -------------------------------------------------------------- | --------------- |
-| `usesCleartextTraffic="false"`                                 | ✅              |
-| `READ_MEDIA_AUDIO` (bukan `MANAGE_EXTERNAL_STORAGE`)           | ✅              |
-| Foreground service `mediaPlayback` dan izinnya                 | ✅              |
-| Hapus intent filter `SEND text/plain` di edisi Play            | ✅              |
-| Hapus `extractNativeLibs` / `useLegacyPackaging` di edisi Play | ✅              |
-| `allowBackup`: tinjau, tambahkan `dataExtractionRules`         | ✅ mati di Play |
-| `WAKE_LOCK`: pastikan dipakai, jika tidak hapus                | ⚠️              |
-| Formulir izin media (`READ_MEDIA_AUDIO`) di Console            | ❌              |
-| Deklarasi foreground service (`mediaPlayback`) + video demo    | ❌              |
+| Item                                                           | Status                                                                                                  |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `usesCleartextTraffic="false"`                                 | ✅                                                                                                      |
+| `READ_MEDIA_AUDIO` (bukan `MANAGE_EXTERNAL_STORAGE`)           | ✅                                                                                                      |
+| Foreground service `mediaPlayback` dan izinnya                 | ✅                                                                                                      |
+| Hapus intent filter `SEND text/plain` di edisi Play            | ✅                                                                                                      |
+| Hapus `extractNativeLibs` / `useLegacyPackaging` di edisi Play | ✅                                                                                                      |
+| `allowBackup`: tinjau, tambahkan `dataExtractionRules`         | ✅ mati di Play                                                                                         |
+| `WAKE_LOCK`: pastikan dipakai, jika tidak hapus                | ⚠️                                                                                                      |
+| Formulir izin media (`READ_MEDIA_AUDIO`) di Console            | ✅ teks siap (biasanya tidak ada formulir untuk audio)                                                  |
+| Deklarasi foreground service (`mediaPlayback`) + video demo    | ✅ teks siap di `play-store/console/permissions-and-foreground-service.md`; ❌ video demo belum direkam |
 
 ## 4. Kebijakan dan legal
 
-| Item                                                                                | Status                                      |
-| ----------------------------------------------------------------------------------- | ------------------------------------------- |
-| Teks kebijakan privasi (`PRIVACYPOLICY.md`)                                         | ✅ draf siap                                |
-| URL kebijakan privasi `http://mitra247.com/kebijakan-privasi` aktif                 | ✅                                          |
-| URL kebijakan privasi memakai **HTTPS**                                             | ❌ `https://` tidak merespons               |
-| Halaman memuat teks lengkap tanpa login (halaman SPA, isi perlu dicek)              | ⚠️                                          |
-| Email kontak publik diisi di kebijakan dan listing                                  | ❌ butuh input pemilik                      |
-| Formulir **Data safety**                                                            | ❌ saran jawaban di `README-IT.md` bagian 6 |
-| Kuesioner rating konten (IARC)                                                      | ❌                                          |
-| Target audiens dan konten                                                           | ❌                                          |
-| Deklarasi iklan: tidak ada iklan                                                    | ❌ (isi di Console)                         |
-| Tidak ada merek pihak ketiga yang tidak berhak di nama, ikon, deskripsi, screenshot | ⚠️ cek saat aset dibuat                     |
-| Riwayat versi di About bebas dari modul pribadi                                     | ✅                                          |
+| Item                                                                                | Status                                                                               |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Teks kebijakan privasi (`PRIVACYPOLICY.md`)                                         | ✅ draf siap                                                                         |
+| URL kebijakan privasi `http://mitra247.com/kebijakan-privasi` aktif                 | ✅                                                                                   |
+| URL kebijakan privasi memakai **HTTPS**                                             | ❌ `https://` tidak merespons                                                        |
+| Halaman memuat teks lengkap tanpa login (halaman SPA, isi perlu dicek)              | ⚠️                                                                                   |
+| Email kontak publik diisi di kebijakan dan listing                                  | ❌ butuh input pemilik                                                               |
+| Formulir **Data safety**                                                            | ✅ jawaban siap di `play-store/console/data-safety.md`; ❌ belum diisi di Console    |
+| Kuesioner rating konten (IARC)                                                      | ✅ jawaban siap di `play-store/console/content-rating.md`; ❌ belum diisi di Console |
+| Target audiens dan konten                                                           | ✅ jawaban siap; ❌ belum diisi di Console                                           |
+| Deklarasi iklan: tidak ada iklan                                                    | ❌ (isi di Console)                                                                  |
+| Tidak ada merek pihak ketiga yang tidak berhak di nama, ikon, deskripsi, screenshot | ⚠️ cek saat aset dibuat                                                              |
+| Riwayat versi di About bebas dari modul pribadi                                     | ✅                                                                                   |
 
 ## 5. Aset listing
 
-| Item                                                         | Status                                             |
-| ------------------------------------------------------------ | -------------------------------------------------- |
-| Ikon launcher dan splash                                     | ✅                                                 |
-| Ikon toko 512x512 PNG (32-bit, maks. 1 MB)                   | ⚠️ `app-pwa/public/icon-512.png` ada, belum dicek  |
-| Feature graphic 1024x500                                     | ❌                                                 |
-| Screenshot ponsel, minimal 2 (ideal 4 sampai 8)              | ❌                                                 |
-| Screenshot tablet 7 / 10 inci (disarankan)                   | ❌                                                 |
-| Judul (maks. 30 karakter): "Music Player"                    | ✅ teks siap                                       |
-| Deskripsi singkat (maks. 80 karakter), Indonesia + Inggris   | ❌                                                 |
-| Deskripsi lengkap (maks. 4000 karakter), Indonesia + Inggris | ❌ (bahan: `README.md`)                            |
-| Cek nama "Music Player" tidak bentrok di Play                | ❌ nama umum, risiko tinggi; siapkan nama cadangan |
+| Item                                                         | Status                                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Ikon launcher dan splash                                     | ✅                                                                       |
+| Ikon toko 512x512 PNG (32-bit, maks. 1 MB)                   | ✅ `play-store/metadata/android/<locale>/images/icon.png` (cek tampilan) |
+| Feature graphic 1024x500                                     | ✅ `images/featureGraphic.jpg`                                           |
+| Screenshot ponsel, minimal 2 (ideal 4 sampai 8)              | ✅ 5 buah (`images/phoneScreenshots/`)                                   |
+| Screenshot tablet 7 / 10 inci (disarankan)                   | ❌                                                                       |
+| Judul (maks. 30 karakter): "Music Player"                    | ✅ `title.txt`                                                           |
+| Deskripsi singkat (maks. 80 karakter), Indonesia + Inggris   | ✅ `short_description.txt` (id-ID, en-US)                                |
+| Deskripsi lengkap (maks. 4000 karakter), Indonesia + Inggris | ✅ `full_description.txt` (id-ID, en-US)                                 |
+| Cek nama "Music Player" tidak bentrok di Play                | ❌ nama umum, risiko tinggi; siapkan nama cadangan                       |
 
 ## 6. Kualitas
 
