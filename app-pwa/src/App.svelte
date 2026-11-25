@@ -19,6 +19,7 @@
   import { SearchFlow } from './search.svelte';
   import { DeviceMusic } from './device.svelte';
   import { bindNative } from './native-bridge.svelte';
+  import { account } from './account/account.svelte';
   import { Equalizer, MinusOne } from '@musik/core';
 
   type Tab = 'play' | 'library' | 'search' | typeof PERSONAL_TAB | 'settings';
@@ -45,6 +46,7 @@
         server,
         flow,
         searchFlow,
+        account,
         // classes exposed so e2e can render them offline and measure the DSP
         MinusOne,
         Equalizer,
@@ -63,6 +65,7 @@
       .init()
       .then(() => player.restoreLast())
       .then((restored) => {
+        void account.syncOnStart(player);
         // The last queue and song come back on the Play screen (paused).
         if (!shared && (restored || player.songs.length > 0)) tab = 'play';
       });

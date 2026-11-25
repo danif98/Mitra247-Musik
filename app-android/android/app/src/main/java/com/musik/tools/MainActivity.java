@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Plugins written in this app must be registered before super.onCreate().
         registerPlugin(MusikNativePlugin.class);
+        registerPlugin(MusikAuthPlugin.class);
         for (Class<? extends Plugin> plugin : EditionHooks.extraPlugins()) registerPlugin(plugin);
         super.onCreate(savedInstanceState);
         EditionHooks.onCreateIntent(getIntent());

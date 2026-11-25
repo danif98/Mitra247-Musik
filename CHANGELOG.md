@@ -2,6 +2,13 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.5.0 (2026-11-25)
+
+- **Akun Google opsional dan cadangan ke Google Drive (semua edisi).** Setelan punya bagian **Akun Google**: masuk dengan Google, lalu preset latihan per lagu (tempo, kunci, loop, equalizer, Minus One) dan tiga setelan (`musik.engine`, `musik.metronome`, `musik.playmode`) disinkronkan ke folder data aplikasi tersembunyi (`appDataFolder`, cakupan `drive.appdata`) di Drive milik pengguna sendiri. Tanpa server kami dan tanpa Firebase. Lagu tidak ikut. Tombol: Sinkronkan sekarang, sinkron otomatis saat aplikasi dibuka (paling sering tiap 6 jam), Keluar, Hapus cadangan di Drive. Sinkron adalah penggabungan dua arah: preset yang disimpan terakhir menang untuk tiap lagu; untuk setelan, nilai di HP ini menang dan yang kosong diisi dari cadangan.
+- Plugin native baru `MusikAuth` (`AuthorizationClient` dari `play-services-auth`) mengembalikan nama, email, foto, dan token akses; permintaan Drive dibuat dari aplikasi web (`core/backup/drive.ts`). Token tidak disimpan. Perlu OAuth client Android (nama paket + SHA-1) di Google Cloud untuk tiap `applicationId`: lihat `docs/GOOGLE_SSO.md`. Di browser biasa bagian Akun tidak tampil.
+- Preset kini juga menyimpan tanda pengenal lagu (judul + ukuran berkas) supaya lagu yang sama dikenali di HP lain. Database lokal naik ke versi 3 (indeks `sig`). Mengembalikan semua nilai ke bawaan sekarang disimpan sebagai preset bawaan (bukan dihapus) agar pembatalan ikut tersinkron.
+- Uji: `core/backup/backup.test.ts` (gabungan, validasi, klien Drive dengan Drive palsu) dan `e2e/account.mjs` (dua "HP", Drive dan plugin palsu).
+
 ## 0.4.0 (2026-11-25)
 
 - **Dua edisi dari satu repo.** Build Android kini punya dua product flavor: `personal` (`com.mitra247.musictools`, "Musik Tools", APK) dan `play` (`com.mitra247.musicplayer`, "Music Player", AAB untuk Google Play). Edisi `play` tidak memuat modul pribadi (kode, pustaka native, izin dan intent filter, layar, string, riwayat versi); `scripts/check-play-clean.mjs` memeriksanya pada hasil build web dan AAB.

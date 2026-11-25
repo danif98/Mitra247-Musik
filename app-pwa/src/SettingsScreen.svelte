@@ -6,6 +6,8 @@
   import { PersonalSettings, type ServerSettings } from '@personal';
   import { native, type AppInfo } from './native';
   import ChangelogList from './ChangelogList.svelte';
+  import AccountPanel from './account/AccountPanel.svelte';
+  import { account } from './account/account.svelte';
 
   interface Props {
     player: Player;
@@ -51,6 +53,7 @@
   async function clearAll() {
     if (!confirm(t.clearConfirm)) return;
     await player.clearAll();
+    account.forgetLocal();
     await refresh();
   }
 </script>
@@ -76,6 +79,8 @@
     </div>
     <p class="muted">{t.engineNote}</p>
   </div>
+
+  <AccountPanel {player} />
 
   <PersonalSettings {server} />
 

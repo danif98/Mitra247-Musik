@@ -64,3 +64,17 @@ export function matchesQuery(song: Pick<SongMeta, 'title' | 'fileName'>, query: 
 export function sortSongs<T extends Pick<SongMeta, 'addedAt' | 'title'>>(songs: T[]): T[] {
   return [...songs].sort((a, b) => b.addedAt - a.addedAt || a.title.localeCompare(b.title));
 }
+
+/**
+ * Key that identifies "the same song" on another phone: the same file has the same title and size
+ * (library ids are random per device). Used to match practice presets across devices.
+ */
+export function songSignature(song: Pick<SongMeta, 'title' | 'size'>): string {
+  const title = song.title
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+  return `${title}|${Math.max(0, Math.round(song.size))}`;
+}

@@ -26,3 +26,5 @@ export * from './library/folders';
 export * from './library/playmode';
 export * from './about/changelog';
 export * from './library/lastplayed';
+export * from './backup/payload';
+export * from './backup/drive';

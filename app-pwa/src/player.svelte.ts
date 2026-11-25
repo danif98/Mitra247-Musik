@@ -14,7 +14,10 @@ import {
   clampBpm,
   clampEqGain,
   defaultPreset,
-  isDefaultPreset,
+  BACKUP_VERSION,
+  SETTING_KEYS,
+  songSignature,
+  type BackupData,
   loopJumpTarget,
   setA,
   setB,
@@ -919,18 +922,18 @@ export class Player {
   private schedulePresetSave(): void {
     if (this.applyingPreset || !this.current || this.currentIsTemp) return;
     if (this.presetTimer) clearTimeout(this.presetTimer);
-    const songId = this.current.id;
+    const song = this.current;
     this.presetTimer = setTimeout(() => {
       this.presetTimer = null;
-      void this.writePreset(songId, this.snapshot());
+      void this.writePreset(song, this.snapshot());
     }, 600);
   }
 
-  private async writePreset(songId: string, preset: Preset): Promise<void> {
+  private async writePreset(song: SongMeta, preset: Preset): Promise<void> {
     try {
-      if (isDefaultPreset(preset)) await this.store.deletePreset(songId);
-      else await this.store.setPreset(songId, preset);
-      this.log.event('preset:saved', { songId: songId.slice(0, 8) });
+      // A reset is stored too (not deleted): its time lets the backup tell "reset" from "never set".
+      await this.store.setPreset(song.id, preset, songSignature(song));
+      this.log.event('preset:saved', { songId: song.id.slice(0, 8) });
     } catch {
       /* best effort: presets are a convenience */
     }
@@ -940,7 +943,41 @@ export class Player {
     if (!this.presetTimer || !this.current) return;
     clearTimeout(this.presetTimer);
     this.presetTimer = null;
-    if (!this.currentIsTemp) await this.writePreset(this.current.id, this.snapshot());
+    if (!this.currentIsTemp) await this.writePreset(this.current, this.snapshot());
+  }
+
+  /** Practice data for the Google Drive backup: presets and a few settings, never the songs. */
+  async exportBackup(): Promise<BackupData> {
+    await this.flushPreset();
+    const settings: Record<string, string> = {};
+    for (const key of SETTING_KEYS) {
+      const value = localStorage.getItem(key);
+      if (value !== null) settings[key] = value;
+    }
+    return {
+      v: BACKUP_VERSION,
+      updatedAt: Date.now(),
+      settings,
+      presets: await this.store.listPresets(),
+    };
+  }
+
+  /**
+   * Takes over what the backup has that is newer than this device. Settings are only filled in
+   * where this device has none (and apply after the app is restarted).
+   */
+  async importBackup(data: BackupData): Promise<{ presets: number; settings: number }> {
+    const presets = await this.store.importPresets(data.presets);
+    let settings = 0;
+    for (const key of SETTING_KEYS) {
+      const value = data.settings[key];
+      if (value !== undefined && localStorage.getItem(key) === null) {
+        localStorage.setItem(key, value);
+        settings++;
+      }
+    }
+    if (presets > 0 && this.current && !this.currentIsTemp) await this.applyPresetFor(this.current);
+    return { presets, settings };
   }
 
   /** Saved preset of the song, or defaults (also for temporary files, which never save one). */
@@ -948,7 +985,7 @@ export class Player {
     let preset = defaultPreset();
     if (!song.id.startsWith('tmp:')) {
       try {
-        preset = (await this.store.getPreset(song.id)) ?? preset;
+        preset = (await this.store.getPreset(song.id, songSignature(song))) ?? preset;
       } catch {
         /* use defaults */
       }

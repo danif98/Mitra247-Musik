@@ -114,6 +114,7 @@ Catatan Windows: Gradle gagal bila `TEMP` terlalu panjang. `scripts/android.mjs`
 - **Library** (`core/library`): OPFS + IndexedDB, antrean (`queue.ts`), mode putar acak / ulangi (`playmode.ts`), lagu terakhir (`lastplayed.ts`), tampilan folder (`folders.ts`).
 - **Latihan** (`core/practice`): loop A-B, equalizer, metronom, preset per lagu.
 - **Sumber musik legal** (`core/sources`): Internet Archive, Openverse, Wikimedia Commons. Hanya lisensi CC / domain publik. Unduhan hanya `https`, hanya tipe audio, maksimal 200 MB, disimpan dengan atribusi.
+- **Akun dan cadangan** (`app-pwa/src/account`, `core/backup`, plugin `MusikAuth`): login Google opsional dan cadangan preset ke `appDataFolder` di Drive pengguna, tanpa server. Semua edisi. Detail, konfigurasi Google Cloud, dan checklist: `docs/GOOGLE_SSO.md`.
 - **Android** (`app-android`): `PlaybackService` (foreground service `mediaPlayback`, wake lock, MediaSession), `MusikNativePlugin` (MediaStore lewat `listAudio`, pemilih folder), jembatan di `app-pwa/src/native*.ts`. Detail: `docs/ANDROID.md`.
 
 ## 6. Data dan jaringan (untuk Data safety)
@@ -126,7 +127,9 @@ Edisi `play` hanya berkomunikasi dengan tiga layanan pihak ketiga, dan hanya saa
 | `api.openverse.org`     | Cari musik           | Kata kunci, alamat IP |
 | `commons.wikimedia.org` | Cari dan unduh musik | Kata kunci, alamat IP |
 
-Tidak ada server milik developer, tidak ada akun, analitik, pelacakan, atau iklan. Daftar musik, lagu, setelan, dan antrean terakhir hanya ada di perangkat. Izin Android: `READ_MEDIA_AUDIO` (membaca daftar dan isi lagu di HP), `POST_NOTIFICATIONS` (kontrol pemutaran).
+Tidak ada server milik developer, analitik, pelacakan, atau iklan. Akun Google bersifat opsional (lihat di bawah). Daftar musik, lagu, setelan, dan antrean terakhir hanya ada di perangkat. Izin Android: `READ_MEDIA_AUDIO` (membaca daftar dan isi lagu di HP), `POST_NOTIFICATIONS` (kontrol pemutaran).
+
+Bila pengguna masuk dengan Google: HP berbicara dengan `googleapis.com` (Drive `appDataFolder`, cakupan `drive.appdata`) dan layanan Google Play untuk otorisasi. Data yang masuk ke Drive pengguna: preset per lagu (dengan judul dan ukuran lagu) dan tiga setelan. Nama, email, foto hanya disimpan di HP. Token tidak disimpan.
 
 Saran pengisian **Data safety** (konfirmasi sebelum kirim):
 
@@ -159,6 +162,8 @@ Status uji perangkat: pemutaran latar, notifikasi, dan Musik di HP lulus di A23.
 Urutan prioritas. Status: belum dikerjakan kecuali ditulis lain.
 
 ### Prioritas 1: rilis Google Play
+
+0. **Konfigurasi Google Cloud untuk login Google** (consent screen, OAuth client Android dengan SHA-1, Drive API) dan uji di HP: `docs/GOOGLE_SSO.md` bagian 3 dan 5. Kode sudah siap; tanpa ini login menampilkan "belum dikonfigurasi".
 
 1. ~~Implementasi dua edisi (bagian 3)~~ **selesai** (0.4.0).
 2. ~~Pindahkan kode modul pribadi ke `src/personal/`, stub `src/play/`~~ **selesai**.
@@ -193,21 +198,22 @@ Urutan prioritas. Status: belum dikerjakan kecuali ditulis lain.
 
 ## 10. Dokumentasi
 
-| Berkas                             | Isi                                                   |
-| ---------------------------------- | ----------------------------------------------------- |
-| `README.md`                        | Penjelasan umum untuk tim operasional                 |
-| `README-IT.md`                     | Dokumen ini                                           |
-| `PRESENTASI.md`                    | Materi presentasi tim Sales                           |
-| `PRIVACYPOLICY.md`                 | Kebijakan privasi                                     |
-| `play-store/`                      | Bahan listing Play (teks, gambar) dan jawaban Console |
-| `docs/PLAYSTORE.md`                | Checklist rilis Google Play dan statusnya             |
-| `docs/PRD.md`                      | Kebutuhan produk dan Decision Log                     |
-| `docs/ANDROID.md`                  | Aplikasi Android, build, status uji                   |
-| `docs/DEPLOY.md`                   | Repo, build, deploy edisi pribadi                     |
-| `docs/DECISIONS_M0.md` ... `M4.md` | Keputusan teknis dan bukti per fase                   |
-| `docs/DECISIONS_SOURCES.md`        | Sumber musik legal                                    |
-| `docs/TEST_A23.md`                 | Daftar uji manual di HP                               |
-| `CHANGELOG.md`                     | Ringkasan perubahan per versi                         |
+| Berkas                             | Isi                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| `README.md`                        | Penjelasan umum untuk tim operasional                               |
+| `README-IT.md`                     | Dokumen ini                                                         |
+| `PRESENTASI.md`                    | Materi presentasi tim Sales                                         |
+| `PRIVACYPOLICY.md`                 | Kebijakan privasi                                                   |
+| `play-store/`                      | Bahan listing Play (teks, gambar) dan jawaban Console               |
+| `docs/GOOGLE_SSO.md`               | Login Google dan cadangan Drive: cara kerja, konfigurasi, checklist |
+| `docs/PLAYSTORE.md`                | Checklist rilis Google Play dan statusnya                           |
+| `docs/PRD.md`                      | Kebutuhan produk dan Decision Log                                   |
+| `docs/ANDROID.md`                  | Aplikasi Android, build, status uji                                 |
+| `docs/DEPLOY.md`                   | Repo, build, deploy edisi pribadi                                   |
+| `docs/DECISIONS_M0.md` ... `M4.md` | Keputusan teknis dan bukti per fase                                 |
+| `docs/DECISIONS_SOURCES.md`        | Sumber musik legal                                                  |
+| `docs/TEST_A23.md`                 | Daftar uji manual di HP                                             |
+| `CHANGELOG.md`                     | Ringkasan perubahan per versi                                       |
 
 ## 11. Lisensi
 

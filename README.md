@@ -12,7 +12,7 @@ Dokumen ini untuk **Tim Operasional**: apa yang bisa dilakukan aplikasi, cara me
 | Pembuat         | Mitra247                                                                 |
 | Platform        | Android 7.0 ke atas (diuji utama di Samsung Galaxy A23)                  |
 | Bahasa tampilan | Indonesia                                                                |
-| Perlu akun?     | Tidak                                                                    |
+| Perlu akun?     | Tidak. Masuk dengan Google bersifat opsional, untuk cadangan preset      |
 | Ada iklan?      | Tidak                                                                    |
 | Perlu internet? | Hanya untuk fitur **Cari**. Memutar dan berlatih berjalan tanpa internet |
 | Data pengguna   | Tetap di HP pengguna. Tidak dikirim ke server kami                       |
@@ -69,6 +69,7 @@ Penting: lisensi adalah klaim dari pengunggah dan tidak diperiksa oleh aplikasi.
 ### 5. Setelan
 
 - Kualitas mesin nada: **R2** (cepat, disarankan) atau **R3** (kualitas lebih tinggi, lebih berat).
+- **Akun Google** (opsional): masuk untuk mencadangkan preset latihan (tempo, kunci, loop, equalizer, Minus One per lagu) dan beberapa setelan ke Google Drive Anda sendiri. Lagu tidak ikut dicadangkan. Tombol: **Sinkronkan sekarang**, sinkron otomatis, **Keluar**, dan **Hapus cadangan di Drive**. Berguna saat berganti HP.
 - Penyimpanan: ruang yang dipakai dan tombol menghapus semua data lokal.
 - Diagnostik: unduh catatan teknis bila perlu dikirim ke tim IT.
 - **Tentang**: versi aplikasi dan riwayat perubahan.
@@ -103,11 +104,14 @@ Rekaman mono tidak punya perbedaan kiri dan kanan, jadi suaranya hilang seluruhn
 **Hasil pencarian tidak bisa diunduh.**
 Sumber kadang menolak unduhan dari aplikasi. Buka halaman sumber, unduh berkasnya, lalu masukkan lewat **Library**.
 
+**Preset tidak muncul di HP baru.**
+Masuk dengan Google di HP baru (Setelan, Akun Google), tambahkan lagu yang sama (judul dan ukuran berkas sama), lalu tekan **Sinkronkan sekarang**. Lagu itu sendiri tidak ikut dicadangkan.
+
 **Cara menghapus semua data.**
-Setelan, Penyimpanan, **Hapus semua data lokal**. Atau hapus (uninstall) aplikasi.
+Setelan, Penyimpanan, **Hapus semua data lokal**. Atau hapus (uninstall) aplikasi. Cadangan di Google Drive dihapus terpisah lewat **Hapus cadangan di Drive**.
 
 **Apakah data saya dikirim ke pihak lain?**
-Tidak ada akun, pelacakan, atau iklan. Satu-satunya data yang keluar dari HP adalah kata kunci dan alamat IP ke layanan sumber musik saat Anda memakai **Cari**. Rincian: [`PRIVACYPOLICY.md`](PRIVACYPOLICY.md).
+Tidak ada pelacakan atau iklan, dan akun tidak wajib. Data yang keluar dari HP hanya: kata kunci dan alamat IP ke layanan sumber musik saat Anda memakai **Cari**, dan cadangan preset ke Google Drive Anda sendiri bila Anda memilih masuk dengan Google. Rincian: [`PRIVACYPOLICY.md`](PRIVACYPOLICY.md).
 
 ## Batasan yang perlu diketahui
 
@@ -125,7 +129,7 @@ Bila ada kendala, kirim ke Tim IT: model HP, versi Android, versi aplikasi (**Se
 
 ### Menuju rilis Google Play
 
-1. Menyiapkan versi khusus Google Play dengan nama **Music Player**.
+1. Menyiapkan versi khusus Google Play dengan nama **Music Player**, termasuk login Google yang harus dikonfigurasi dulu di Google Cloud (lihat `docs/GOOGLE_SSO.md`).
 2. Menyelesaikan kebijakan privasi di situs resmi (alamat harus aman memakai HTTPS).
 3. Menyiapkan tampilan toko: ikon, gambar sampul, tangkapan layar, dan deskripsi.
 4. Mengisi formulir Google Play (keamanan data, rating usia, penggunaan izin).
@@ -141,7 +145,7 @@ Bila ada kendala, kirim ke Tim IT: model HP, versi Android, versi aplikasi (**Se
 
 ### Fitur yang direncanakan
 
-1. Cadangan dan pemulihan Library serta pengaturan lagu.
+1. Cadangan dan pemulihan lagu di Library (preset dan setelan sudah bisa lewat akun Google).
 2. Loop A-B yang lebih teliti: waktu dalam angka, penyesuaian halus, beberapa loop bernama per lagu.
 3. Metronom dengan ketuk tempo, dan opsi mengikuti tempo lagu.
 4. Deteksi nada dasar dan BPM lagu secara otomatis.

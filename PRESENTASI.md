@@ -35,17 +35,17 @@ Waktu yang terbuang dan biaya yang terus berulang itulah yang ingin kami hilangk
 
 **Music Player** menggabungkan yang Anda butuhkan untuk berlatih, di satu aplikasi Android yang ringan.
 
-| Kebutuhan Anda                               | Jawaban Music Player                                      |
-| -------------------------------------------- | --------------------------------------------------------- |
-| "Bagian ini terlalu cepat."                  | **Tempo 0,25x sampai 2x**, nada tidak berubah             |
-| "Nadanya tidak pas dengan suara saya."       | **Transpose 12 semitone** naik atau turun, tempo tetap    |
-| "Saya mau bernyanyi, bukan mendengar vokal." | **Minus One**: kurangi suara vokal dari lagu apa pun      |
-| "Saya mau ulang bagian ini terus."           | **Loop A-B** di bagian yang ditandai                      |
-| "Suaranya kurang pas."                       | **Equalizer 5 pita**                                      |
-| "Saya butuh ketukan."                        | **Metronom** dengan hitung masuk                          |
-| "Saya lupa pengaturan kemarin."              | **Preset per lagu** tersimpan otomatis                    |
-| "Musik saya tersebar di HP."                 | **Musik di HP** per folder, termasuk kartu SD             |
-| "Saya sambil mengerjakan hal lain."          | **Putar di latar belakang** dengan kontrol di layar kunci |
+| Kebutuhan Anda                               | Jawaban Music Player                                                         |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| "Bagian ini terlalu cepat."                  | **Tempo 0,25x sampai 2x**, nada tidak berubah                                |
+| "Nadanya tidak pas dengan suara saya."       | **Transpose 12 semitone** naik atau turun, tempo tetap                       |
+| "Saya mau bernyanyi, bukan mendengar vokal." | **Minus One**: kurangi suara vokal dari lagu apa pun                         |
+| "Saya mau ulang bagian ini terus."           | **Loop A-B** di bagian yang ditandai                                         |
+| "Suaranya kurang pas."                       | **Equalizer 5 pita**                                                         |
+| "Saya butuh ketukan."                        | **Metronom** dengan hitung masuk                                             |
+| "Saya lupa pengaturan kemarin."              | **Preset per lagu** tersimpan otomatis, dan bisa dicadangkan ke Google Drive |
+| "Musik saya tersebar di HP."                 | **Musik di HP** per folder, termasuk kartu SD                                |
+| "Saya sambil mengerjakan hal lain."          | **Putar di latar belakang** dengan kontrol di layar kunci                    |
 
 ---
 
@@ -65,7 +65,7 @@ Waktu yang terbuang dan biaya yang terus berulang itulah yang ingin kami hilangk
 
 1. **Semuanya dalam satu aplikasi.** Tidak perlu memasang dan membayar banyak aplikasi terpisah.
 2. **Tanpa iklan.** Latihan Anda tidak terpotong.
-3. **Tanpa akun.** Pasang, buka, langsung pakai. Tidak ada formulir, tidak ada kata sandi yang harus diingat.
+3. **Akun hanya bila Anda mau.** Pasang, buka, langsung pakai. Ingin pindah HP tanpa kehilangan pengaturan lagu? Masuk dengan Google dan preset Anda tersimpan di Google Drive Anda sendiri.
 4. **Privasi terjaga.** Musik dan pengaturan Anda tetap di HP Anda. Kami tidak punya server yang menerima data Anda.
 5. **Berlatih di mana saja.** Memutar dan berlatih berjalan tanpa internet.
 6. **Ringan.** Dirancang agar mulus di HP kelas menengah, dengan patokan uji Samsung Galaxy A23.
@@ -110,7 +110,7 @@ Kunci hitungannya: **waktu adalah uang**. Setiap jam latihan yang lebih efektif 
 
 ## Slide 7 — Aman dan transparan
 
-- **Tidak ada akun.** Tidak ada data pribadi yang kami minta.
+- **Akun opsional.** Tanpa masuk pun semua fitur berjalan. Bila Anda masuk dengan Google, cadangan preset tersimpan di Drive Anda sendiri, bukan di server kami.
 - **Tidak ada pelacakan dan tidak ada iklan.**
 - **Izin secukupnya.** Hanya akses musik di HP dan notifikasi pemutar. Tidak meminta kontak, lokasi, kamera, atau mikrofon.
 - **Kebijakan privasi terbuka** di situs resmi kami dan dapat dibaca sebelum memasang.
@@ -152,15 +152,15 @@ Hubungi kami: **[KONTAK SALES]**
 
 ## Lampiran A — Jawaban untuk keberatan umum
 
-| Keberatan                                          | Jawaban                                                                                                                              |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| "Saya sudah punya aplikasi pemutar."               | Pemutar biasa tidak mengubah tempo tanpa merusak nada, dan tidak menyediakan Minus One, loop, dan metronom dalam satu tempat.        |
-| "Apakah data saya aman?"                           | Tidak ada akun, tidak ada iklan, tidak ada pelacakan. Data tetap di HP Anda. Kebijakan privasi bisa dibaca penuh di situs kami.      |
-| "Apakah butuh internet?"                           | Tidak untuk memutar dan berlatih. Internet hanya untuk fitur pencarian musik legal.                                                  |
-| "HP saya biasa saja, apakah lancar?"               | Aplikasi dirancang ringan dan diuji di Samsung Galaxy A23, HP kelas menengah. Kami sarankan mencoba langsung di HP Anda saat demo.   |
-| "Apakah Minus One bisa menghilangkan semua vokal?" | Sering cukup untuk berlatih, tetapi tidak sempurna dan bervariasi per lagu. Kami tunjukkan hasilnya langsung pada lagu pilihan Anda. |
-| "Apakah boleh mengunduh lagu apa saja?"            | Pencarian di aplikasi hanya menampilkan karya berlisensi terbuka. Lagu milik Anda sendiri tetap bisa dimasukkan dari HP.             |
+| Keberatan                                          | Jawaban                                                                                                                                                             |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Saya sudah punya aplikasi pemutar."               | Pemutar biasa tidak mengubah tempo tanpa merusak nada, dan tidak menyediakan Minus One, loop, dan metronom dalam satu tempat.                                       |
+| "Apakah data saya aman?"                           | Tidak ada iklan, tidak ada pelacakan. Data tetap di HP Anda; cadangan opsional ada di Google Drive Anda sendiri. Kebijakan privasi bisa dibaca penuh di situs kami. |
+| "Apakah butuh internet?"                           | Tidak untuk memutar dan berlatih. Internet hanya untuk fitur pencarian musik legal.                                                                                 |
+| "HP saya biasa saja, apakah lancar?"               | Aplikasi dirancang ringan dan diuji di Samsung Galaxy A23, HP kelas menengah. Kami sarankan mencoba langsung di HP Anda saat demo.                                  |
+| "Apakah Minus One bisa menghilangkan semua vokal?" | Sering cukup untuk berlatih, tetapi tidak sempurna dan bervariasi per lagu. Kami tunjukkan hasilnya langsung pada lagu pilihan Anda.                                |
+| "Apakah boleh mengunduh lagu apa saja?"            | Pencarian di aplikasi hanya menampilkan karya berlisensi terbuka. Lagu milik Anda sendiri tetap bisa dimasukkan dari HP.                                            |
 
 ## Lampiran B — Ringkasan satu kalimat
 
-> **Music Player** adalah aplikasi latihan musik lengkap: perlambat lagu, ganti kunci, hilangkan vokal, ulang bagian sulit, dan ketukan metronom, semuanya tanpa iklan, tanpa akun, dan dengan data yang tetap di HP Anda.
+> **Music Player** adalah aplikasi latihan musik lengkap: perlambat lagu, ganti kunci, hilangkan vokal, ulang bagian sulit, dan ketukan metronom, semuanya tanpa iklan, tanpa akun wajib, dan dengan data yang tetap di HP Anda (cadangan opsional ke Google Drive Anda sendiri).

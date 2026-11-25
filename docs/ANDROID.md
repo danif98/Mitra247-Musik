@@ -31,7 +31,7 @@ Satu repo menghasilkan dua aplikasi lewat Gradle product flavors (dimensi `editi
 | `play`     | `com.mitra247.musicplayer` | Music Player | AAB      | Tanpa modul pribadi, untuk Google Play |
 
 - Sumber bersama di `app/src/main/`. Khusus edisi di `app/src/personal/` dan `app/src/play/` (`EditionHooks`, manifest, plugin). `MainActivity` mendaftarkan plugin tambahan lewat `EditionHooks.extraPlugins()`.
-- Plugin `MusikNative` (semua edisi): `listAudio`, izin, `setNowPlaying`, `appInfo`, dan kejadian `mediaAction`. Plugin `MusikPersonal` (hanya `personal`): modul pribadi.
+- Plugin `MusikNative` (semua edisi): `listAudio`, izin, `setNowPlaying`, `appInfo`, dan kejadian `mediaAction`. Plugin `MusikAuth` (semua edisi): login Google dan token akses Drive `appdata` (`docs/GOOGLE_SSO.md`). Plugin `MusikPersonal` (hanya `personal`): modul pribadi.
 - `namespace` tetap `com.musik.tools`; `applicationId` dan nama aplikasi dari `resValue` per flavor.
 - Dua `applicationId` berbeda berarti kedua edisi bisa terpasang bersamaan. Mengganti `com.musik.tools` ke `com.mitra247.musictools` membuat aplikasi baru; Library lama tidak ikut pindah.
 - Web: `MUSIK_EDITION=play` membuat `out/app-play` dengan stub `app-pwa/src/personal-stub/` dan `CHANGELOG-PLAY.md`. `scripts/android.mjs` mengatur semuanya; `scripts/check-play-clean.mjs` memastikan edisi Play bersih.

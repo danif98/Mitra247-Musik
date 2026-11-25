@@ -10,7 +10,7 @@ FITUR LATIHAN
 • Loop A-B: tandai awal dan akhir lalu ulangi terus.
 • Equalizer 5 pita.
 • Metronom dengan hitung masuk sebelum lagu mulai.
-• Preset per lagu: tempo dan kunci terakhir diingat otomatis.
+• Preset per lagu: tempo dan kunci terakhir diingat otomatis, dengan cadangan opsional ke Google Drive saat berganti HP.
 
 MUSIK ANDA
 • Library di dalam aplikasi: tambahkan berkas MP3, WAV, M4A, OGG, atau FLAC.
@@ -23,9 +23,10 @@ CARI MUSIK LEGAL
 Cari dan unduh musik berlisensi Creative Commons atau domain publik dari Internet Archive, Openverse, dan Wikimedia Commons. Nama pencipta dan lisensi tersimpan bersama lagu.
 
 PRIVASI
-• Tanpa akun, tanpa pelacakan, tanpa iklan.
+• Tanpa pelacakan dan tanpa iklan. Akun Google bersifat opsional.
 • Musik dan setelan tetap di HP Anda. Kami tidak punya server yang menerima data dari aplikasi.
-• Internet hanya dipakai saat Anda memakai Cari.
+• Cadangan opsional: masuk dengan Google untuk menyimpan preset latihan di Google Drive Anda sendiri (lagu tidak ikut).
+• Internet hanya dipakai saat Anda memakai Cari atau sinkron Google Drive.
 • Izin secukupnya: musik dan audio untuk membaca lagu di HP, dan notifikasi untuk kontrol pemutaran.
 
 CATATAN

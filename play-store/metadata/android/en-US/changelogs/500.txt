@@ -3,4 +3,5 @@ First release of Music Player.
 • Minus One, A-B loop, equalizer, metronome, per-song presets
 • Library, Music on phone by folder, background playback
 • Search openly licensed music
-• No account and no ads
+• Preset backup to your Google Drive (optional, sign in with Google)
+• No ads

@@ -73,6 +73,20 @@ Terakhir diperbarui: 25 November 2026. Bahan listing dan jawaban Console: [`play
 | Tidak ada merek pihak ketiga yang tidak berhak di nama, ikon, deskripsi, screenshot | ⚠️ cek saat aset dibuat                                                              |
 | Riwayat versi di About bebas dari modul pribadi                                     | ✅                                                                                   |
 
+## 4b. Login Google dan cadangan Drive (0.5.0)
+
+Rincian: [`docs/GOOGLE_SSO.md`](GOOGLE_SSO.md).
+
+| Item                                                                 | Status                           |
+| -------------------------------------------------------------------- | -------------------------------- |
+| Kode: plugin, klien Drive, UI Akun, tes unit dan e2e                 | ✅                               |
+| Proyek Google Cloud, Drive API, consent screen, status In production | ❌                               |
+| OAuth client Android (SHA-1 debug, upload, **Play App Signing**)     | ❌                               |
+| Uji dengan Google sungguhan di HP (kedua edisi)                      | ❌                               |
+| Kebijakan privasi memuat akun Google dan Drive                       | ✅ draf; ❌ belum tayang (HTTPS) |
+| Data safety: nama, email, konten pengguna (jawaban siap)             | ✅ jawaban; ❌ belum di Console  |
+| App access: login opsional                                           | ❌ isi di Console                |
+
 ## 5. Aset listing
 
 | Item                                                         | Status                                                                   |

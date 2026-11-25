@@ -417,9 +417,13 @@ try {
   await sleep(900);
   const gone = await page.evaluate(async () => {
     const p = window.__musik.player;
-    return (await p.store.getPreset(p.current.id)) === null;
+    const row = await p.store.getPreset(p.current.id);
+    // A reset is kept as a default preset (its time lets the Drive backup tell "reset" from "never set").
+    return (
+      row === null || (row.tempo === 1 && row.semitone === 0 && !row.minusOne && row.loopA === null)
+    );
   });
-  check('preset: returning to all defaults removes the saved preset', gone);
+  check('preset: returning to all defaults leaves only default values saved', gone);
 
   // deleting a song removes its preset
   await page.evaluate(() => window.__musik.player.setTempo(0.9));

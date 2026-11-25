@@ -3,4 +3,5 @@ Rilis pertama Music Player.
 • Minus One, loop A-B, equalizer, metronom, preset per lagu
 • Library, Musik di HP per folder, pemutaran di latar belakang
 • Cari musik berlisensi terbuka
-• Tanpa akun dan tanpa iklan
+• Cadangan preset ke Google Drive Anda (opsional, masuk dengan Google)
+• Tanpa iklan

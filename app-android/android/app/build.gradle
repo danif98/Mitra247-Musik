@@ -103,6 +103,8 @@ dependencies {
     implementation project(':capacitor-android')
     implementation "androidx.media:media:1.7.0"
     implementation "androidx.documentfile:documentfile:1.1.0"
+    // Sign in with Google + access to the hidden app folder of the user's Drive (backup). All editions.
+    implementation "com.google.android.gms:play-services-auth:21.3.0"
     // Personal edition only: on-device downloader and converter. Never part of the Play build.
     personalImplementation "io.github.junkfood02.youtubedl-android:library:0.18.1"
     personalImplementation "io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1"
