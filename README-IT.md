@@ -138,7 +138,7 @@ Saran pengisian **Data safety** (konfirmasi sebelum kirim):
 - Enkripsi dalam perjalanan: ya (hanya `https`).
 - Penghapusan data: pengguna bisa menghapus di aplikasi ("Hapus semua data lokal") atau lewat uninstall.
 
-Teks kebijakan: [`PRIVACYPOLICY.md`](PRIVACYPOLICY.md). URL publik: `http://mitra247.com/kebijakan-privasi` (wajib dialihkan ke HTTPS sebelum pengajuan).
+Teks kebijakan: [`PRIVACYPOLICY.md`](PRIVACYPOLICY.md). URL publik: `https://mitra247.com/showcase/musik-player-19/privacy-policy` (HTTPS, tayang, email kontak `apps.developer@mitra247.com`).
 
 ## 7. Pengujian
 

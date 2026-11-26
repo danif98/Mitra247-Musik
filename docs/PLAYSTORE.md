@@ -59,33 +59,33 @@ Terakhir diperbarui: 25 November 2026. Bahan listing dan jawaban Console: [`play
 
 ## 4. Kebijakan dan legal
 
-| Item                                                                                | Status                                                                               |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Teks kebijakan privasi (`PRIVACYPOLICY.md`)                                         | ✅ draf siap                                                                         |
-| URL kebijakan privasi `http://mitra247.com/kebijakan-privasi` aktif                 | ✅                                                                                   |
-| URL kebijakan privasi memakai **HTTPS**                                             | ❌ `https://` tidak merespons                                                        |
-| Halaman memuat teks lengkap tanpa login (halaman SPA, isi perlu dicek)              | ⚠️                                                                                   |
-| Email kontak publik diisi di kebijakan dan listing                                  | ❌ butuh input pemilik                                                               |
-| Formulir **Data safety**                                                            | ✅ jawaban siap di `play-store/console/data-safety.md`; ❌ belum diisi di Console    |
-| Kuesioner rating konten (IARC)                                                      | ✅ jawaban siap di `play-store/console/content-rating.md`; ❌ belum diisi di Console |
-| Target audiens dan konten                                                           | ✅ jawaban siap; ❌ belum diisi di Console                                           |
-| Deklarasi iklan: tidak ada iklan                                                    | ❌ (isi di Console)                                                                  |
-| Tidak ada merek pihak ketiga yang tidak berhak di nama, ikon, deskripsi, screenshot | ⚠️ cek saat aset dibuat                                                              |
-| Riwayat versi di About bebas dari modul pribadi                                     | ✅                                                                                   |
+| Item                                                                                               | Status                                                                                                      |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Teks kebijakan privasi (`PRIVACYPOLICY.md`)                                                        | ✅ draf siap                                                                                                |
+| URL kebijakan privasi `https://mitra247.com/showcase/musik-player-19/privacy-policy` aktif (HTTPS) | ✅ tayang, email dan isi sudah benar (dicek 26 Nov)                                                         |
+| URL kebijakan privasi memakai **HTTPS**                                                            | ✅ sertifikat Let's Encrypt valid                                                                           |
+| Halaman memuat teks lengkap tanpa login                                                            | ✅ dicek 26 Nov (tampil penuh di browser). ⚠️ memakai halaman SPA: isi baru tampil setelah JavaScript jalan |
+| Email kontak publik diisi di kebijakan dan listing                                                 | ✅ `apps.developer@mitra247.com` di kebijakan; ❌ isi juga di Console                                       |
+| Formulir **Data safety**                                                                           | ✅ jawaban siap di `play-store/console/data-safety.md`; ❌ belum diisi di Console                           |
+| Kuesioner rating konten (IARC)                                                                     | ✅ jawaban siap di `play-store/console/content-rating.md`; ❌ belum diisi di Console                        |
+| Target audiens dan konten                                                                          | ✅ jawaban siap; ❌ belum diisi di Console                                                                  |
+| Deklarasi iklan: tidak ada iklan                                                                   | ❌ (isi di Console)                                                                                         |
+| Tidak ada merek pihak ketiga yang tidak berhak di nama, ikon, deskripsi, screenshot                | ⚠️ cek saat aset dibuat                                                                                     |
+| Riwayat versi di About bebas dari modul pribadi                                                    | ✅                                                                                                          |
 
 ## 4b. Login Google dan cadangan Drive (0.5.0)
 
 Rincian: [`docs/GOOGLE_SSO.md`](GOOGLE_SSO.md).
 
-| Item                                                                 | Status                           |
-| -------------------------------------------------------------------- | -------------------------------- |
-| Kode: plugin, klien Drive, UI Akun, tes unit dan e2e                 | ✅                               |
-| Proyek Google Cloud, Drive API, consent screen, status In production | ❌                               |
-| OAuth client Android (SHA-1 debug, upload, **Play App Signing**)     | ❌                               |
-| Uji dengan Google sungguhan di HP (kedua edisi)                      | ❌                               |
-| Kebijakan privasi memuat akun Google dan Drive                       | ✅ draf; ❌ belum tayang (HTTPS) |
-| Data safety: nama, email, konten pengguna (jawaban siap)             | ✅ jawaban; ❌ belum di Console  |
-| App access: login Google wajib, akun apa pun boleh masuk             | ❌ isi di Console                |
+| Item                                                             | Status                                                                                                           |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Kode: plugin, klien Drive, UI Akun, tes unit dan e2e             | ✅                                                                                                               |
+| Proyek Google Cloud, Drive API, consent screen                   | ✅ dibuat (`music-player-mitra247`, status Testing). ❌ belum In production, logo, dan domain                    |
+| OAuth client Android (SHA-1 debug, upload, **Play App Signing**) | ✅ dua client dengan SHA-1 debug; ❌ SHA-1 upload dan Play App Signing menunggu keystore dan aplikasi di Console |
+| Uji dengan Google sungguhan di HP (kedua edisi)                  | ✅ masuk, sinkron Drive, gerbang login, blokir, offline (kunci debug)                                            |
+| Kebijakan privasi memuat akun Google dan Drive                   | ✅ tayang di `mitra247.com/showcase/musik-player-19/privacy-policy`                                              |
+| Data safety: nama, email, konten pengguna (jawaban siap)         | ✅ jawaban; ❌ belum di Console                                                                                  |
+| App access: login Google wajib, akun apa pun boleh masuk         | ❌ isi di Console                                                                                                |
 
 ## 5. Aset listing
 
@@ -117,7 +117,7 @@ Rincian: [`docs/GOOGLE_SSO.md`](GOOGLE_SSO.md).
 
 1. ~~Implementasikan dua edisi dan keluarkan modul pribadi dari edisi Play.~~ Selesai (0.4.0).
 2. Buat keystore upload, aktifkan R8, bangun AAB, jalankan gerbang `check:play-clean`.
-3. Alihkan situs ke HTTPS; pasang isi `PRIVACYPOLICY.md`; isi email kontak.
+3. ~~Alihkan situs ke HTTPS; pasang isi `PRIVACYPOLICY.md`; isi email kontak.~~ Selesai 26 November (halaman tayang dengan email `apps.developer@mitra247.com`).
 4. Buat aplikasi di Play Console dan lengkapi **App content**.
 5. Siapkan aset listing dan teks dua bahasa.
 6. Unggah AAB ke **Internal testing**, lalu **Closed testing** dengan 12 tester selama 14 hari berturut-turut.

@@ -34,14 +34,14 @@ Aturan Play yang sudah dipenuhi: screenshot dan feature graphic berformat JPEG t
 
 ## Isi yang masih perlu dari pemilik
 
-| Item                                         | Di mana                                                                                                 |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Email kontak publik                          | `PRIVACYPOLICY.md` (`[ISI-EMAIL-KONTAK]`), `console/content-rating.md`, listing di Console              |
-| HTTPS untuk `mitra247.com/kebijakan-privasi` | Hosting situs. Deskripsi toko sudah memakai alamat `https://`                                           |
-| Keystore upload dan passwordnya              | Dibuat sendiri, lihat `console/release-steps.md`                                                        |
-| Nama toko final                              | `title.txt` memakai "Music Player: Latihan Musik" agar lebih unik; ubah bila ingin hanya "Music Player" |
-| Video demo foreground service                | `console/permissions-and-foreground-service.md`                                                         |
-| 12 tester untuk closed testing               | `console/release-steps.md`                                                                              |
+| Item                                                                        | Di mana                                                                                                          |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Email kontak publik                                                         | `apps.developer@mitra247.com` (sudah di `PRIVACYPOLICY.md` dan `console/content-rating.md`; isi juga di Console) |
+| Kebijakan privasi di `mitra247.com/showcase/musik-player-19/privacy-policy` | Sudah tayang dengan HTTPS valid, email kontak benar, tanpa catatan internal                                      |
+| Keystore upload dan passwordnya                                             | Dibuat sendiri, lihat `console/release-steps.md`                                                                 |
+| Nama toko final                                                             | `title.txt` memakai "Music Player: Latihan Musik" agar lebih unik; ubah bila ingin hanya "Music Player"          |
+| Video demo foreground service                                               | `console/permissions-and-foreground-service.md`                                                                  |
+| 12 tester untuk closed testing                                              | `console/release-steps.md`                                                                                       |
 
 ## Catatan kualitas yang ditemukan saat membuat screenshot
 

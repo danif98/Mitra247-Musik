@@ -6,7 +6,7 @@ Jawaban yang disarankan untuk Music Player. **Pemilik akun yang menjawab di Cons
 
 | Isian               | Jawaban                                                                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Alamat email kontak | `[ISI-EMAIL-KONTAK]` (sama dengan di listing dan kebijakan)                                                               |
+| Alamat email kontak | `apps.developer@mitra247.com` (sama dengan di listing dan kebijakan)                                                      |
 | Kategori            | **Utilitas, produktivitas, komunikasi, atau lainnya** (aplikasi pemutar dan alat latihan musik; bukan game, bukan sosial) |
 
 ## Pertanyaan

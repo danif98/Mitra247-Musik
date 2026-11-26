@@ -119,14 +119,5 @@ Bila kebijakan ini berubah, kami memperbarui tanggal "Terakhir diperbarui" di at
 Pertanyaan tentang kebijakan ini, dan permintaan penghapusan data, dapat dikirim ke:
 
 **Mitra247**
-Email: **[ISI-EMAIL-KONTAK]**
+Email: **apps.developer@mitra247.com**
 Situs: <https://mitra247.com>
-
----
-
-> **Catatan internal (hapus sebelum dipublikasikan):**
->
-> 1. Ganti `[ISI-EMAIL-KONTAK]` dengan email kontak publik yang sama dengan yang diisi di Google Play Console.
-> 2. Teks ini harus tampil lengkap di `mitra247.com/kebijakan-privasi` dan alamat itu harus bisa dibuka lewat HTTPS dengan sertifikat yang dipercaya. Alamat ini juga cocok dipakai sebagai URL permintaan penghapusan data (bagian 4).
-> 3. Isi kebijakan menggambarkan **edisi Google Play** (versi 0.5.0 dengan login wajib). Jika fitur Aplikasi berubah (mis. menambah analitik, iklan, atau data lain di server), kebijakan dan formulir Data safety harus diperbarui lebih dulu.
-> 4. Bagian "Data yang disimpan di server kami" harus sesuai dengan tabel `app_users` di `server-auth/schema.sql`.
