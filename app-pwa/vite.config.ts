@@ -84,6 +84,9 @@ export default defineConfig({
   },
   define: {
     __EDITION__: JSON.stringify(edition),
+    __AUTH_URL__: JSON.stringify(
+      process.env['MUSIK_AUTH_URL'] ?? 'https://musik.mitra247.com/api/auth.php',
+    ),
     __BUILD__: JSON.stringify(buildLabel()),
     __APP_VERSION__: JSON.stringify(appVersion()),
     __BUILT_AT__: JSON.stringify(new Date().toISOString()),

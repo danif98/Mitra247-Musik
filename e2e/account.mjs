@@ -1,4 +1,4 @@
-// E2E for the optional Google account and the Drive backup of presets. The sign-in plugin and
+// E2E for the Google sign-in gate (30-day session, blocked e-mails) and the Drive backup of presets. The sign-in plugin and
 // Google Drive are faked (no real Google). Requires `npm run build`. Usage: node e2e/account.mjs
 import { chromium } from 'playwright-core';
 import { existsSync } from 'node:fs';
@@ -70,6 +70,23 @@ async function driveRoute(route) {
   return json({ error: 'unexpected' }, 500);
 }
 
+/** Fake of server-auth/auth.php. `blocked` answers 403, `down` fails like no internet. */
+const auth = { blocked: false, down: false, calls: [] };
+async function authRoute(route) {
+  const req = route.request();
+  if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+  if (auth.down) return route.abort('failed');
+  auth.calls.push(JSON.parse(req.postData() ?? '{}'));
+  const json = (body, status = 200) =>
+    route.fulfill({
+      status,
+      headers: { ...CORS, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  if (auth.blocked) return json({ error: 'blocked' }, 403);
+  return json({ session: 'sess.sig', exp: Math.floor(Date.now() / 1000) + 30 * 86400 });
+}
+
 const { server, port } = await startStaticServer(outDir, 0);
 const base = `http://127.0.0.1:${port}`;
 let browser;
@@ -83,6 +100,7 @@ try {
 async function newPhone() {
   const context = await browser.newContext({ viewport: { width: 412, height: 915 } });
   await context.route('https://www.googleapis.com/**', driveRoute);
+  await context.route('https://musik.mitra247.com/api/auth.php', authRoute);
   const page = await context.newPage();
   const errors = [];
   page.on('console', (m) => {
@@ -141,23 +159,28 @@ function installPlugin(page, opts = {}) {
 }
 
 try {
-  // ---- phone 1: browser without the plugin, then a fake plugin
+  // ---- phone 1: browser without the plugin (no gate), then a fake plugin (gate)
   const one = await newPhone();
   const p1 = one.page;
   await p1.click('#tab-settings');
   await p1.waitForSelector('#about-version');
   check(
-    'no account section without the Android plugin',
-    (await p1.locator('#account-panel').count()) === 0,
+    'no account section and no gate without the Android plugin',
+    (await p1.locator('#account-panel').count()) === 0 && (await p1.locator('#gate').count()) === 0,
   );
 
   await installPlugin(p1, { fail: 'config' });
-  await p1.waitForSelector('#account-signin');
-  await p1.click('#account-signin');
-  await p1.waitForSelector('#account-msg');
-  const cfg = await p1.locator('#account-msg').innerText();
+  await p1.waitForSelector('#gate-signin');
+  check(
+    'with the plugin the app is locked until sign in',
+    (await p1.locator('#tab-settings').count()) === 0 && (await p1.locator('#gate').count()) === 1,
+  );
+  await p1.click('#gate-signin');
+  await p1.waitForSelector('#gate-msg');
+  const cfg = await p1.locator('#gate-msg').innerText();
   check('a missing OAuth setup is explained', /belum dikonfigurasi/.test(cfg), cfg);
-  check('still signed out after the failure', (await p1.locator('#account-name').count()) === 0);
+  check('still locked after the failure', (await p1.locator('#tab-settings').count()) === 0);
+  check('the server was not asked after a failed Google sign in', auth.calls.length === 0);
 
   await installPlugin(p1);
   await addSong(p1);
@@ -168,7 +191,24 @@ try {
     p.setSemitone(3);
   });
   await p1.waitForTimeout(1200); // the preset is saved a moment after the change
-  await p1.click('#account-signin');
+  await p1.click('#gate-signin');
+  await p1.waitForSelector('#tab-settings');
+  check(
+    'a signed in user passes the gate',
+    (await p1.locator('#gate').count()) === 0 && auth.calls.length === 1,
+  );
+  check(
+    'the server got the Google token and the edition',
+    auth.calls[0]?.accessToken === 'tok-1' && auth.calls[0]?.edition === 'personal',
+    JSON.stringify(auth.calls[0]),
+  );
+  check(
+    'the session is saved on the phone',
+    (await p1.evaluate(
+      () => JSON.parse(localStorage.getItem('musik.session') ?? 'null')?.token,
+    )) === 'sess.sig',
+  );
+  await p1.click('#tab-settings');
   await p1.waitForFunction(() =>
     /Tersinkron/.test(document.querySelector('#account-msg')?.textContent ?? ''),
   );
@@ -202,9 +242,10 @@ try {
   const p2 = two.page;
   await addSong(p2);
   await installPlugin(p2);
+  await p2.waitForSelector('#gate-signin');
+  await p2.click('#gate-signin');
+  await p2.waitForSelector('#tab-settings');
   await p2.click('#tab-settings');
-  await p2.waitForSelector('#account-signin');
-  await p2.click('#account-signin');
   await p2.waitForFunction(() =>
     /Tersinkron/.test(document.querySelector('#account-msg')?.textContent ?? ''),
   );
@@ -250,9 +291,12 @@ try {
 
   // ---- the plugin returns a token without profile (as on the device): the profile comes from Google
   await p1.click('#account-signout');
-  await p1.waitForSelector('#account-signin');
+  await p1.waitForSelector('#gate-signin');
+  check('signing out locks the app again', (await p1.locator('#tab-settings').count()) === 0);
   await installPlugin(p1, { noProfile: true });
-  await p1.click('#account-signin');
+  await p1.click('#gate-signin');
+  await p1.waitForSelector('#tab-settings');
+  await p1.click('#tab-settings');
   await p1.waitForSelector('#account-name');
   check(
     'a token without profile is completed from the userinfo endpoint',
@@ -261,13 +305,16 @@ try {
 
   // ---- sign out keeps the backup; delete removes it
   await p1.click('#account-signout');
-  await p1.waitForSelector('#account-signin');
+  await p1.waitForSelector('#gate-signin');
   check('signing out keeps the backup in Drive', drive.files.size === 1);
   check(
-    'and forgets the account on the phone',
-    (await p1.evaluate(() => localStorage.getItem('musik.account'))) === null,
+    'and forgets the account and the session on the phone',
+    (await p1.evaluate(() => localStorage.getItem('musik.account'))) === null &&
+      (await p1.evaluate(() => localStorage.getItem('musik.session'))) === null,
   );
-  await p1.click('#account-signin');
+  await p1.click('#gate-signin');
+  await p1.waitForSelector('#tab-settings');
+  await p1.click('#tab-settings');
   await p1.waitForSelector('#account-delete');
   p1.once('dialog', (d) => d.accept());
   await p1.click('#account-delete');
@@ -275,6 +322,78 @@ try {
     /dihapus/.test(document.querySelector('#account-msg')?.textContent ?? ''),
   );
   check('deleting the backup empties the Drive app folder', drive.files.size === 0);
+
+  // ---- the gate: blocked e-mail, no internet, 30 days offline, re-check
+  await p1.click('#account-signout');
+  await p1.waitForSelector('#gate-signin');
+  auth.blocked = true;
+  await p1.click('#gate-signin');
+  await p1.waitForFunction(() =>
+    /diblokir/.test(document.querySelector('#gate-msg')?.textContent ?? ''),
+  );
+  check(
+    'a blocked e-mail stays locked and is not remembered',
+    (await p1.locator('#tab-settings').count()) === 0 &&
+      (await p1.evaluate(() => localStorage.getItem('musik.session'))) === null,
+  );
+  auth.blocked = false;
+  auth.down = true;
+  await p1.click('#gate-signin');
+  await p1.waitForFunction(() =>
+    /Tidak ada koneksi/.test(document.querySelector('#gate-msg')?.textContent ?? ''),
+  );
+  check(
+    'without internet the first sign in cannot pass',
+    (await p1.locator('#tab-settings').count()) === 0,
+  );
+  auth.down = false;
+  await p1.click('#gate-signin');
+  await p1.waitForSelector('#tab-settings');
+
+  // saved check is two days old but still valid, no internet: the app stays open
+  auth.down = true;
+  await p1.evaluate(async () => {
+    const a = window.__musik.account;
+    a.session = { ...a.session, at: Date.now() - 2 * 86400_000 };
+    await a.guard();
+  });
+  check(
+    'offline within the 30 days the app stays open',
+    (await p1.locator('#gate').count()) === 0 && (await p1.locator('#tab-settings').count()) === 1,
+  );
+
+  // saved check ran out and there is no internet: locked with the explanation
+  await p1.evaluate(async () => {
+    const a = window.__musik.account;
+    a.session = { ...a.session, exp: Date.now() - 1000, at: Date.now() - 31 * 86400_000 };
+    await a.guard();
+  });
+  await p1.waitForSelector('#gate-expired');
+  check(
+    'after 30 days without a check the app locks and explains',
+    /Masa berlaku/.test(await p1.locator('#gate-expired').innerText()) &&
+      (await p1.locator('#tab-settings').count()) === 0,
+  );
+  auth.down = false;
+  await p1.click('#gate-signin');
+  await p1.waitForSelector('#tab-settings');
+  check('signing in again re-opens the app', (await p1.locator('#gate').count()) === 0);
+
+  // the user is blocked on the server: the daily check locks the app
+  auth.blocked = true;
+  await p1.evaluate(async () => {
+    const a = window.__musik.account;
+    a.session = { ...a.session, at: Date.now() - 2 * 86400_000 };
+    await a.guard();
+  });
+  await p1.waitForSelector('#gate-signin');
+  check(
+    'a user blocked on the server is locked at the next check',
+    /diblokir/.test(await p1.locator('#gate-msg').innerText()) &&
+      (await p1.evaluate(() => localStorage.getItem('musik.account'))) === null,
+  );
+  auth.blocked = false;
+
   check('no console errors on phone 2', two.errors.length === 0, two.errors.join(' | '));
   await one.context.close();
   await two.context.close();

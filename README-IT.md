@@ -114,7 +114,7 @@ Catatan Windows: Gradle gagal bila `TEMP` terlalu panjang. `scripts/android.mjs`
 - **Library** (`core/library`): OPFS + IndexedDB, antrean (`queue.ts`), mode putar acak / ulangi (`playmode.ts`), lagu terakhir (`lastplayed.ts`), tampilan folder (`folders.ts`).
 - **Latihan** (`core/practice`): loop A-B, equalizer, metronom, preset per lagu.
 - **Sumber musik legal** (`core/sources`): Internet Archive, Openverse, Wikimedia Commons. Hanya lisensi CC / domain publik. Unduhan hanya `https`, hanya tipe audio, maksimal 200 MB, disimpan dengan atribusi.
-- **Akun dan cadangan** (`app-pwa/src/account`, `core/backup`, plugin `MusikAuth`): login Google opsional dan cadangan preset ke `appDataFolder` di Drive pengguna, tanpa server. Semua edisi. Detail, konfigurasi Google Cloud, dan checklist: `docs/GOOGLE_SSO.md`.
+- **Akun dan cadangan** (`app-pwa/src/account`, `core/backup`, plugin `MusikAuth`): login Google **wajib** (gerbang) dan cadangan preset ke `appDataFolder` di Drive pengguna. Verifikasi dan daftar pengguna lewat `server-auth/` (PHP + MySQL di Virtualmin). Semua edisi. Detail, konfigurasi Google Cloud, dan checklist: `docs/GOOGLE_SSO.md`.
 - **Android** (`app-android`): `PlaybackService` (foreground service `mediaPlayback`, wake lock, MediaSession), `MusikNativePlugin` (MediaStore lewat `listAudio`, pemilih folder), jembatan di `app-pwa/src/native*.ts`. Detail: `docs/ANDROID.md`.
 
 ## 6. Data dan jaringan (untuk Data safety)
@@ -127,7 +127,7 @@ Edisi `play` hanya berkomunikasi dengan tiga layanan pihak ketiga, dan hanya saa
 | `api.openverse.org`     | Cari musik           | Kata kunci, alamat IP |
 | `commons.wikimedia.org` | Cari dan unduh musik | Kata kunci, alamat IP |
 
-Tidak ada server milik developer, analitik, pelacakan, atau iklan. Akun Google bersifat opsional (lihat di bawah). Daftar musik, lagu, setelan, dan antrean terakhir hanya ada di perangkat. Izin Android: `READ_MEDIA_AUDIO` (membaca daftar dan isi lagu di HP), `POST_NOTIFICATIONS` (kontrol pemutaran).
+Tidak ada analitik, pelacakan, atau iklan. Login Google wajib; email dan nama pengguna dicatat di MySQL milik kami lewat `server-auth/public/auth.php` (lihat `docs/GOOGLE_SSO.md` bagian 7). Daftar musik, lagu, setelan, dan antrean terakhir hanya ada di perangkat. Izin Android: `READ_MEDIA_AUDIO` (membaca daftar dan isi lagu di HP), `POST_NOTIFICATIONS` (kontrol pemutaran).
 
 Bila pengguna masuk dengan Google: HP berbicara dengan `googleapis.com` (Drive `appDataFolder`, cakupan `drive.appdata`) dan layanan Google Play untuk otorisasi. Data yang masuk ke Drive pengguna: preset per lagu (dengan judul dan ukuran lagu) dan tiga setelan. Nama, email, foto hanya disimpan di HP. Token tidak disimpan.
 

@@ -142,6 +142,8 @@ export class Player {
   engineKind = $state<RubberBandEngine>(loadEngine());
   engineState = $state<'loading' | 'ready' | 'error'>('loading');
   error = $state('');
+  /** The last song of the queue finished and nothing follows (until the next play). */
+  queueEnded = $state(false);
   storageOk = $state(storageSupported());
   private currentUrl = '';
   private loopTimer: ReturnType<typeof setInterval> | null = null;
@@ -640,12 +642,16 @@ export class Player {
     } else if (step.kind === 'track') {
       await this.goTo(step.index, step.wrapped);
     } else {
+      // End of the queue: back to the start of the song, ready to play again.
       this.playing = false;
+      this.queueEnded = true;
+      this.seek(0);
     }
   }
 
   private async load(song: SongMeta, autoplay: boolean): Promise<void> {
     this.error = '';
+    this.queueEnded = false;
     await this.flushPreset(); // save the previous song's settings before they are replaced
     let file: File | undefined = this.tempFiles.get(song.id);
     const opener = this.tempLoaders.get(song.id);
@@ -706,6 +712,7 @@ export class Player {
 
   async play(): Promise<void> {
     if (!this.current) return;
+    this.queueEnded = false;
     try {
       await this.engine?.resume();
       if (this.countIn && this.engine && this.audio.paused) {

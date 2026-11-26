@@ -20,6 +20,7 @@
   import { DeviceMusic } from './device.svelte';
   import { bindNative } from './native-bridge.svelte';
   import { account } from './account/account.svelte';
+  import LoginGate from './account/LoginGate.svelte';
   import { Equalizer, MinusOne } from '@musik/core';
 
   type Tab = 'play' | 'library' | 'search' | typeof PERSONAL_TAB | 'settings';
@@ -65,10 +66,22 @@
       .init()
       .then(() => player.restoreLast())
       .then((restored) => {
-        void account.syncOnStart(player);
+        void account.refreshSession().then(() => account.syncOnStart(player));
         // The last queue and song come back on the Play screen (paused).
         if (!shared && (restored || player.songs.length > 0)) tab = 'play';
       });
+  });
+
+  // Sign-in gate (Android app): lock when the saved check runs out, and re-check on return.
+  $effect(() => {
+    if (!account.unlocked) player.pause();
+  });
+  onMount(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void account.guard();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   });
 
   const tabs: { key: Tab; label: string }[] = [
@@ -80,37 +93,41 @@
   ];
 </script>
 
-<main>
-  {#if tab === 'play'}
-    <PlayerScreen {player} ongoLibrary={() => (tab = 'library')} />
-  {:else if tab === 'library'}
-    <LibraryScreen {player} {device} onplay={() => (tab = 'play')} />
-  {:else if tab === 'search'}
-    <SearchScreen {player} flow={searchFlow} onplay={() => (tab = 'play')} />
-  {:else if PERSONAL && tab === PERSONAL_TAB}
-    <YoutubeScreen
-      {player}
-      {server}
-      {flow}
-      ongoSettings={() => (tab = 'settings')}
-      onplay={() => (tab = 'play')}
-    />
-  {:else}
-    <SettingsScreen {player} {server} />
-  {/if}
-</main>
+{#if !account.unlocked}
+  <LoginGate {player} />
+{:else}
+  <main>
+    {#if tab === 'play'}
+      <PlayerScreen {player} ongoLibrary={() => (tab = 'library')} />
+    {:else if tab === 'library'}
+      <LibraryScreen {player} {device} onplay={() => (tab = 'play')} />
+    {:else if tab === 'search'}
+      <SearchScreen {player} flow={searchFlow} onplay={() => (tab = 'play')} />
+    {:else if PERSONAL && tab === PERSONAL_TAB}
+      <YoutubeScreen
+        {player}
+        {server}
+        {flow}
+        ongoSettings={() => (tab = 'settings')}
+        onplay={() => (tab = 'play')}
+      />
+    {:else}
+      <SettingsScreen {player} {server} />
+    {/if}
+  </main>
 
-<nav aria-label="Navigasi" style:--tabs={tabs.length}>
-  {#each tabs as item (item.key)}
-    <button
-      type="button"
-      id="tab-{item.key}"
-      aria-current={tab === item.key ? 'page' : undefined}
-      aria-pressed={tab === item.key}
-      onclick={() => (tab = item.key)}>{item.label}</button
-    >
-  {/each}
-</nav>
+  <nav aria-label="Navigasi" style:--tabs={tabs.length}>
+    {#each tabs as item (item.key)}
+      <button
+        type="button"
+        id="tab-{item.key}"
+        aria-current={tab === item.key ? 'page' : undefined}
+        aria-pressed={tab === item.key}
+        onclick={() => (tab = item.key)}>{item.label}</button
+      >
+    {/each}
+  </nav>
+{/if}
 
 <style>
   main {

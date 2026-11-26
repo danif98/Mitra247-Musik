@@ -10,5 +10,5 @@ Riwayat perubahan yang ditampilkan di layar Setelan, Tentang, pada edisi Google 
 - **Library** lokal dan tab **Musik di HP** per folder (termasuk kartu SD), dengan antrean per folder, mode Acak, Ulangi, dan Auto next.
 - Pemutaran tetap berjalan saat layar mati, dengan kontrol di notifikasi dan layar kunci.
 - Tab **Cari** untuk mencari dan mengunduh musik berlisensi terbuka dari Internet Archive, Openverse, dan Wikimedia Commons.
-- **Akun Google (opsional)**: masuk dari Setelan untuk mencadangkan preset latihan dan beberapa setelan ke folder data aplikasi di Google Drive Anda sendiri, lalu tanyakan ke HP lain. Lagu tidak ikut dicadangkan, dan tidak ada server kami yang terlibat.
+- **Masuk dengan Google**: aplikasi memerlukan akun Google. Setelah masuk, aplikasi jalan tanpa internet sampai 30 hari. Di Setelan, preset latihan dan beberapa setelan bisa dicadangkan ke folder data aplikasi di Google Drive Anda sendiri. Lagu tidak ikut dicadangkan. Server kami mencatat email dan nama akun yang masuk.
 - Tanpa iklan dan tanpa pelacakan. Musik dan setelan tetap di perangkat.

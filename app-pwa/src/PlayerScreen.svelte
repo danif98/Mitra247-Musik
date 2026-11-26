@@ -263,7 +263,9 @@
             <Icon name="autoNext" size={20} /><span>{t.autoNextShort}</span>
           </button>
         </div>
-        <p class="muted modehint" id="mode-hint" aria-live="polite">{repeatLabel}</p>
+        <p class="muted modehint" id="mode-hint" aria-live="polite">
+          {player.queueEnded && !player.playing ? t.queueDone : repeatLabel}
+        </p>
       {/if}
     </div>
 

@@ -85,7 +85,7 @@ Rincian: [`docs/GOOGLE_SSO.md`](GOOGLE_SSO.md).
 | Uji dengan Google sungguhan di HP (kedua edisi)                      | ❌                               |
 | Kebijakan privasi memuat akun Google dan Drive                       | ✅ draf; ❌ belum tayang (HTTPS) |
 | Data safety: nama, email, konten pengguna (jawaban siap)             | ✅ jawaban; ❌ belum di Console  |
-| App access: login opsional                                           | ❌ isi di Console                |
+| App access: login Google wajib, akun apa pun boleh masuk             | ❌ isi di Console                |
 
 ## 5. Aset listing
 

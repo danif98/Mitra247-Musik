@@ -23,10 +23,10 @@ SEARCH LEGAL MUSIC
 Find and download music licensed under Creative Commons or in the public domain from the Internet Archive, Openverse, and Wikimedia Commons. The creator and license are saved with the song.
 
 PRIVACY
-• No tracking and no ads. A Google account is optional.
-• Your music and settings stay on your phone. We run no server that receives data from the app.
-• Optional backup: sign in with Google to keep your practice presets in your own Google Drive (songs are not included).
-• The internet is used only when you use Search or Google Drive sync.
+• No tracking and no ads. Signing in with a Google account is required.
+• Your music and settings stay on your phone. Our server only records which Google accounts sign in (email and name).
+• Backup of your practice presets to your own Google Drive (songs are not included). After signing in the app works offline for up to 30 days.
+• The internet is used for sign-in and periodic checks, Search and Google Drive sync.
 • Minimal permissions: music and audio to read songs on your phone, and notifications for playback controls.
 
 GOOD TO KNOW

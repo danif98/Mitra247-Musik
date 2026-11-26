@@ -12,7 +12,7 @@ Dokumen ini untuk **Tim Operasional**: apa yang bisa dilakukan aplikasi, cara me
 | Pembuat         | Mitra247                                                                 |
 | Platform        | Android 7.0 ke atas (diuji utama di Samsung Galaxy A23)                  |
 | Bahasa tampilan | Indonesia                                                                |
-| Perlu akun?     | Tidak. Masuk dengan Google bersifat opsional, untuk cadangan preset      |
+| Perlu akun?     | Ya, akun Google (sekali masuk, berlaku 30 hari tanpa internet)           |
 | Ada iklan?      | Tidak                                                                    |
 | Perlu internet? | Hanya untuk fitur **Cari**. Memutar dan berlatih berjalan tanpa internet |
 | Data pengguna   | Tetap di HP pengguna. Tidak dikirim ke server kami                       |
@@ -69,7 +69,7 @@ Penting: lisensi adalah klaim dari pengunggah dan tidak diperiksa oleh aplikasi.
 ### 5. Setelan
 
 - Kualitas mesin nada: **R2** (cepat, disarankan) atau **R3** (kualitas lebih tinggi, lebih berat).
-- **Akun Google** (opsional): masuk untuk mencadangkan preset latihan (tempo, kunci, loop, equalizer, Minus One per lagu) dan beberapa setelan ke Google Drive Anda sendiri. Lagu tidak ikut dicadangkan. Tombol: **Sinkronkan sekarang**, sinkron otomatis, **Keluar**, dan **Hapus cadangan di Drive**. Berguna saat berganti HP.
+- **Akun Google** (wajib): aplikasi hanya bisa dipakai setelah masuk dengan Google. Setelah masuk, aplikasi berjalan tanpa internet sampai 30 hari; sesudah itu perlu terhubung internet untuk verifikasi ulang. Akun yang diblokir pengelola tidak bisa memakai aplikasi. Di Setelan Anda bisa mencadangkan preset latihan (tempo, kunci, loop, equalizer, Minus One per lagu) dan beberapa setelan ke Google Drive Anda sendiri. Lagu tidak ikut dicadangkan. Tombol: **Sinkronkan sekarang**, sinkron otomatis, **Keluar**, dan **Hapus cadangan di Drive**. Berguna saat berganti HP.
 - Penyimpanan: ruang yang dipakai dan tombol menghapus semua data lokal.
 - Diagnostik: unduh catatan teknis bila perlu dikirim ke tim IT.
 - **Tentang**: versi aplikasi dan riwayat perubahan.

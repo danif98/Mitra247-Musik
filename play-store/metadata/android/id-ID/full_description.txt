@@ -23,10 +23,10 @@ CARI MUSIK LEGAL
 Cari dan unduh musik berlisensi Creative Commons atau domain publik dari Internet Archive, Openverse, dan Wikimedia Commons. Nama pencipta dan lisensi tersimpan bersama lagu.
 
 PRIVASI
-• Tanpa pelacakan dan tanpa iklan. Akun Google bersifat opsional.
-• Musik dan setelan tetap di HP Anda. Kami tidak punya server yang menerima data dari aplikasi.
-• Cadangan opsional: masuk dengan Google untuk menyimpan preset latihan di Google Drive Anda sendiri (lagu tidak ikut).
-• Internet hanya dipakai saat Anda memakai Cari atau sinkron Google Drive.
+• Tanpa pelacakan dan tanpa iklan. Masuk dengan akun Google diperlukan.
+• Musik dan setelan tetap di HP Anda. Server kami hanya mencatat akun Google yang masuk (email dan nama).
+• Cadangan preset latihan ke Google Drive Anda sendiri (lagu tidak ikut). Setelah masuk, aplikasi jalan tanpa internet sampai 30 hari.
+• Internet dipakai untuk masuk dan verifikasi berkala, Cari, dan sinkron Google Drive.
 • Izin secukupnya: musik dan audio untuk membaca lagu di HP, dan notifikasi untuk kontrol pemutaran.
 
 CATATAN

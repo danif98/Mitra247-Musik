@@ -230,6 +230,23 @@ try {
     inPractice === 'one' && kept === 'off',
     `${inPractice} -> ${kept}`,
   );
+  // end of the queue with repeat off: back to 0:00, stopped, and the hint says so
+  await page.evaluate(() => window.__musik.player.audio.dispatchEvent(new Event('ended')));
+  await page.waitForTimeout(200);
+  const done = await page.evaluate(() => {
+    const p = window.__musik.player;
+    return {
+      ended: p.queueEnded,
+      playing: p.playing,
+      position: p.position,
+      hint: document.querySelector('#mode-hint')?.textContent?.trim() ?? '',
+    };
+  });
+  check(
+    'end of the queue: stopped at 0:00 with "Antrean selesai"',
+    done.ended && !done.playing && done.position === 0 && done.hint === 'Antrean selesai',
+    JSON.stringify(done),
+  );
   await page.setViewportSize({ width: 412, height: 915 });
   await page.evaluate(async () => {
     const p = window.__musik.player;

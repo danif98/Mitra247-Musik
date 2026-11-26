@@ -6,3 +6,5 @@ declare const __APP_VERSION__: string;
 declare const __BUILT_AT__: string;
 /** "personal" or "play" (Google Play), injected by vite.config.ts from MUSIK_EDITION. */
 declare const __EDITION__: 'personal' | 'play';
+/** Address of the sign-in check (server-auth/public/auth.php on the server). */
+declare const __AUTH_URL__: string;

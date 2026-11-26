@@ -20,11 +20,63 @@ const USER_KEY = 'musik.account';
 const LAST_KEY = 'musik.sync.last';
 const AUTO_KEY = 'musik.sync.auto';
 const AUTO_EVERY_MS = 6 * 60 * 60 * 1000;
+const SESSION_KEY = 'musik.session';
+/** Ask the server again when the saved check is older than this (while online). */
+const RECHECK_MS = 24 * 60 * 60 * 1000;
 
 export interface AccountUser {
   email: string;
   name: string;
   photoUrl: string;
+}
+
+/** Result of the server check: valid until `exp` (ms), verified at `at` (ms). */
+export interface Session {
+  token: string;
+  exp: number;
+  at: number;
+}
+
+function readSession(): Session | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') as Partial<Session> | null;
+    if (!raw || typeof raw.token !== 'string' || typeof raw.exp !== 'number') return null;
+    return { token: raw.token, exp: raw.exp, at: typeof raw.at === 'number' ? raw.at : 0 };
+  } catch {
+    return null;
+  }
+}
+
+/** Error of the sign-in check; `code` is one of network, blocked, rejected, server. */
+export class VerifyError extends Error {
+  constructor(readonly code: 'network' | 'blocked' | 'rejected' | 'server') {
+    super(code);
+    this.name = 'VerifyError';
+  }
+}
+
+/** Ask the server whether this Google token may use the app (open registration, blocked list). */
+async function verifyWithServer(accessToken: string): Promise<Session> {
+  let res: Response;
+  try {
+    res = await fetch(__AUTH_URL__, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ accessToken, edition: __EDITION__ }),
+    });
+  } catch {
+    throw new VerifyError('network');
+  }
+  if (res.status === 403) throw new VerifyError('blocked');
+  if (res.status === 401 || res.status === 400) throw new VerifyError('rejected');
+  if (!res.ok) throw new VerifyError('server');
+  try {
+    const body = (await res.json()) as { session?: unknown; exp?: unknown };
+    if (typeof body.session !== 'string' || typeof body.exp !== 'number') throw new Error('shape');
+    return { token: body.session, exp: body.exp * 1000, at: Date.now() };
+  } catch {
+    throw new VerifyError('server');
+  }
 }
 
 function readUser(): AccountUser | null {
@@ -69,7 +121,7 @@ function put(key: string, value: string | null): void {
 
 /** Short error code from the plugin or from Drive. */
 function errorCode(err: unknown): string {
-  if (err instanceof DriveError) return err.code;
+  if (err instanceof DriveError || err instanceof VerifyError) return err.code;
   return nativeErrorCode(err);
 }
 
@@ -96,6 +148,55 @@ export class Account {
   isError = $state(false);
   lastSync = $state(readNumber(LAST_KEY));
   autoSync = $state(readAuto());
+  session = $state.raw<Session | null>(readSession());
+  /** Re-read when the app returns to the foreground, so an expired session locks the app. */
+  private clock = $state(Date.now());
+
+  /**
+   * The app may be used. Always true where there is no sign-in plugin (a browser). In the Android
+   * app a valid check by the server is required; it stays valid for 30 days, also offline.
+   */
+  get unlocked(): boolean {
+    if (!this.provider) return true;
+    return this.user !== null && this.session !== null && this.session.exp > this.clock;
+  }
+
+  /** True when the app is locked because the saved check ran out (not because nobody signed in). */
+  get expired(): boolean {
+    return this.provider !== null && this.session !== null && this.session.exp <= this.clock;
+  }
+
+  /** Call when the app opens and returns to the foreground. */
+  async guard(): Promise<void> {
+    this.clock = Date.now();
+    await this.refreshSession();
+  }
+
+  /**
+   * Quietly ask the server again when the saved check is a day old. No internet or a server error
+   * keeps the saved check; a blocked e-mail locks the app at once.
+   */
+  async refreshSession(): Promise<void> {
+    const provider = this.provider;
+    if (!provider || !this.user || this.busy) return;
+    if (this.session && Date.now() - this.session.at < RECHECK_MS) return;
+    try {
+      const info = await provider.getAccessToken({ account: this.user.email });
+      this.setSession(await verifyWithServer(info.accessToken));
+    } catch (err) {
+      if (errorCode(err) === 'blocked') {
+        this.forgetLocal();
+        this.say(id.account.errors.blocked, true);
+      }
+      /* other errors: keep the saved check until it runs out */
+    }
+  }
+
+  private setSession(session: Session | null): void {
+    this.session = session;
+    put(SESSION_KEY, session ? JSON.stringify(session) : null);
+    this.clock = Date.now();
+  }
 
   get available(): boolean {
     return this.provider !== null;
@@ -126,8 +227,10 @@ export class Account {
       // The authorization API returns a token but often no profile: ask Google for it.
       if (!info.email) Object.assign(info, await fetchProfile(info.accessToken));
       if (!info.email) throw new Error('failed');
+      const session = await verifyWithServer(info.accessToken);
       this.user = { email: info.email, name: info.name, photoUrl: info.photoUrl };
       put(USER_KEY, JSON.stringify(this.user));
+      this.setSession(session);
     } catch (err) {
       this.fail(err);
       this.busy = false;
@@ -149,6 +252,7 @@ export class Account {
     this.lastSync = 0;
     put(USER_KEY, null);
     put(LAST_KEY, null);
+    this.setSession(null);
   }
 
   setAuto(enabled: boolean): void {

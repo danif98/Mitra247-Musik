@@ -141,3 +141,71 @@ Plugin menolak dengan kode pendek; pesan Indonesia ada di `ui/i18n/id.ts` (`acco
 | `failed`        | Lainnya                                                                       |
 
 Log HP: `adb logcat -s MusikAuth`.
+
+## 7. Login wajib dengan daftar pengguna di server (26 November 2026)
+
+Keputusan pemilik: semua pengguna, semua edisi, **login Google wajib sebelum aplikasi dipakai**. Akun Google apa pun boleh masuk (pendaftaran terbuka); emailnya dicatat di MySQL Virtualmin; email dapat **diblokir**; masa tenggang offline **30 hari**; tanpa sesi yang sah, aplikasi **terkunci total**.
+
+Ini menggantikan keputusan awal "login opsional, tanpa server" di bagian 1. Kode, kebijakan privasi, Data safety, dan listing sudah disesuaikan.
+
+### Alur
+
+```
+Buka aplikasi (Android)
+   │  sesi sah (belum 30 hari)? ── ya ──▶ aplikasi terbuka (tanpa internet pun)
+   │ tidak
+   ▼
+Layar masuk (LoginGate)  ──[Masuk dengan Google]──▶ plugin MusikAuth ──▶ token akses
+   ▼
+POST https://musik.mitra247.com/api/auth.php {accessToken, edition}
+   │  server: tokeninfo Google (aud = client ID edisi ini, email_verified), userinfo (nama)
+   │  upsert app_users, tolak bila status = blocked
+   ▼
+200 {session, exp = +30 hari}  ── disimpan di HP (musik.session)
+403 blocked ──▶ tetap terkunci, "Akun ini diblokir"
+```
+
+- **Pemeriksaan ulang diam-diam:** saat aplikasi dibuka atau kembali ke depan, bila sesi berumur lebih dari 1 hari dan ada internet, aplikasi meminta token baru (tanpa layar) dan memeriksa ke server. Tanpa internet atau server bermasalah, sesi lama tetap dipakai sampai habis. Bila server menjawab `blocked`, aplikasi langsung terkunci dan melupakan akun.
+- **Sesi habis (30 hari tanpa pemeriksaan):** terkunci dengan pesan "Masa berlaku masuk habis. Sambungkan internet lalu masuk lagi."
+- **Keluar** (Setelan) menghapus akun dan sesi, aplikasi terkunci. Cadangan di Drive tidak dihapus.
+- **Browser biasa (PWA, tanpa plugin Android):** tidak ada gerbang, karena tidak ada login Google di sana.
+- Pemutaran dijeda bila aplikasi terkunci saat dipakai.
+
+### Komponen
+
+| Bagian                       | Berkas                                                                                                            |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Gerbang dan sesi di aplikasi | `app-pwa/src/account/account.svelte.ts` (`unlocked`, `guard`, `refreshSession`), `LoginGate.svelte`, `App.svelte` |
+| Alamat server                | `__AUTH_URL__`: bawaan `https://musik.mitra247.com/api/auth.php`, ubah dengan env `MUSIK_AUTH_URL` saat build     |
+| Endpoint PHP                 | `server-auth/public/auth.php`                                                                                     |
+| Tabel                        | `server-auth/schema.sql` (`app_users`: email unik, nama, status, edisi, waktu, jumlah masuk)                      |
+| Konfigurasi server           | `server-auth/auth-config.example.php` (di luar web root, jangan commit)                                           |
+| Panduan pasang               | `server-auth/README.md`                                                                                           |
+| Tes                          | `e2e/auth-server.mjs` (PHP + MySQL + Google palsu), `e2e/account.mjs` (gerbang di browser)                        |
+
+Kenapa PHP dan bukan Node: Apache dan HTTPS di Virtualmin sudah melayani `mitra247.com`, tanpa proses baru, dan server Node tetap tanpa dependensi. Server Node untuk YouTube (edisi personal) tidak berubah.
+
+### Status dan yang harus dikerjakan pemilik
+
+| Item                                                                                                            | Status                              |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Kode aplikasi (gerbang, sesi, blokir, offline 30 hari) dan tes e2e                                              | ✅                                  |
+| Endpoint PHP dan skema, diuji dengan MariaDB asli dan Google palsu (21 pemeriksaan)                             | ✅                                  |
+| Client ID Android sama dengan `aud` token asli di HP (diperiksa untuk kedua edisi)                              | ✅                                  |
+| HTTPS dengan sertifikat dipercaya yang mencakup `musik.mitra247.com` (dan `mitra247.com`, sekarang self-signed) | ❌                                  |
+| Buat basis data dan pengguna MySQL di Virtualmin, impor `schema.sql`                                            | ❌                                  |
+| Pasang `auth.php` di `api/` pada subdomain `musik.mitra247.com`, konfigurasi di luar web root                   | ❌                                  |
+| Uji dari HP dengan server sungguhan                                                                             | ❌ (tidak bisa sebelum HTTPS valid) |
+| Bangun ulang dan pasang APK **sesudah** server siap (build terkunci tanpa server)                               | ❌                                  |
+| Perbarui kebijakan privasi di situs (versi 26 November) dan isi formulir Data safety di Console                 | ❌                                  |
+| **App access** di Console: sebutkan login Google wajib dan akun apa pun boleh masuk                             | ❌                                  |
+
+**Peringatan:** APK yang memuat gerbang ini mengunci pemakainya sampai server dapat dihubungi. Jangan pasang di HP yang dipakai sehari-hari sebelum server siap.
+
+### Risiko dan batas
+
+- **Kontrol akses, bukan perlindungan penuh.** Seluruh fitur berjalan di HP; aplikasi yang sengaja dimodifikasi dapat melewati gerbang. Cukup untuk membatasi pengguna biasa dan memblokir penyalahgunaan terang-terangan.
+- **Blokir tidak seketika:** berlaku pada pemeriksaan berikutnya (paling lambat sehari setelah online; paling lambat 30 hari bila HP tidak pernah online).
+- **Ulasan Play:** login wajib untuk semua pengguna Play umum menaikkan risiko ulasan buruk. Karena pendaftaran terbuka, reviewer dapat memakai akun Google apa pun.
+- **UU PDP:** email dan nama kini disimpan di server kami; dasar pemrosesan, masa simpan, dan hak hapus perlu ditinjau (kebijakan memberi jalur hapus lewat email kontak).
+- Tanpa pembatasan laju per IP di endpoint (lihat `server-auth/README.md`).

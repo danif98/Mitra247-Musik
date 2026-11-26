@@ -37,6 +37,7 @@ export const id = {
     repeatOff: 'Ulangi: mati',
     repeatAll: 'Ulangi semua',
     repeatOne: 'Ulangi 1 lagu',
+    queueDone: 'Antrean selesai',
     back5: 'Mundur 5 detik',
     fwd5: 'Maju 5 detik',
     tempo: 'TEMPO',
@@ -116,7 +117,14 @@ export const id = {
   account: {
     title: 'Akun Google',
     intro:
-      'Masuk dengan Google untuk mencadangkan preset latihan dan setelan ke Google Drive Anda. Lagu tidak ikut dicadangkan. Data disimpan di folder tersembunyi aplikasi di Drive Anda sendiri, bukan di server kami. Tanpa masuk, aplikasi tetap berfungsi penuh.',
+      'Akun Google dipakai untuk masuk ke aplikasi dan mencadangkan preset latihan serta setelan ke Google Drive Anda. Lagu tidak ikut dicadangkan. Cadangan disimpan di folder tersembunyi aplikasi di Drive Anda sendiri.',
+    gate: {
+      title: 'Masuk untuk mulai',
+      intro:
+        'Masuk dengan akun Google Anda untuk memakai aplikasi. Alamat email Anda dicatat di server kami sebagai pengguna. Musik Anda tetap di HP dan tidak dikirim ke mana pun.',
+      hint: 'Setelah masuk, aplikasi tetap bisa dipakai tanpa internet sampai 30 hari. Setelah itu aplikasi meminta verifikasi ulang.',
+      expired: 'Masa berlaku masuk habis. Sambungkan internet lalu masuk lagi.',
+    },
     signIn: 'Masuk dengan Google',
     signingIn: 'Membuka Google…',
     signOut: 'Keluar',
@@ -146,6 +154,8 @@ export const id = {
       quota: 'Google Drive sedang membatasi permintaan atau penuh. Coba lagi nanti.',
       server: 'Google Drive sedang bermasalah. Coba lagi nanti.',
       not_found: 'Cadangan tidak ditemukan.',
+      blocked: 'Akun ini diblokir dan tidak bisa memakai aplikasi. Hubungi pengelola.',
+      rejected: 'Server menolak login ini. Coba masuk lagi.',
       failed: 'Gagal. Coba lagi.',
     },
   },
