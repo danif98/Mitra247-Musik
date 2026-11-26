@@ -77,15 +77,15 @@ Terakhir diperbarui: 25 November 2026. Bahan listing dan jawaban Console: [`play
 
 Rincian: [`docs/GOOGLE_SSO.md`](GOOGLE_SSO.md).
 
-| Item                                                             | Status                                                                                                           |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Kode: plugin, klien Drive, UI Akun, tes unit dan e2e             | ✅                                                                                                               |
-| Proyek Google Cloud, Drive API, consent screen                   | ✅ dibuat (`music-player-mitra247`, status Testing). ❌ belum In production, logo, dan domain                    |
-| OAuth client Android (SHA-1 debug, upload, **Play App Signing**) | ✅ dua client dengan SHA-1 debug; ❌ SHA-1 upload dan Play App Signing menunggu keystore dan aplikasi di Console |
-| Uji dengan Google sungguhan di HP (kedua edisi)                  | ✅ masuk, sinkron Drive, gerbang login, blokir, offline (kunci debug)                                            |
-| Kebijakan privasi memuat akun Google dan Drive                   | ✅ tayang di `mitra247.com/showcase/musik-player-19/privacy-policy`                                              |
-| Data safety: nama, email, konten pengguna (jawaban siap)         | ✅ jawaban; ❌ belum di Console                                                                                  |
-| App access: login Google wajib, akun apa pun boleh masuk         | ❌ isi di Console                                                                                                |
+| Item                                                                                        | Status                                                                                                           |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Kode: plugin, klien Drive, UI Akun, tes unit dan e2e                                        | ✅                                                                                                               |
+| Proyek Google Cloud, Drive API, consent screen                                              | ✅ dibuat (`music-player-mitra247`, status Testing). ❌ belum In production, logo, dan domain                    |
+| OAuth client Android (SHA-1 debug, upload, **Play App Signing**)                            | ✅ dua client dengan SHA-1 debug; ❌ SHA-1 upload dan Play App Signing menunggu keystore dan aplikasi di Console |
+| Uji dengan Google sungguhan di HP (kedua edisi)                                             | ✅ masuk, sinkron Drive, gerbang login, blokir, offline (kunci debug)                                            |
+| Kebijakan privasi memuat akun Google dan Drive                                              | ✅ tayang di `mitra247.com/showcase/musik-player-19/privacy-policy`                                              |
+| Data safety: nama, email, konten pengguna (jawaban siap)                                    | ✅ jawaban; ❌ belum di Console                                                                                  |
+| Sign in details (dulu App access): login Google wajib, butuh akun Google uji untuk reviewer | ❌ draf terisi di Console (nama dan instruksi); kredensial akun uji dan Save menunggu pemilik                    |
 
 ## 5. Aset listing
 

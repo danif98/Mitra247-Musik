@@ -14,6 +14,11 @@ return [
         '653398046329-rj1sj034eavv05cdk17s3ps892tekd4n.apps.googleusercontent.com', // personal
     ],
 
+    // Optional: also accept every OAuth client of our Google Cloud project, by the project number
+    // before the first dash of a client ID (min. 8 characters, ending in "-"). New clients for the
+    // upload key or the Play App Signing key then work without editing this file.
+    'client_id_prefixes' => ['653398046329-'],
+
     // Random secret (>= 32 chars) that signs session tokens: php -r "echo bin2hex(random_bytes(32));"
     'session_secret' => 'CHANGE-ME-TO-A-LONG-RANDOM-STRING',
 

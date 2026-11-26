@@ -55,6 +55,27 @@ if ($token === '' || strlen($token) > 4096) {
     respond(400, ['error' => 'token']);
 }
 
+/**
+ * Is this OAuth client ID one of ours? Either listed in `client_ids`, or it starts with one of
+ * `client_id_prefixes` (e.g. "653398046329-", the project number: every OAuth client of our Google
+ * Cloud project, so a new client for another signing key needs no change on the server).
+ */
+function is_our_client(string $id, array $config): bool
+{
+    if ($id === '') {
+        return false;
+    }
+    if (in_array($id, $config['client_ids'] ?? [], true)) {
+        return true;
+    }
+    foreach ($config['client_id_prefixes'] ?? [] as $prefix) {
+        if (is_string($prefix) && strlen($prefix) >= 8 && str_ends_with($prefix, '-') && str_starts_with($id, $prefix)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** GET a Google endpoint with a bearer or query token. Returns [status, decoded JSON or null]. */
 function google_get(string $url): array
 {
@@ -85,7 +106,7 @@ if ($status !== 200 || $info === null) {
 }
 $audience = (string) ($info['aud'] ?? '');
 $authorized = (string) ($info['azp'] ?? '');
-if (!in_array($audience, $config['client_ids'], true) && !in_array($authorized, $config['client_ids'], true)) {
+if (!is_our_client($audience, $config) && !is_our_client($authorized, $config)) {
     respond(401, ['error' => 'audience']);
 }
 if ((int) ($info['expires_in'] ?? 0) <= 0) {

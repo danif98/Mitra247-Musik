@@ -59,7 +59,7 @@ Di Android 12 ke bawah izin setara adalah `READ_EXTERNAL_STORAGE` (dibatasi `max
 
 > **Perlu diperiksa:** pastikan `WAKE_LOCK` benar-benar dipakai (`PlaybackService` memegang wake lock parsial). Bila suatu saat tidak dipakai, hapus dari manifest.
 
-## 3b. Login Google (versi 0.5.1)
+## 3b. Login Google (versi 0.5.2)
 
 Login dan Drive tidak menambah izin manifest (memakai `INTERNET` dan layanan Google Play). Cakupan OAuth `drive.appdata`, `email`, `profile` tidak sensitif, jadi tidak ada formulir verifikasi cakupan. Lihat `docs/GOOGLE_SSO.md`.
 

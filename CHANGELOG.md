@@ -2,6 +2,12 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.5.2 (2026-11-26)
+
+- `auth.php` menerima token dari **semua OAuth client di proyek Google Cloud ini**, lewat `client_id_prefixes` di `api/auth-config.php` (contoh: `['653398046329-']`), selain daftar `client_ids`. Client baru untuk kunci upload atau kunci Play App Signing tidak perlu mengubah konfigurasi server lagi. **Tambahkan baris `client_id_prefixes` ke `api/auth-config.php` di server** (lihat `auth-config.example.php`).
+- Kunci keystore Play: password tidak lagi disimpan di `keystore.properties`; `npm run android:play:aab` menanyakannya saat build (input tersembunyi, dicek ke keystore), atau memakai `MUSIK_STORE_PASSWORD`. `build.gradle` membaca password dari lingkungan bila berkas tidak memuatnya.
+- Dokumen: reviewer Play tidak boleh membuat akun atau memakai akun pribadi, jadi Sign in details butuh akun Google uji khusus.
+
 ## 0.5.1 (2026-11-26)
 
 - `server-auth/public/auth.php` kini mencatat kode dan pesan SQL ke log server saat koneksi atau kueri MySQL gagal (sebelumnya hanya nama kelas), supaya sebab `500 db` bisa dibaca di `error_log`. Tidak dikirim ke aplikasi.

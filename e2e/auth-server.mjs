@@ -78,6 +78,18 @@ const tokens = {
     email_verified: 'true',
     expires_in: '3000',
   },
+  'new-client': {
+    aud: '1234567890-newkey.apps.googleusercontent.com',
+    email: 'n@example.com',
+    email_verified: 'true',
+    expires_in: '3000',
+  },
+  'prefix-lookalike': {
+    aud: '12345678901-x.apps.googleusercontent.com',
+    email: 'l@example.com',
+    email_verified: 'true',
+    expires_in: '3000',
+  },
   'other-app': {
     aud: 'evil.apps.googleusercontent.com',
     email: 'a@example.com',
@@ -111,6 +123,7 @@ writeFileSync(
   'db_dsn' => 'mysql:host=127.0.0.1;dbname=${DB};charset=utf8mb4',
   'db_user' => 'root', 'db_pass' => '',
   'client_ids' => ['${CLIENT}'],
+  'client_id_prefixes' => ['1234567890-'],
   'session_secret' => '${SECRET}',
   'session_days' => 30,
   'allowed_origins' => ['https://localhost'],
@@ -190,6 +203,14 @@ try {
     'a token of another app is refused',
     other.status === 401 && other.json?.error === 'audience',
     String(other.status),
+  );
+  check(
+    'another client of our project (same prefix) is accepted',
+    (await post({ accessToken: 'new-client' })).status === 200,
+  );
+  check(
+    'a client ID that only looks similar is refused',
+    (await post({ accessToken: 'prefix-lookalike' })).status === 401,
   );
   check(
     'an unverified e-mail is refused',

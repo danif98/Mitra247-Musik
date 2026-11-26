@@ -30,7 +30,7 @@ Istilah Virtualmin; di cPanel padanannya MySQL Databases / MySQL Database Wizard
    SetEnv MUSIK_AUTH_CONFIG /home/<user>/musik-auth-config.php
    ```
 
-4. **Client ID.** Di `client_ids`, pastikan dua nilai sama dengan Client ID di Google Cloud (`music-player-mitra247`, Google Auth Platform, Clients: `com.mitra247.musicplayer` dan `com.mitra247.musictools`). Contoh di berkas sudah cocok dengan token asli yang diperiksa pada 26 November 2026. Salah satu yang salah membuat edisi itu ditolak (`audience`).
+4. **Client ID.** Di `client_ids`, pastikan dua nilai sama dengan Client ID di Google Cloud (`music-player-mitra247`, Google Auth Platform, Clients: `com.mitra247.musicplayer` dan `com.mitra247.musictools`). Contoh di berkas sudah cocok dengan token asli yang diperiksa pada 26 November 2026. Salah satu yang salah membuat edisi itu ditolak (`audience`). Tambahkan juga `client_id_prefixes` (contoh: `['653398046329-']`, nomor proyek Google Cloud): semua client di proyek itu diterima, termasuk client untuk kunci upload dan kunci Play App Signing yang dibuat belakangan, tanpa mengubah berkas ini lagi.
 
 5. **Deploy.** Di repo sumber, ucapkan "deploy" (atau `npm run build` lalu `npm run deploy:prepare`, commit, tag, push), lalu di server `git pull`. Tidak perlu memulai ulang Node untuk perubahan `api/auth.php`; mulai ulang hanya bila `server/` berubah.
 

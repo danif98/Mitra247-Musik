@@ -2,6 +2,10 @@
 
 Riwayat perubahan yang ditampilkan di layar Setelan, Tentang, pada edisi Google Play. Berkas ini ditulis terpisah dari `CHANGELOG.md` dan tidak memuat fitur edisi pribadi. Tiap entri memakai format `## <versi> (<tanggal>)`.
 
+## 0.5.2 (2026-11-26)
+
+- Masuk dengan Google lebih andal untuk versi yang diunduh dari Google Play.
+
 ## 0.5.1 (2026-11-26)
 
 - Pesan kesalahan saat masuk dengan Google lebih jelas bila server login sedang bermasalah.

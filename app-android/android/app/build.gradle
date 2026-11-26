@@ -11,11 +11,20 @@ def projectVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versi
 // The web part is built per edition by scripts/android.mjs (MUSIK_EDITION) before Gradle runs.
 def playBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains('play') }
 
-// Release signing: keystore.properties (not in git) next to this project's settings.gradle with
-// storeFile, storePassword, keyAlias, keyPassword. Without it the release build stays unsigned.
+// Release signing. keystore.properties (not in git) next to this project's settings.gradle holds
+// storeFile and keyAlias, and may hold storePassword/keyPassword. The passwords can instead come
+// from the environment (MUSIK_STORE_PASSWORD, MUSIK_KEY_PASSWORD): scripts/android.mjs asks for
+// them at build time, so nothing secret has to be written to disk. MUSIK_STORE_FILE and
+// MUSIK_KEY_ALIAS can replace the two non-secret entries. Without a keystore and a password the
+// release build stays unsigned.
 def keystoreProps = new Properties()
 def keystoreFile = rootProject.file('keystore.properties')
 if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+def signStoreFile = keystoreProps['storeFile'] ?: System.getenv('MUSIK_STORE_FILE')
+def signStorePassword = keystoreProps['storePassword'] ?: System.getenv('MUSIK_STORE_PASSWORD')
+def signKeyAlias = keystoreProps['keyAlias'] ?: System.getenv('MUSIK_KEY_ALIAS') ?: 'upload'
+def signKeyPassword = keystoreProps['keyPassword'] ?: System.getenv('MUSIK_KEY_PASSWORD') ?: signStorePassword
+def signingReady = signStoreFile && signStorePassword
 
 android {
     namespace = "com.musik.tools"
@@ -70,11 +79,11 @@ android {
     }
     signingConfigs {
         release {
-            if (keystoreFile.exists()) {
-                storeFile rootProject.file(keystoreProps['storeFile'])
-                storePassword keystoreProps['storePassword']
-                keyAlias keystoreProps['keyAlias']
-                keyPassword keystoreProps['keyPassword']
+            if (signingReady) {
+                storeFile rootProject.file(signStoreFile)
+                storePassword signStorePassword
+                keyAlias signKeyAlias
+                keyPassword signKeyPassword
             }
         }
     }
@@ -84,7 +93,7 @@ android {
             minifyEnabled playBuild
             shrinkResources playBuild
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (keystoreFile.exists()) signingConfig signingConfigs.release
+            if (signingReady) signingConfig signingConfigs.release
         }
     }
 }

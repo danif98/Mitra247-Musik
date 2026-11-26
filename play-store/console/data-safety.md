@@ -1,6 +1,6 @@
 # Data safety (Play Console: App content → Data safety)
 
-Jawaban yang disarankan untuk edisi Play (Music Player, `com.mitra247.musicplayer`, versi 0.5.1). Dasarnya adalah kode dan `PRIVACYPOLICY.md`. Teks formulir di Console bisa berubah; cocokkan maknanya, bukan kata per kata. **Pemilik akun yang menjawab dan bertanggung jawab atas kebenarannya.**
+Jawaban yang disarankan untuk edisi Play (Music Player, `com.mitra247.musicplayer`, versi 0.5.2). Dasarnya adalah kode dan `PRIVACYPOLICY.md`. Teks formulir di Console bisa berubah; cocokkan maknanya, bukan kata per kata. **Pemilik akun yang menjawab dan bertanggung jawab atas kebenarannya.**
 
 ## Fakta yang menjadi dasar
 
@@ -58,5 +58,5 @@ Penjelasan tiap kolom:
 1. Pastikan teks `PRIVACYPOLICY.md` tampil di `https://mitra247.com/showcase/musik-player-19/privacy-policy` (HTTPS) dan isinya sama (halaman sudah diperiksa 26 November: email `apps.developer@mitra247.com`, tanpa blok catatan internal). Catatan internal ada di `play-store/console/privacy-policy-notes.md`.
 2. Jika kelak ada analitik, iklan, akun milik kami, atau server, perbarui formulir ini dan kebijakan **sebelum** merilis.
 3. **URL penghapusan data** (kolom di Console): pakai `https://mitra247.com/showcase/musik-player-19/privacy-policy` (bagian 4 menjelaskan cara menghapus). Pastikan bagian itu tampil.
-4. **App access**: pilih "semua atau sebagian fungsi dibatasi" dan jelaskan: aplikasi memerlukan akun Google; **akun Google apa pun dapat masuk** (pendaftaran terbuka), jadi reviewer bisa memakai akun Google miliknya. Sebaiknya sediakan satu akun uji dan sebutkan di kolom instruksi.
+4. **Sign in details** (dulu "App access"): pilih "ya, sebagian fungsi dibatasi", tambahkan satu set detail. **Play menyatakan reviewer tidak bisa membuat akun dan tidak memakai akun pribadinya**, jadi siapkan **akun Google uji khusus** (tanpa verifikasi 2 langkah) dan isi email serta passwordnya di kolom username dan password. Tulis instruksi dalam bahasa Inggris: ketuk "Masuk dengan Google", pilih akun uji, izinkan akses. Akun uji itu akan tercatat di `app_users` sebagai pengguna biasa. Jangan pakai akun pribadi Anda.
 5. Simpan salinan jawaban final di berkas ini bila ada perubahan.

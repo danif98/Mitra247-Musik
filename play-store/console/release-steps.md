@@ -8,14 +8,14 @@ Buat sendiri di terminal Anda. `keytool` akan menanyakan password; **ketik sendi
 keytool -genkeypair -v -keystore D:\rahasia\musicplayer-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-Lalu buat `app-android/android/keystore.properties` (sudah diabaikan git):
+Lalu buat `app-android/android/keystore.properties` (sudah diabaikan git). **Tanpa password**: berkas ini hanya menyebut lokasi dan alias, jadi tidak ada rahasia di disk:
 
 ```properties
 storeFile=D:/rahasia/musicplayer-upload.jks
-storePassword=<password keystore>
 keyAlias=upload
-keyPassword=<password kunci>
 ```
+
+Password ditanyakan **saat build** (input tersembunyi, diperiksa langsung ke keystore) dan hanya diteruskan ke Gradle lewat variabel lingkungan proses itu. Untuk otomasi, set `MUSIK_STORE_PASSWORD` (dan `MUSIK_KEY_PASSWORD` bila berbeda) hanya untuk satu perintah. Bila Anda tetap ingin menyimpannya, `storePassword` dan `keyPassword` di berkas yang sama masih dibaca.
 
 `storeFile` boleh jalur absolut. Aktifkan **Play App Signing** saat membuat aplikasi di Console (disarankan Google): kunci di atas hanyalah kunci unggah.
 

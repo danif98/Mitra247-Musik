@@ -9,7 +9,7 @@ Semua bahan listing dan jawaban Play Console untuk edisi Play ada di folder ini.
 | Judul toko                                       | `play-store/metadata/android/<locale>/title.txt`                                                 |
 | Deskripsi singkat (maks. 80 karakter)            | `play-store/metadata/android/<locale>/short_description.txt`                                     |
 | Deskripsi lengkap (maks. 4000 karakter)          | `play-store/metadata/android/<locale>/full_description.txt`                                      |
-| Catatan rilis ("What's new", maks. 500 karakter) | `play-store/metadata/android/<locale>/changelogs/<versionCode>.txt` (`501.txt` untuk 0.5.1)      |
+| Catatan rilis ("What's new", maks. 500 karakter) | `play-store/metadata/android/<locale>/changelogs/<versionCode>.txt` (`502.txt` untuk 0.5.2)      |
 | Ikon toko 512x512                                | `play-store/metadata/android/<locale>/images/icon.png`                                           |
 | Feature graphic 1024x500                         | `play-store/metadata/android/<locale>/images/featureGraphic.jpg`                                 |
 | Screenshot ponsel 1080x1920                      | `play-store/metadata/android/<locale>/images/phoneScreenshots/1_…5_*.jpg`                        |

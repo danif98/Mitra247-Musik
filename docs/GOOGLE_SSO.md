@@ -90,16 +90,16 @@ keytool -list -v -alias upload -keystore D:\rahasia\musicplayer-upload.jks
 
 ### Kebijakan (edisi Play)
 
-| Item                                                                                             | Status                                     |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| Kebijakan privasi memuat akun Google, Drive, data, dan penghapusan (`PRIVACYPOLICY.md`)          | ✅ draf                                    |
-| URL kebijakan di `mitra247.com` memakai HTTPS dan isinya sama                                    | ❌                                         |
-| Data safety diperbarui (`play-store/console/data-safety.md`)                                     | ✅ jawaban siap; ❌ belum diisi di Console |
-| Jalur penghapusan data: **Hapus cadangan di Drive** dan **Hapus semua data lokal** di aplikasi   | ✅                                         |
-| URL web untuk permintaan penghapusan data (isi di Data safety): pakai halaman kebijakan bagian 4 | ⚠️ perlu bagian yang jelas di situs        |
-| **App access** di Console: login opsional, jelaskan agar reviewer tidak perlu masuk              | ❌ isi di Console                          |
-| Listing, README, PRESENTASI tidak lagi berklaim "tanpa akun"                                     | ✅                                         |
-| UU PDP Indonesia: tinjau dasar pemrosesan dan hak pengguna                                       | ⚠️ konsultasikan                           |
+| Item                                                                                                                                                         | Status                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Kebijakan privasi memuat akun Google, Drive, data, dan penghapusan (`PRIVACYPOLICY.md`)                                                                      | ✅ draf                                        |
+| URL kebijakan di `mitra247.com` memakai HTTPS dan isinya sama                                                                                                | ❌                                             |
+| Data safety diperbarui (`play-store/console/data-safety.md`)                                                                                                 | ✅ jawaban siap; ❌ belum diisi di Console     |
+| Jalur penghapusan data: **Hapus cadangan di Drive** dan **Hapus semua data lokal** di aplikasi                                                               | ✅                                             |
+| URL web untuk permintaan penghapusan data (isi di Data safety): pakai halaman kebijakan bagian 4                                                             | ⚠️ perlu bagian yang jelas di situs            |
+| **Sign in details** di Console: login wajib; butuh **akun Google uji khusus** untuk reviewer (Play melarang reviewer membuat akun atau memakai akun pribadi) | ❌ isi di Console, butuh akun uji dari pemilik |
+| Listing, README, PRESENTASI tidak lagi berklaim "tanpa akun"                                                                                                 | ✅                                             |
+| UU PDP Indonesia: tinjau dasar pemrosesan dan hak pengguna                                                                                                   | ⚠️ konsultasikan                               |
 
 ### Lisensi
 
@@ -189,18 +189,18 @@ Berkas `api/auth.php` ikut folder deploy (`npm run deploy:prepare` menyalinnya k
 
 ### Status dan yang harus dikerjakan pemilik
 
-| Item                                                                                                                                                                                                                                                               | Status |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| Kode aplikasi (gerbang, sesi, blokir, offline 30 hari) dan tes e2e                                                                                                                                                                                                 | ✅     |
-| Endpoint PHP dan skema, diuji dengan MariaDB asli dan Google palsu (21 pemeriksaan)                                                                                                                                                                                | ✅     |
-| Client ID Android sama dengan `aud` token asli di HP (diperiksa untuk kedua edisi)                                                                                                                                                                                 | ✅     |
-| HTTPS valid di `mitra247.com` (Let's Encrypt `*.mitra247.com`, diperiksa 26 November 2026)                                                                                                                                                                         | ✅     |
-| Buat basis data dan pengguna MySQL di Virtualmin, impor `schema.sql`                                                                                                                                                                                               | ❌     |
-| Basis data MySQL, `api/auth-config.php`, `git pull` folder deploy, curl                                                                                                                                                                                            | ✅     |
-| Uji dari HP dengan server sungguhan: masuk, keluar mengunci, masuk lagi, **email diblokir** (terkunci di dua jalur, lalu pulih setelah dibuka), **offline dengan mode pesawat** (sesi sah tetap terbuka, sesi habis terkunci), kedua edisi                         | ✅     |
-| APK dengan gerbang dipasang di HP                                                                                                                                                                                                                                  | ✅     |
-| Halaman kebijakan privasi **Music Player** di `https://mitra247.com/showcase/musik-player-19/privacy-policy`: tayang, email `apps.developer@mitra247.com`, tanpa blok catatan internal (dicek 26 November). Pakai alamat ini di Play Console dan layar izin Google | ✅     |
-| **App access** di Console: sebutkan login Google wajib dan akun apa pun boleh masuk                                                                                                                                                                                | ❌     |
+| Item                                                                                                                                                                                                                                                               | Status                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Kode aplikasi (gerbang, sesi, blokir, offline 30 hari) dan tes e2e                                                                                                                                                                                                 | ✅                                             |
+| Endpoint PHP dan skema, diuji dengan MariaDB asli dan Google palsu (21 pemeriksaan)                                                                                                                                                                                | ✅                                             |
+| Client ID Android sama dengan `aud` token asli di HP (diperiksa untuk kedua edisi)                                                                                                                                                                                 | ✅                                             |
+| HTTPS valid di `mitra247.com` (Let's Encrypt `*.mitra247.com`, diperiksa 26 November 2026)                                                                                                                                                                         | ✅                                             |
+| Buat basis data dan pengguna MySQL di Virtualmin, impor `schema.sql`                                                                                                                                                                                               | ❌                                             |
+| Basis data MySQL, `api/auth-config.php`, `git pull` folder deploy, curl                                                                                                                                                                                            | ✅                                             |
+| Uji dari HP dengan server sungguhan: masuk, keluar mengunci, masuk lagi, **email diblokir** (terkunci di dua jalur, lalu pulih setelah dibuka), **offline dengan mode pesawat** (sesi sah tetap terbuka, sesi habis terkunci), kedua edisi                         | ✅                                             |
+| APK dengan gerbang dipasang di HP                                                                                                                                                                                                                                  | ✅                                             |
+| Halaman kebijakan privasi **Music Player** di `https://mitra247.com/showcase/musik-player-19/privacy-policy`: tayang, email `apps.developer@mitra247.com`, tanpa blok catatan internal (dicek 26 November). Pakai alamat ini di Play Console dan layar izin Google | ✅                                             |
+| **Sign in details** di Console: login wajib; butuh **akun Google uji khusus** untuk reviewer (Play melarang reviewer membuat akun atau memakai akun pribadi)                                                                                                       | ❌ isi di Console, butuh akun uji dari pemilik |
 
 **Peringatan:** APK yang memuat gerbang ini mengunci pemakainya sampai server dapat dihubungi. Jangan pasang di HP yang dipakai sehari-hari sebelum server siap.
 
@@ -208,6 +208,6 @@ Berkas `api/auth.php` ikut folder deploy (`npm run deploy:prepare` menyalinnya k
 
 - **Kontrol akses, bukan perlindungan penuh.** Seluruh fitur berjalan di HP; aplikasi yang sengaja dimodifikasi dapat melewati gerbang. Cukup untuk membatasi pengguna biasa dan memblokir penyalahgunaan terang-terangan.
 - **Blokir tidak seketika:** berlaku pada pemeriksaan berikutnya (paling lambat sehari setelah online; paling lambat 30 hari bila HP tidak pernah online).
-- **Ulasan Play:** login wajib untuk semua pengguna Play umum menaikkan risiko ulasan buruk. Karena pendaftaran terbuka, reviewer dapat memakai akun Google apa pun.
+- **Ulasan Play:** login wajib untuk semua pengguna Play umum menaikkan risiko ulasan buruk. Pendaftaran memang terbuka (akun Google apa pun boleh masuk), tetapi **reviewer Play tidak boleh membuat akun atau memakai akun pribadinya**: siapkan satu akun Google uji (tanpa verifikasi 2 langkah) dan isi kredensialnya di Sign in details.
 - **UU PDP:** email dan nama kini disimpan di server kami; dasar pemrosesan, masa simpan, dan hak hapus perlu ditinjau (kebijakan memberi jalur hapus lewat email kontak).
 - Tanpa pembatasan laju per IP di endpoint (lihat `server-auth/README.md`).
