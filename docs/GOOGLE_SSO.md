@@ -157,7 +157,7 @@ Buka aplikasi (Android)
    ▼
 Layar masuk (LoginGate)  ──[Masuk dengan Google]──▶ plugin MusikAuth ──▶ token akses
    ▼
-POST https://musik.mitra247.com/api/auth.php {accessToken, edition}
+POST https://mitra247.com/musik-auth/auth.php {accessToken, edition}
    │  server: tokeninfo Google (aud = client ID edisi ini, email_verified), userinfo (nama)
    │  upsert app_users, tolak bila status = blocked
    ▼
@@ -176,7 +176,7 @@ POST https://musik.mitra247.com/api/auth.php {accessToken, edition}
 | Bagian                       | Berkas                                                                                                            |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Gerbang dan sesi di aplikasi | `app-pwa/src/account/account.svelte.ts` (`unlocked`, `guard`, `refreshSession`), `LoginGate.svelte`, `App.svelte` |
-| Alamat server                | `__AUTH_URL__`: bawaan `https://musik.mitra247.com/api/auth.php`, ubah dengan env `MUSIK_AUTH_URL` saat build     |
+| Alamat server                | `__AUTH_URL__`: bawaan `https://mitra247.com/musik-auth/auth.php`, ubah dengan env `MUSIK_AUTH_URL` saat build    |
 | Endpoint PHP                 | `server-auth/public/auth.php`                                                                                     |
 | Tabel                        | `server-auth/schema.sql` (`app_users`: email unik, nama, status, edisi, waktu, jumlah masuk)                      |
 | Konfigurasi server           | `server-auth/auth-config.example.php` (di luar web root, jangan commit)                                           |
@@ -187,18 +187,18 @@ Kenapa PHP dan bukan Node: Apache dan HTTPS di Virtualmin sudah melayani `mitra2
 
 ### Status dan yang harus dikerjakan pemilik
 
-| Item                                                                                                            | Status                              |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Kode aplikasi (gerbang, sesi, blokir, offline 30 hari) dan tes e2e                                              | ✅                                  |
-| Endpoint PHP dan skema, diuji dengan MariaDB asli dan Google palsu (21 pemeriksaan)                             | ✅                                  |
-| Client ID Android sama dengan `aud` token asli di HP (diperiksa untuk kedua edisi)                              | ✅                                  |
-| HTTPS dengan sertifikat dipercaya yang mencakup `musik.mitra247.com` (dan `mitra247.com`, sekarang self-signed) | ❌                                  |
-| Buat basis data dan pengguna MySQL di Virtualmin, impor `schema.sql`                                            | ❌                                  |
-| Pasang `auth.php` di `api/` pada subdomain `musik.mitra247.com`, konfigurasi di luar web root                   | ❌                                  |
-| Uji dari HP dengan server sungguhan                                                                             | ❌ (tidak bisa sebelum HTTPS valid) |
-| Bangun ulang dan pasang APK **sesudah** server siap (build terkunci tanpa server)                               | ❌                                  |
-| Perbarui kebijakan privasi di situs (versi 26 November) dan isi formulir Data safety di Console                 | ❌                                  |
-| **App access** di Console: sebutkan login Google wajib dan akun apa pun boleh masuk                             | ❌                                  |
+| Item                                                                                                                                                                                                                                                                                                                                                 | Status                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Kode aplikasi (gerbang, sesi, blokir, offline 30 hari) dan tes e2e                                                                                                                                                                                                                                                                                   | ✅                                  |
+| Endpoint PHP dan skema, diuji dengan MariaDB asli dan Google palsu (21 pemeriksaan)                                                                                                                                                                                                                                                                  | ✅                                  |
+| Client ID Android sama dengan `aud` token asli di HP (diperiksa untuk kedua edisi)                                                                                                                                                                                                                                                                   | ✅                                  |
+| HTTPS dengan sertifikat dipercaya di `mitra247.com` (Let's Encrypt `*.mitra247.com`, diperiksa 26 November 2026)                                                                                                                                                                                                                                     | ✅                                  |
+| Buat basis data dan pengguna MySQL di Virtualmin, impor `schema.sql`                                                                                                                                                                                                                                                                                 | ❌                                  |
+| Pasang `auth.php` di `public_html/musik-auth/` pada `mitra247.com`, konfigurasi di luar web root                                                                                                                                                                                                                                                     | ❌                                  |
+| Uji dari HP dengan server sungguhan                                                                                                                                                                                                                                                                                                                  | ❌ (tidak bisa sebelum HTTPS valid) |
+| Bangun ulang dan pasang APK **sesudah** server siap (build terkunci tanpa server)                                                                                                                                                                                                                                                                    | ❌                                  |
+| Halaman kebijakan privasi **Music Player** di situs. `https://mitra247.com/kebijakan-privasi` sekarang berisi kebijakan situs perusahaan (6 September 2026), bukan kebijakan aplikasi; tampilkan `PRIVACYPOLICY.md` di alamat yang terpisah (mis. `https://mitra247.com/musik-privasi`), lalu pakai alamat itu di Play Console dan layar izin Google | ❌                                  |
+| **App access** di Console: sebutkan login Google wajib dan akun apa pun boleh masuk                                                                                                                                                                                                                                                                  | ❌                                  |
 
 **Peringatan:** APK yang memuat gerbang ini mengunci pemakainya sampai server dapat dihubungi. Jangan pasang di HP yang dipakai sehari-hari sebelum server siap.
 

@@ -5,7 +5,7 @@ Jawaban yang disarankan untuk edisi Play (Music Player, `com.mitra247.musicplaye
 ## Fakta yang menjadi dasar
 
 - Tidak ada analitik, pelaporan kerusakan pihak ketiga, iklan, atau SDK pelacak. **Login Google wajib** (layar masuk sebelum aplikasi dipakai).
-- Ada **server milik developer** (`https://musik.mitra247.com/api/auth.php`, PHP dan MySQL) yang menerima token akses Google saat masuk, memverifikasinya ke Google, dan menyimpan **email, nama, edisi aplikasi, waktu masuk pertama dan terakhir, jumlah masuk, dan status (aktif atau diblokir)**. Token tidak disimpan.
+- Ada **server milik developer** (`https://mitra247.com/musik-auth/auth.php`, PHP dan MySQL) yang menerima token akses Google saat masuk, memverifikasinya ke Google, dan menyimpan **email, nama, edisi aplikasi, waktu masuk pertama dan terakhir, jumlah masuk, dan status (aktif atau diblokir)**. Token tidak disimpan.
 - Musik, setelan, antrean terakhir, dan preset hanya di perangkat.
 - Saat masuk, aplikasi menerima nama, email, dan foto profil dari Google. Nama dan email juga dikirim ke server kami (lihat atas); foto hanya di HP. Aplikasi menulis **satu berkas cadangan** (preset per lagu dengan judul dan ukuran lagu, plus tiga setelan) ke folder data aplikasi di **Google Drive milik pengguna** (cakupan `drive.appdata`). Cadangan tidak lewat server kami. Token akses tidak disimpan.
 - Lalu lintas keluar lainnya: layar **Cari** mengirim kata kunci (dan alamat IP, sebagai bagian permintaan web biasa) ke `archive.org`, `api.openverse.org`, dan `commons.wikimedia.org`, lalu mengunduh berkas audio dari sana. Semua lewat `https`.
