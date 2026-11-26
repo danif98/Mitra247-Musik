@@ -154,6 +154,7 @@ export const id = {
       quota: 'Google Drive sedang membatasi permintaan atau penuh. Coba lagi nanti.',
       server: 'Google Drive sedang bermasalah. Coba lagi nanti.',
       not_found: 'Cadangan tidak ditemukan.',
+      auth_server: 'Server login sedang bermasalah. Coba lagi nanti.',
       blocked: 'Akun ini diblokir dan tidak bisa memakai aplikasi. Hubungi pengelola.',
       rejected: 'Server menolak login ini. Coba masuk lagi.',
       failed: 'Gagal. Coba lagi.',

@@ -135,7 +135,9 @@ try {
     $q->execute([':email' => $email]);
     $status = $q->fetchColumn();
 } catch (Throwable $e) {
-    error_log('musik-auth db: ' . get_class($e));
+    // Server log only (never sent to the app): SQLSTATE code and message, e.g. 1045 access denied,
+    // 1049 unknown database, 1146 table app_users missing.
+    error_log('musik-auth db: ' . get_class($e) . ' ' . $e->getCode() . ' ' . $e->getMessage());
     respond(500, ['error' => 'db']);
 }
 if ($status === 'blocked') {

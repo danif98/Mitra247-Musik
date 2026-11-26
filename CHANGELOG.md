@@ -2,6 +2,12 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.5.1 (2026-11-26)
+
+- `server-auth/public/auth.php` kini mencatat kode dan pesan SQL ke log server saat koneksi atau kueri MySQL gagal (sebelumnya hanya nama kelas), supaya sebab `500 db` bisa dibaca di `error_log`. Tidak dikirim ke aplikasi.
+- Pesan error layar masuk: kegagalan server login kini berbunyi "Server login sedang bermasalah" (sebelumnya memakai pesan Google Drive yang menyesatkan).
+- Gerbang login diuji di HP dengan server sungguhan untuk kedua edisi: masuk, sesi 30 hari, keluar mengunci aplikasi, masuk lagi.
+
 ## 0.5.0 (2026-11-25)
 
 - **Akun Google opsional dan cadangan ke Google Drive (semua edisi).** Setelan punya bagian **Akun Google**: masuk dengan Google, lalu preset latihan per lagu (tempo, kunci, loop, equalizer, Minus One) dan tiga setelan (`musik.engine`, `musik.metronome`, `musik.playmode`) disinkronkan ke folder data aplikasi tersembunyi (`appDataFolder`, cakupan `drive.appdata`) di Drive milik pengguna sendiri. Tanpa server kami dan tanpa Firebase. Lagu tidak ikut. Tombol: Sinkronkan sekarang, sinkron otomatis saat aplikasi dibuka (paling sering tiap 6 jam), Keluar, Hapus cadangan di Drive. Sinkron adalah penggabungan dua arah: preset yang disimpan terakhir menang untuk tiap lagu; untuk setelan, nilai di HP ini menang dan yang kosong diisi dari cadangan.

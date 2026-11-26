@@ -1,6 +1,6 @@
 # Data safety (Play Console: App content → Data safety)
 
-Jawaban yang disarankan untuk edisi Play (Music Player, `com.mitra247.musicplayer`, versi 0.5.0). Dasarnya adalah kode dan `PRIVACYPOLICY.md`. Teks formulir di Console bisa berubah; cocokkan maknanya, bukan kata per kata. **Pemilik akun yang menjawab dan bertanggung jawab atas kebenarannya.**
+Jawaban yang disarankan untuk edisi Play (Music Player, `com.mitra247.musicplayer`, versi 0.5.1). Dasarnya adalah kode dan `PRIVACYPOLICY.md`. Teks formulir di Console bisa berubah; cocokkan maknanya, bukan kata per kata. **Pemilik akun yang menjawab dan bertanggung jawab atas kebenarannya.**
 
 ## Fakta yang menjadi dasar
 

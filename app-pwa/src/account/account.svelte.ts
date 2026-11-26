@@ -47,9 +47,9 @@ function readSession(): Session | null {
   }
 }
 
-/** Error of the sign-in check; `code` is one of network, blocked, rejected, server. */
+/** Error of the sign-in check; `code` is one of network, blocked, rejected, auth_server. */
 export class VerifyError extends Error {
-  constructor(readonly code: 'network' | 'blocked' | 'rejected' | 'server') {
+  constructor(readonly code: 'network' | 'blocked' | 'rejected' | 'auth_server') {
     super(code);
     this.name = 'VerifyError';
   }
@@ -69,13 +69,13 @@ async function verifyWithServer(accessToken: string): Promise<Session> {
   }
   if (res.status === 403) throw new VerifyError('blocked');
   if (res.status === 401 || res.status === 400) throw new VerifyError('rejected');
-  if (!res.ok) throw new VerifyError('server');
+  if (!res.ok) throw new VerifyError('auth_server');
   try {
     const body = (await res.json()) as { session?: unknown; exp?: unknown };
     if (typeof body.session !== 'string' || typeof body.exp !== 'number') throw new Error('shape');
     return { token: body.session, exp: body.exp * 1000, at: Date.now() };
   } catch {
-    throw new VerifyError('server');
+    throw new VerifyError('auth_server');
   }
 }
 
