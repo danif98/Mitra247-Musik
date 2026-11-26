@@ -1,4 +1,4 @@
-Music Player adalah alat latihan musik di saku Anda. Perlambat bagian yang sulit, ganti kunci agar pas dengan suara Anda, kurangi vokal untuk bernyanyi bersama, dan ulangi satu bagian sampai lancar. Semuanya dalam satu aplikasi, tanpa akun dan tanpa iklan.
+Music Player adalah alat latihan musik di saku Anda. Perlambat bagian yang sulit, ganti kunci agar pas dengan suara Anda, kurangi vokal untuk bernyanyi bersama, dan ulangi satu bagian sampai lancar. Semuanya dalam satu aplikasi, tanpa iklan dan tanpa pelacakan.
 
 UNTUK SIAPA
 Pemain gitar, piano, bass, drum, penyanyi, guru les, paduan suara, tim ibadah, dan siapa pun yang ingin berlatih bersama lagu.

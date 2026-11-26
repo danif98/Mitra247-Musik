@@ -31,13 +31,16 @@ Layar Cari menampilkan hasil dari Internet Archive, Openverse, dan Wikimedia Com
 
 Bila Console membedakan "konten buatan pengguna yang ditampilkan pihak ketiga" dan menanyakannya secara eksplisit, jawab **Ya** dan terima rating yang mungkin naik. Jangan menyembunyikannya demi rating lebih rendah.
 
-## Hasil yang diharapkan
+## Hasil yang diharapkan (semua jawaban Tidak) dan hasil nyata
 
 Umumnya setara dengan "Semua umur" (IARC 3+) bila semua jawaban Tidak. Catat hasil sebenarnya dari Console di bawah ini setelah dikirim:
 
-| Wilayah              | Rating | Tanggal diisi |
-| -------------------- | ------ | ------------- |
-| (isi setelah submit) |        |               |
+| Wilayah                            | Rating | Tanggal diisi    |
+| ---------------------------------- | ------ | ---------------- |
+| IARC (umum)                        | 12+    | 26 November 2026 |
+| ESRB (Amerika)                     | Teen   | 26 November 2026 |
+| PEGI (Eropa)                       | 12     | 26 November 2026 |
+| Brasil (ClassInd) dan wilayah lain | 12     | 26 November 2026 |
 
 ## Pengaturan terkait di Console
 
@@ -54,3 +57,5 @@ Umumnya setara dengan "Semua umur" (IARC 3+) bila semua jawaban Tidak. Catat has
 | ID iklan (Advertising ID)     | Tidak dipakai. Pilih "Tidak" (tidak ada izin `AD_ID` di manifest)                                                 |
 | Kategori aplikasi             | **Musik & Audio**                                                                                                 |
 | Tag                           | Pemutar musik, alat latihan musik                                                                                 |
+
+Jawaban yang dikirim pada 26 November 2026 (gaya konservatif): **Online Content: Ya** (layar Cari memuat musik dari luar paket) dan **Language: Ya** (lirik kasar mungkin ada: minor profanities Ya, moderate swearing Ya, diskriminatif Tidak, sexual expletives Tidak, bukan fokus aplikasi). Kekerasan, seksualitas, zat terlarang, dan promosi produk dibatasi usia: Tidak. Hasilnya 12+ / Teen / PEGI 12. Sertifikat IARC belum menampilkan ID. Bila fitur Cari berubah atau Anda ingin rating lebih rendah, kirim kuesioner baru lewat "Start new questionnaire".
