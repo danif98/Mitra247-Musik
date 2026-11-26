@@ -11,7 +11,7 @@ Kebijakan ini menjelaskan bagaimana aplikasi **Music Player** ("Aplikasi") menan
 
 ### Data yang disimpan di server kami
 
-Saat Anda masuk dengan Google, Aplikasi mengirim token akses dari Google ke server kami (`https://mitra247.com`) untuk memastikan akun itu sah. Server kami menyimpan:
+Saat Anda masuk dengan Google, Aplikasi mengirim token akses dari Google ke server kami (`https://musik.mitra247.com`) untuk memastikan akun itu sah. Server kami menyimpan:
 
 | Data                                           | Tujuan                                                                 |
 | ---------------------------------------------- | ---------------------------------------------------------------------- |

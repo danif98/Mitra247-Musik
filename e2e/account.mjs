@@ -100,7 +100,7 @@ try {
 async function newPhone() {
   const context = await browser.newContext({ viewport: { width: 412, height: 915 } });
   await context.route('https://www.googleapis.com/**', driveRoute);
-  await context.route('https://mitra247.com/musik-auth/auth.php', authRoute);
+  await context.route('https://musik.mitra247.com/api/auth.php', authRoute);
   const page = await context.newPage();
   const errors = [];
   page.on('console', (m) => {

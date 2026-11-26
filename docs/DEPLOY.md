@@ -46,7 +46,7 @@ npm run deploy:prepare   # menyalin ke ..\musik-deploy (atau MUSIK_DEPLOY_DIR)
 ```
 
 Folder lain: `$env:MUSIK_DEPLOY_DIR = "D:\path\musik-deploy"` sebelum `deploy:prepare`.
-Skrip menulis `app/`, `server/`, `package.json`, `package-lock.json`, `VERSION`, `.gitignore`. Tanpa `vendor.zip`, tanpa `.env`; ada pemindaian rahasia sebelum selesai. Skrip mencetak perintah commit/tag/push; **jalankan manual**:
+Skrip menulis `app/`, `server/`, `api/auth.php` (+ `api/auth-config.example.php`, endpoint login Google; `api/auth-config.php` dengan rahasia dibuat di server, tidak ikut git), `package.json`, `package-lock.json`, `VERSION`, `.gitignore`. Lihat `server-auth/README.md`. Tanpa `vendor.zip`, tanpa `.env`; ada pemindaian rahasia sebelum selesai. Skrip mencetak perintah commit/tag/push; **jalankan manual**:
 
 ```powershell
 cd ..\musik-deploy

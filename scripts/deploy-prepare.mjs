@@ -5,6 +5,8 @@
 // Layout written to the deploy folder:
 //   app/                static PWA (point the web server / public_html symlink here)
 //   server/             compiled Node service (startup file: server/app.js)
+//   api/auth.php        sign-in check (PHP + MySQL), served at /api/auth.php; api/auth-config.php
+//                       (secrets, created once on the server) is git-ignored and never touched here
 //   package.json        production manifest for the Node app (no devDependencies)
 //   package-lock.json   production lockfile
 //   VERSION             build version line
@@ -42,6 +44,7 @@ node_modules/
 data/
 tmp/
 *.log
+api/auth-config.php
 `;
 
 const DEPLOY_README = `# musik-deploy
@@ -51,6 +54,7 @@ in the source repo. See docs/DEPLOY.md in the source repo for the full procedure
 
 - \`app/\` static PWA
 - \`server/\` Node service (startup file \`server/app.js\`); configuration only via environment variables
+- \`api/auth.php\` sign-in check (PHP + MySQL) at \`/api/auth.php\`; its secrets live in \`api/auth-config.php\` (created once on the server, git-ignored). See \`server-auth/README.md\` in the source repo
 - \`vendor.zip\` (pure JS dependencies) is uploaded separately and is NOT in this repo
 `;
 
@@ -116,6 +120,14 @@ function main() {
   for (const name of MANAGED) rmSync(path.join(deployDir, name), { recursive: true, force: true });
   cpSync(path.join(out, 'app'), path.join(deployDir, 'app'), { recursive: true });
   cpSync(path.join(out, 'server'), path.join(deployDir, 'server'), { recursive: true });
+  // api/: only the managed files; api/auth-config.php (secrets on the server) is never touched.
+  mkdirSync(path.join(deployDir, 'api'), { recursive: true });
+  for (const [from, to] of [
+    [path.join('server-auth', 'public', 'auth.php'), 'auth.php'],
+    [path.join('server-auth', 'auth-config.example.php'), 'auth-config.example.php'],
+  ]) {
+    cpSync(path.join(root, from), path.join(deployDir, 'api', to));
+  }
 
   const rootPkg = readJson(path.join(root, 'package.json'));
   const serverPkg = readJson(path.join(root, 'server', 'package.json'));

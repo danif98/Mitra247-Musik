@@ -11,8 +11,10 @@
 
 declare(strict_types=1);
 
-// The config path comes from the environment (SetEnv in .htaccess shows up in $_SERVER).
-$configPath = getenv('MUSIK_AUTH_CONFIG') ?: ($_SERVER['MUSIK_AUTH_CONFIG'] ?? '') ?: (__DIR__ . '/../auth-config.php');
+// Config path: the MUSIK_AUTH_CONFIG environment variable (SetEnv in the server's .htaccess shows up
+// in $_SERVER), else auth-config.php next to this file (not in git; it only returns an array, so it
+// prints nothing when requested directly).
+$configPath = getenv('MUSIK_AUTH_CONFIG') ?: ($_SERVER['MUSIK_AUTH_CONFIG'] ?? '') ?: (__DIR__ . '/auth-config.php');
 $config = is_file($configPath) ? require $configPath : null;
 
 function respond(int $status, array $body): never

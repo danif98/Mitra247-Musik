@@ -151,6 +151,7 @@ export class Account {
   session = $state.raw<Session | null>(readSession());
   /** Re-read when the app returns to the foreground, so an expired session locks the app. */
   private clock = $state(Date.now());
+  private checking = false;
 
   /**
    * The app may be used. Always true where there is no sign-in plugin (a browser). In the Android
@@ -178,8 +179,10 @@ export class Account {
    */
   async refreshSession(): Promise<void> {
     const provider = this.provider;
-    if (!provider || !this.user || this.busy) return;
+    if (!provider || !this.user || this.checking) return;
     if (this.session && Date.now() - this.session.at < RECHECK_MS) return;
+    // Not tied to `busy`: a Drive sync in progress must not skip the check.
+    this.checking = true;
     try {
       const info = await provider.getAccessToken({ account: this.user.email });
       this.setSession(await verifyWithServer(info.accessToken));
@@ -189,6 +192,8 @@ export class Account {
         this.say(id.account.errors.blocked, true);
       }
       /* other errors: keep the saved check until it runs out */
+    } finally {
+      this.checking = false;
     }
   }
 

@@ -1,38 +1,47 @@
 # server-auth: pemeriksaan login Google
 
-Satu berkas PHP (`public/auth.php`) dan satu tabel MySQL (`app_users`) untuk gerbang login aplikasi. Berjalan di server Virtualmin yang sama dengan `mitra247.com`, di alamat `https://mitra247.com/musik-auth/auth.php`. Rancangan lengkap: [`docs/GOOGLE_SSO.md`](../docs/GOOGLE_SSO.md) bagian 7.
+Satu berkas PHP (`public/auth.php`) dan satu tabel MySQL (`app_users`) untuk gerbang login aplikasi. Alamatnya `https://musik.mitra247.com/api/auth.php`. Rancangan lengkap: [`docs/GOOGLE_SSO.md`](../docs/GOOGLE_SSO.md) bagian 7.
 
 Cara kerja: aplikasi mengirim token akses Google, server menanyakan ke Google siapa pemiliknya (dan bahwa token dikeluarkan untuk salah satu dari dua aplikasi kita), mencatat email di `app_users` (pendaftaran terbuka), menolak email yang `blocked`, lalu mengembalikan tanda sesi 30 hari.
 
-## Pasang di Virtualmin
+## Ikut folder deploy (git pull)
 
-Langkah memakai istilah Virtualmin. Di cPanel padanannya: MySQL Databases / MySQL Database Wizard, File Manager, dan AutoSSL.
+`npm run deploy:prepare` menyalin `auth.php` dan `auth-config.example.php` ke folder **`api/`** di repo `musik-deploy`. Folder dokumen subdomain `musik.mitra247.com` adalah akar repo itu (lihat `docs/DEPLOY.md`), jadi setelah `git pull` di server, berkas ada di `https://musik.mitra247.com/api/auth.php`. Berkas konfigurasi rahasia `api/auth-config.php` **diabaikan git** (tidak ikut, tidak tertimpa `git pull`) dan dibuat sekali di server.
 
-**Kenapa `mitra247.com/musik-auth/` dan bukan `musik.mitra247.com`:** subdomain `musik.` sepenuhnya dilayani server Node (setiap jalur, termasuk `/api/auth.php`, dijawab Node dengan `Token tidak ada atau salah.`), dan `mitra247.com/api/` dipegang backend situs utama. Jalur `/musik-auth/` di domain utama bebas. Sertifikat `*.mitra247.com` Let's Encrypt sudah berlaku di domain utama.
+> `/api/health`, `/api/search`, dan seterusnya tetap dijawab Node. Berkas `api/auth.php` yang benar-benar ada di disk umumnya dilayani web server lebih dulu daripada Node (berkas statis menang atas rute aplikasi). Hal ini **belum diuji di hosting Anda**: pakai langkah 6 di bawah untuk memastikan. Bila jawabannya `Token tidak ada atau salah.`, Node masih mengambil alih jalur itu.
 
-1. **Basis data.** Virtualmin, domain `mitra247.com`, Edit Databases, buat basis data (misalnya `mitra247_musik`) dan pengguna dengan kata sandi acak. Impor skema:
+## Pasang di server (sekali)
 
-   ```sh
-   mysql -u <pengguna> -p <basis_data> < schema.sql
-   ```
+Istilah Virtualmin; di cPanel padanannya MySQL Databases / MySQL Database Wizard dan File Manager.
 
-2. **PHP.** Perlu PHP 8.1 atau lebih baru dengan ekstensi `curl` dan `pdo_mysql`.
-
-3. **Berkas konfigurasi di luar web root.** Salin `auth-config.example.php` ke `/home/<domain>/auth-config.php` (satu tingkat di atas `public_html`), lalu isi: DSN, pengguna, kata sandi, dan `session_secret` acak (`php -r "echo bin2hex(random_bytes(32));"`). Izin `chmod 600`. **Jangan commit berkas ini.**
-
-4. **Daftar client ID.** Di `client_ids`, pastikan dua nilai sama dengan Client ID di Google Cloud (`music-player-mitra247`, Google Auth Platform, Clients: satu untuk `com.mitra247.musicplayer` dan satu untuk `com.mitra247.musictools`). Salah satu saja yang salah membuat edisi itu ditolak (`audience`).
-
-5. **Unggah endpoint.** Salin `public/auth.php` dan `public/.htaccess` ke folder `musik-auth/` di document root `mitra247.com` (`public_html/musik-auth/`) sehingga alamatnya `https://musik.mitra247.com/api/auth.php`. Di `.htaccess` itu, hapus tanda `#` pada baris `SetEnv MUSIK_AUTH_CONFIG ...` dan isi dengan jalur absolut berkas dari langkah 3. Berkas konfigurasi **tidak boleh** berada di dalam `public_html`.
-
-6. **HTTPS.** Sertifikat harus dari CA yang dipercaya (Let's Encrypt) dan valid untuk `mitra247.com` (sudah, per 26 November 2026). Aplikasi menolak HTTP.
-
-7. **Uji.**
+1. **Basis data.** Buat basis data (misalnya `mitra247_musik`) dan pengguna dengan kata sandi acak, lalu impor skema (phpMyAdmin Import, atau):
 
    ```sh
-   curl -i -X POST https://mitra247.com/musik-auth/auth.php -H "content-type: application/json" -d "{\"accessToken\":\"x\"}"
+   mysql -u <pengguna> -p <basis_data> < server-auth/schema.sql
    ```
 
-   Hasil yang benar: `401` dengan `{"error":"token"}`. Jawaban HTML (halaman situs) berarti PHP tidak dijalankan di jalur itu; jawaban `Token tidak ada atau salah.` berarti server Node yang menjawab. `500` dengan `config` berarti berkas konfigurasi tidak ditemukan; `500` dengan `db` berarti koneksi MySQL gagal (lihat log PHP).
+2. **PHP.** Perlu PHP 8.1 atau lebih baru dengan ekstensi `curl` dan `pdo_mysql`, aktif untuk subdomain `musik.mitra247.com`.
+
+3. **Berkas konfigurasi.** Salin `api/auth-config.example.php` menjadi **`api/auth-config.php`** di server dan isi: DSN, pengguna, kata sandi, dan `session_secret` acak (`php -r "echo bin2hex(random_bytes(32));"`). `chmod 600`. Berkas ini hanya `return [...]`, jadi tidak mengeluarkan apa pun bila diminta lewat web, dan sudah di `.gitignore`. **Jangan commit.**
+
+   Lebih aman: taruh berkas di luar folder dokumen (mis. `/home/<user>/musik-auth-config.php`) dan tambahkan baris ini ke `.htaccess` folder dokumen yang Anda kelola sendiri, di luar blok yang dikelola cPanel (jangan masukkan ke repo):
+
+   ```apache
+   SetEnv MUSIK_AUTH_CONFIG /home/<user>/musik-auth-config.php
+   ```
+
+4. **Client ID.** Di `client_ids`, pastikan dua nilai sama dengan Client ID di Google Cloud (`music-player-mitra247`, Google Auth Platform, Clients: `com.mitra247.musicplayer` dan `com.mitra247.musictools`). Contoh di berkas sudah cocok dengan token asli yang diperiksa pada 26 November 2026. Salah satu yang salah membuat edisi itu ditolak (`audience`).
+
+5. **Deploy.** Di repo sumber, ucapkan "deploy" (atau `npm run build` lalu `npm run deploy:prepare`, commit, tag, push), lalu di server `git pull`. Tidak perlu memulai ulang Node untuk perubahan `api/auth.php`; mulai ulang hanya bila `server/` berubah.
+
+6. **Uji.**
+
+   ```sh
+   curl -i https://musik.mitra247.com/api/auth.php
+   curl -i -X POST https://musik.mitra247.com/api/auth.php -H "content-type: application/json" -d "{\"accessToken\":\"x\"}"
+   ```
+
+   Hasil yang benar: `405` dengan `{"error":"method"}` untuk GET, dan `401` dengan `{"error":"token"}` untuk POST. `500` dengan `config` berarti `auth-config.php` tidak ditemukan; `500` dengan `db` berarti koneksi MySQL gagal (lihat log PHP). Jawaban `{"error":"unauthorized","message":"Token tidak ada atau salah."}` berarti Node yang menjawab, bukan PHP; jawaban HTML atau teks `<?php` berarti PHP tidak dijalankan di jalur itu. Dalam kedua kasus itu jalur `/api/auth.php` tidak bisa dipakai di subdomain ini dan alamatnya perlu dipindah (ubah `MUSIK_AUTH_URL` saat build).
 
 ## Mengelola pengguna
 
@@ -55,6 +64,6 @@ Memakai PHP, MySQL lokal (XAMPP: user `root` tanpa kata sandi), dan Google palsu
 
 ## Batasan
 
-- Tidak ada pembatasan laju (rate limit) per IP. Bila endpoint disalahgunakan, tambahkan di level Apache (`mod_evasive`, `fail2ban`) atau tabel hitung sederhana.
-- Memakai pemanggilan `oauth2.googleapis.com/tokeninfo` dan `www.googleapis.com/oauth2/v3/userinfo` per masuk. Server harus bisa keluar ke internet.
+- Tidak ada pembatasan laju (rate limit) per IP. Bila endpoint disalahgunakan, tambahkan di level web server (`fail2ban`, aturan LiteSpeed) atau tabel hitung sederhana.
+- Memanggil `oauth2.googleapis.com/tokeninfo` dan `www.googleapis.com/oauth2/v3/userinfo` per masuk. Server harus bisa keluar ke internet.
 - Gerbang ini adalah kontrol akses, bukan perlindungan penuh: seluruh fitur berjalan di HP, jadi aplikasi yang sengaja dimodifikasi bisa melewatinya.

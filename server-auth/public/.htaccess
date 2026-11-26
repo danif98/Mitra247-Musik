@@ -1,7 +1,0 @@
-# Only auth.php is public. Keep any other file in this folder from being served.
-# Path of the config file, kept OUTSIDE the web root (edit it, then uncomment):
-# SetEnv MUSIK_AUTH_CONFIG /home/mitra247/auth-config.php
-
-<FilesMatch "^(?!auth\.php$)">
-  Require all denied
-</FilesMatch>
