@@ -1,0 +1,4 @@
+• Search songs in the queue
+• The queue list is no longer hidden behind the navigation bar
+• New splash screen and app icon
+• Buttons are easier to tell apart from the dark background

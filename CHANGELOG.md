@@ -2,6 +2,13 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.6.2 (2026-11-27)
+
+- **Antrean**: kolom cari di atas daftar (mulai 6 lagu; kata-kata harus cocok dengan judul, nama berkas, atau artis; nomor posisi tetap; Enter memutar hasil pertama). Tinggi daftar kini dihitung dari ruang di atas bar navigasi (minimal 300 px) dan gulir berlanjut ke halaman di ujung daftar, sehingga lagu terakhir tidak tertutup bar (`fitQueue` di `PlayerScreen.svelte`; tes `e2e/queuefit.mjs`).
+- **Splash screen Android** (`drawable/splash_icon.xml`, tema `AppTheme.NoActionBarLaunch` dengan `windowSplashScreen*`) dan **ikon peluncur** baru dari logo web (`scripts/android-icons.mjs` menggambar semua kerapatan).
+- Tema: panel dan tombol lebih terang (`--panel`, `--panel-2`), variabel `--edge` untuk garis tepi input.
+- Tombol MP3 diposisikan di tengah; peringatan volume di atas 100% disembunyikan di balik ikon info.
+
 ## 0.6.1 (2026-11-27)
 
 - Nama default **Simpan sebagai MP3** menyertakan kunci lagu setelah transpose (bentuk singkat, `D` atau `Em`) bila kunci sudah terdeteksi: `practiceFileName(..., keyName)` di `core/audio/export.ts`. Tes unit dan e2e diperbarui.

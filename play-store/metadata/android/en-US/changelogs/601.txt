@@ -1,1 +1,5 @@
-• MP3 file names now include the key after transposing, for example [Tempo 100 - Key +2 (D)]
+• Save as MP3 with the tempo, key, volume, Minus One and equalizer you use. File name is automatic, for example [Tempo 100 - Key +2 (D)]
+• Song key detection (estimate), shown on the Play screen
+• Volume up to 200% and an option to level the volume between songs
+• Clearer Minus One button
+• Screen no longer hidden under the status bar

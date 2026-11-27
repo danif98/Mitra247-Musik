@@ -126,7 +126,18 @@ try {
   const g = await page.evaluate(() => window.__musik.player.engine.output.gain.value);
   check('volume 150% sets the output gain to 1.5', Math.abs(g - 1.5) < 0.05, String(g));
   check('the label shows 150%', (await page.textContent('#volume-pct'))?.trim() === '150%');
-  check('a warning is shown above 100%', (await page.locator('#volume-boost').count()) === 1);
+  check(
+    'the boost warning is hidden, only an info icon shows above 100%',
+    (await page.locator('#volume-boost').count()) === 0 &&
+      (await page.locator('#volume-info').count()) === 1,
+  );
+  await page.click('#volume-info');
+  check(
+    'tapping the info icon shows the warning',
+    (await page.locator('#volume-boost').count()) === 1,
+  );
+  await page.click('#volume-info');
+  check('tapping again hides it', (await page.locator('#volume-boost').count()) === 0);
   await page.evaluate(() => window.__musik.player.setVolume(5));
   check(
     'volume is limited to 200%',

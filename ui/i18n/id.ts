@@ -45,7 +45,10 @@ export const id = {
     volume: 'Volume',
     volumeBoost:
       'Volume di atas 100%: suara diperkeras dan bisa terdengar pecah. Gunakan seperlunya.',
+    volumeBoostInfo: 'Info volume di atas 100%',
     minusOneHint: 'Kurangi vokal',
+    queueSearch: 'Cari di antrean',
+    queueNoResult: 'Tidak ada lagu di antrean yang cocok.',
     keyOriginal: 'Kunci lagu',
     keyUnsure: 'Perkiraan kunci, kurang yakin. Tanda ~ berarti bisa meleset.',
     exportToggle: 'Simpan sebagai MP3',

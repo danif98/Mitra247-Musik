@@ -1,5 +1,0 @@
-• Save as MP3 with the tempo, key, volume, Minus One and equalizer you use
-• Song key detection (estimate)
-• Volume up to 200% and an option to level the volume between songs
-• Clearer Minus One button
-• Screen no longer hidden under the status bar

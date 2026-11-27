@@ -2,6 +2,14 @@
 
 Riwayat perubahan yang ditampilkan di layar Setelan, Tentang, pada edisi Google Play. Berkas ini ditulis terpisah dari `CHANGELOG.md` dan tidak memuat fitur edisi pribadi. Tiap entri memakai format `## <versi> (<tanggal>)`.
 
+## 0.6.2 (2026-11-27)
+
+- **Cari di antrean**: kolom pencarian di atas daftar antrean (muncul untuk 6 lagu atau lebih). Enter memutar hasil pertama.
+- Daftar antrean tidak lagi tertutup bar navigasi: lagu terakhir selalu bisa dilihat.
+- **Splash screen** dan **ikon aplikasi** baru dengan logo equalizer.
+- Tombol dan panel lebih terang sehingga mudah dibedakan dari latar gelap.
+- Ikon MP3 di tab Latihan berada di tengah, dan peringatan volume di atas 100% kini lewat ikon info.
+
 ## 0.6.1 (2026-11-27)
 
 - Nama default MP3 kini menyertakan kunci hasil transpose, misalnya `Idol - Yoasobi [Tempo 100 - Key +2 (D)]`.

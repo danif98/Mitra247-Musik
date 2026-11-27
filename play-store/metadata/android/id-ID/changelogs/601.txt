@@ -1,1 +1,5 @@
-• Nama berkas MP3 kini menyertakan kunci hasil transpose, misalnya [Tempo 100 - Key +2 (D)]
+• Simpan sebagai MP3 dengan tempo, kunci, volume, Minus One, dan equalizer yang dipakai. Nama berkas otomatis, misalnya [Tempo 100 - Key +2 (D)]
+• Deteksi kunci lagu (perkiraan), tampil di layar Putar
+• Volume sampai 200% dan opsi samakan volume antar lagu
+• Tombol Minus One lebih jelas
+• Tampilan tidak lagi tertimpa status bar

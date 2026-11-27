@@ -12,6 +12,7 @@
     transposeKey,
     formatVolumePercent,
     isSupportedAudio,
+    matchesQuery,
   } from '@musik/core';
   import { onMount, tick } from 'svelte';
   import type { Player } from './player.svelte';
@@ -26,6 +27,8 @@
   const TAB_KEY = 'musik.playtab';
 
   let infoOpen = $state(false);
+  /** Explanation of volume above 100%: hidden until the info icon is tapped. */
+  let boostInfoOpen = $state(false);
   let panel = $state<'eq' | 'metro' | 'export' | null>(null);
   /** File name typed for "Simpan sebagai MP3"; follows tempo and key until the user edits it. */
   let exportName = $state('');
@@ -43,6 +46,22 @@
   );
   let tab = $state<'queue' | 'practice'>('queue');
   let listEl = $state<HTMLElement | null>(null);
+  /** Search box above the queue; the list shows the songs that match (their queue numbers stay). */
+  let queueQuery = $state('');
+  const SEARCH_FROM = 6; // a short queue needs no search box
+  const shown = $derived(
+    player.queue
+      .map((item, i) => ({ item, i }))
+      .filter(({ item }) =>
+        matchesQuery(
+          {
+            title: item.title,
+            fileName: `${item.fileName} ${item.artist ?? item.credit?.creator ?? ''}`,
+          },
+          queueQuery,
+        ),
+      ),
+  );
   /** Practice mode: a compact screen that fits a phone without scrolling. */
   const practice = $derived(tab === 'practice');
   /** " · G → A": detected key of the song and what it becomes with the chosen transpose. */
@@ -102,9 +121,33 @@
     player.repeat === 'one' ? t.repeatOne : player.repeat === 'all' ? t.repeatAll : t.repeatOff,
   );
 
+  /**
+   * The queue list scrolls inside itself. Its height is the space between its top edge and the
+   * bottom bar (at least 300 px, so a few songs are always visible). When there is less room, the
+   * page scrolls on after the list reaches its end (no scroll containment), and the last songs
+   * come above the bar.
+   */
+  function fitQueue() {
+    const el = listEl;
+    if (!el) return;
+    const bar = document.querySelector('nav');
+    const barTop = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+    const listTop = el.getBoundingClientRect().top + window.scrollY; // where it sits at scroll 0
+    el.style.maxHeight = `${Math.max(300, Math.floor(barTop - listTop - 12))}px`;
+  }
+  $effect(() => {
+    void [tab, listEl, player.queue.length, player.current?.id, player.exportBusy, panel];
+    void tick().then(fitQueue);
+  });
+  onMount(() => {
+    window.addEventListener('resize', fitQueue);
+    return () => window.removeEventListener('resize', fitQueue);
+  });
+
   // Keep the playing song in view inside the queue list (the list scrolls, the page does not).
   $effect(() => {
     void player.queueIndex;
+    void queueQuery;
     if (tab !== 'queue' || !listEl) return;
     const el = listEl;
     void tick().then(() => {
@@ -338,8 +381,31 @@
         {#if player.queue.length === 0}
           <p class="muted">{t.queueEmpty}</p>
         {:else}
+          {#if player.queue.length >= SEARCH_FROM}
+            <div class="qsearch">
+              <input
+                class="search"
+                id="queue-search"
+                type="search"
+                placeholder={t.queueSearch}
+                aria-label={t.queueSearch}
+                bind:value={queueQuery}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter' && shown[0]) void player.playAt(shown[0].i);
+                }}
+              />
+              {#if queueQuery.trim()}
+                <span class="muted qcount" id="queue-count" role="status"
+                  >{shown.length} / {player.queue.length}</span
+                >
+              {/if}
+            </div>
+          {/if}
+          {#if shown.length === 0}
+            <p class="muted" id="queue-noresult">{t.queueNoResult}</p>
+          {/if}
           <ul class="queue" id="queue-list" bind:this={listEl}>
-            {#each player.queue as item, i (item.id)}
+            {#each shown as { item, i } (item.id)}
               {@const current = i === player.queueIndex}
               <li>
                 <button
@@ -651,8 +717,20 @@
           <span class="vol-pct" class:boost={player.volume > 1} id="volume-pct"
             >{formatVolumePercent(player.volume)}</span
           >
+          {#if player.volume > 1}
+            <button
+              type="button"
+              id="volume-info"
+              class="ghost boost-info"
+              aria-expanded={boostInfoOpen}
+              aria-label={t.volumeBoostInfo}
+              onclick={() => (boostInfoOpen = !boostInfoOpen)}
+            >
+              <Icon name="info" size={20} />
+            </button>
+          {/if}
         </div>
-        {#if player.volume > 1}
+        {#if player.volume > 1 && boostInfoOpen}
           <p class="muted note" id="volume-boost">{t.volumeBoost}</p>
         {/if}
         <div class="bottom mo-row">
@@ -1042,10 +1120,29 @@
     padding: 0;
     display: grid;
     gap: 2px;
-    max-height: min(46vh, 420px);
+    max-height: min(46vh, 420px); /* replaced by fitQueue() with the real free space */
     overflow-y: auto;
-    overscroll-behavior: contain;
     position: relative;
+  }
+  .qsearch {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .search {
+    min-height: var(--tap);
+    padding: 0 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--edge);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+    min-width: 0;
+  }
+  .qcount {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .queue li {
     content-visibility: auto;
@@ -1144,7 +1241,9 @@
   .tools button.export-toggle {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1.1;
@@ -1261,6 +1360,14 @@
   }
   .vol-row {
     grid-template-columns: auto 1fr 3.4rem;
+  }
+  .vol-row:has(.boost-info) {
+    grid-template-columns: auto 1fr 3.4rem 36px;
+  }
+  .bottom button.boost-info {
+    min-width: 36px;
+    min-height: 36px;
+    color: var(--warn);
   }
   .vol-pct {
     text-align: right;

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo of the app (same art as app-pwa/public/icon.svg: a cyan disc with three equalizer bars),
+     centred in the safe circle of the Android 12 splash screen. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="768"
+    android:viewportHeight="768">
+    <group
+        android:translateX="128"
+        android:translateY="128">
+        <path
+            android:fillColor="#4CC2FF"
+            android:pathData="M92,256 a164,164 0 1,0 328,0 a164,164 0 1,0 -328,0 z" />
+        <path
+            android:fillColor="#0F1115"
+            android:pathData="M184,196 h24 a8,8 0 0 1 8,8 v104 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-104 a8,8 0 0 1 8,-8 z" />
+        <path
+            android:fillColor="#0F1115"
+            android:pathData="M244,154 h24 a8,8 0 0 1 8,8 v188 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-188 a8,8 0 0 1 8,-8 z" />
+        <path
+            android:fillColor="#0F1115"
+            android:pathData="M304,182 h24 a8,8 0 0 1 8,8 v132 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-132 a8,8 0 0 1 8,-8 z" />
+    </group>
+</vector>

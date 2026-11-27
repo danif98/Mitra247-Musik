@@ -1,0 +1,4 @@
+• Cari lagu di antrean
+• Daftar antrean tidak lagi tertutup bar navigasi
+• Splash screen dan ikon aplikasi baru
+• Tombol lebih mudah dibedakan dari latar gelap
