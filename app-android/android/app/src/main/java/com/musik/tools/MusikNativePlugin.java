@@ -1,6 +1,8 @@
 package com.musik.tools;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
@@ -10,6 +12,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
+import android.util.Base64;
 import android.util.Log;
 import android.provider.MediaStore;
 import com.getcapacitor.JSArray;
@@ -18,10 +21,13 @@ import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import androidx.activity.result.ActivityResult;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.io.File;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -321,5 +327,62 @@ public class MusikNativePlugin extends Plugin {
         call.resolve();
     }
 
+    // ------------------------------------------------------------------ save as
+
+    /**
+     * "Save as" dialog of Android (Storage Access Framework): the user picks the folder and may
+     * change the proposed name. Needs no storage permission. Resolves {uri}, or rejects with code
+     * "cancelled".
+     */
+    @PluginMethod
+    public void createDocument(PluginCall call) {
+        String name = call.getString("name", "audio.mp3");
+        String mime = call.getString("mime", "audio/mpeg");
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(mime);
+        intent.putExtra(Intent.EXTRA_TITLE, name);
+        startActivityForResult(call, intent, "createDocumentResult");
+    }
+
+    @ActivityCallback
+    private void createDocumentResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        Intent data = result.getData();
+        if (result.getResultCode() != Activity.RESULT_OK || data == null || data.getData() == null) {
+            call.reject("Penyimpanan dibatalkan.", "cancelled");
+            return;
+        }
+        JSObject out = new JSObject();
+        out.put("uri", data.getData().toString());
+        call.resolve(out);
+    }
+
+    /** Write one base64 chunk to a document from createDocument (append = false starts the file over). */
+    @PluginMethod
+    public void writeDocument(PluginCall call) {
+        final String uriString = call.getString("uri");
+        final String data = call.getString("data", "");
+        final boolean append = Boolean.TRUE.equals(call.getBoolean("append", false));
+        if (uriString == null) {
+            call.reject("Berkas tujuan tidak ada.", "failed");
+            return;
+        }
+        worker.execute(() -> {
+            try (OutputStream out = getContext()
+                .getContentResolver()
+                .openOutputStream(Uri.parse(uriString), append ? "wa" : "wt")) {
+                if (out == null) {
+                    call.reject("Berkas tujuan tidak bisa dibuka.", "failed");
+                    return;
+                }
+                out.write(Base64.decode(data, Base64.DEFAULT));
+                call.resolve();
+            } catch (Exception e) {
+                Log.w("MusikNative", "writeDocument failed: " + e.getClass().getSimpleName());
+                call.reject("Berkas tidak bisa ditulis.", "failed");
+            }
+        });
+    }
 
 }

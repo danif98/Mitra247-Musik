@@ -12,6 +12,15 @@ import {
   type MinusOneParams,
   NO_LOOP,
   clampBpm,
+  VOLUME_MAX,
+  type DetectedKey,
+  ExportError,
+  exportPracticeMp3,
+  practiceFileName,
+  sanitizeFileName,
+  type ExportStage,
+  dbToGain,
+  normalizeGainDb,
   clampEqGain,
   defaultPreset,
   BACKUP_VERSION,
@@ -49,8 +58,14 @@ import { engineAssets } from '@musik/core/audio/assets';
 import { id } from '@musik/ui';
 import { native, readNativeFile } from './native';
 import { DiagLog } from '../lab/diag-log';
+import { analyzeSongFile } from './loudness-file';
+import { saveBytesAs } from './save-file';
 
 const ENGINE_KEY = 'musik.engine';
+const NORMALIZE_KEY = 'musik.normalize';
+const LOUDNESS_KEY = 'musik.loudness';
+const KEYS_KEY = 'musik.keys';
+const LOUDNESS_MAX_ENTRIES = 2000;
 const METRO_KEY = 'musik.metronome';
 
 interface MetroSettings {
@@ -89,6 +104,47 @@ function loadEngine(): RubberBandEngine {
     return localStorage.getItem(ENGINE_KEY) === 'R3' ? 'R3' : 'R2';
   } catch {
     return 'R2';
+  }
+}
+
+/** Loudness normalisation is on unless the user turned it off. */
+function loadNormalize(): boolean {
+  try {
+    return localStorage.getItem(NORMALIZE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+/** Measured loudness (dBFS) per song, remembered so a song is analysed only once. */
+function loadLoudness(): Record<string, number> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LOUDNESS_KEY) ?? '{}') as Record<string, unknown>;
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(raw))
+      if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Detected key per song (t = tonic, m = 1 for minor, c = 1 when confident). */
+type KeyCache = Record<string, { t: number; m: 0 | 1; c: 0 | 1 }>;
+
+function loadKeys(): KeyCache {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEYS_KEY) ?? '{}') as Record<string, unknown>;
+    const out: KeyCache = {};
+    for (const [k, v] of Object.entries(raw)) {
+      const e = v as { t?: unknown; m?: unknown; c?: unknown } | null;
+      if (e && typeof e.t === 'number' && e.t >= 0 && e.t < 12) {
+        out[k] = { t: Math.round(e.t), m: e.m === 1 ? 1 : 0, c: e.c === 1 ? 1 : 0 };
+      }
+    }
+    return out;
+  } catch {
+    return {};
   }
 }
 
@@ -131,6 +187,14 @@ export class Player {
   minusOne = $state(false);
   moParams = $state<MinusOneParams>({ ...DEFAULT_MINUS_ONE });
   volume = $state(1);
+  /** Same loudness for every song (default on). */
+  normalize = $state(loadNormalize());
+  /** Gain in dB applied to the current song by normalisation (0 = none or not measured yet). */
+  normGainDb = $state(0);
+  private loudness: Record<string, number> = loadLoudness();
+  private keys: KeyCache = loadKeys();
+  /** Key of the current song as the analysis found it (an estimate); null until known. */
+  detectedKey = $state<DetectedKey | null>(null);
   loopA = $state<number | null>(null);
   loopB = $state<number | null>(null);
   eq = $state<number[]>(new Array<number>(EQ_BANDS).fill(0));
@@ -680,6 +744,9 @@ export class Player {
     this.currentUrl = URL.createObjectURL(file);
     this.audio.src = this.currentUrl;
     this.current = song;
+    this.currentFile = file;
+    this.detectedKey = null;
+    void this.analyzeSong(song, file);
     this.saveLast();
     this.log.event('song', { title: song.title, size: song.size, duration: song.duration });
     this.position = 0;
@@ -795,9 +862,186 @@ export class Player {
   }
 
   setVolume(v: number): void {
-    this.volume = Math.min(1, Math.max(0, v));
+    this.volume = Math.min(VOLUME_MAX, Math.max(0, v));
     if (this.engine) this.engine.setVolume(this.volume);
-    else this.audio.volume = this.volume;
+    else this.audio.volume = Math.min(1, this.volume);
+  }
+
+  setNormalize(on: boolean): void {
+    this.normalize = on;
+    try {
+      localStorage.setItem(NORMALIZE_KEY, on ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+    this.log.event('normalize', on);
+    if (on && this.current && this.currentFile)
+      void this.analyzeSong(this.current, this.currentFile);
+    else this.setNormGainDb(0);
+  }
+
+  private currentFile: File | null = null;
+
+  // --- save as MP3 ----------------------------------------------------------------------------
+
+  exportBusy = $state(false);
+  exportStage = $state<ExportStage | null>(null);
+  /** 0..1 */
+  exportFraction = $state(0);
+  /** Result line after an export: what happened (id.player.export*). */
+  exportMessage = $state('');
+  exportFailed = $state(false);
+  /** 'high' = engine R3 (exact, slow), 'fast' = R2 (quick, less exact at big changes). */
+  exportQuality = $state<'high' | 'fast'>('high');
+  private exportAbort: AbortController | null = null;
+
+  /** Proposed name of the MP3 (no extension): "Title - Artist [Tempo 100 - Key +2]". */
+  get exportDefaultName(): string {
+    const c = this.current;
+    if (!c) return '';
+    return practiceFileName(c.title, c.artist ?? c.credit?.creator, this.tempo, this.semitone);
+  }
+
+  cancelExport(): void {
+    this.exportAbort?.abort();
+  }
+
+  /** Render the current song with tempo, key, Minus One, EQ and volume as MP3 and save it. */
+  async exportMp3(name: string): Promise<void> {
+    const file = this.currentFile;
+    if (!file || this.exportBusy) return;
+    const t = id.player;
+    const base = sanitizeFileName(name) || this.exportDefaultName;
+    const fileName = /\.mp3$/i.test(base) ? base : `${base}.mp3`;
+    this.exportBusy = true;
+    this.exportFailed = false;
+    this.exportMessage = '';
+    this.exportFraction = 0;
+    this.exportStage = 'decode';
+    const abort = new AbortController();
+    this.exportAbort = abort;
+    let wake: { release: () => Promise<void> } | null = null;
+    try {
+      try {
+        wake = (await navigator.wakeLock?.request('screen')) ?? null;
+      } catch {
+        /* the screen may sleep; the export goes on when the app is visible again */
+      }
+      const wasm = await WebAssembly.compile(
+        await (await fetch(engineAssets.wasmUrl)).arrayBuffer(),
+      );
+      const bytes = await exportPracticeMp3({
+        file,
+        wasm,
+        tempo: this.tempo,
+        semitone: this.semitone,
+        engine: this.exportQuality === 'fast' ? 'R2' : 'R3',
+        effects: {
+          minusOne: this.minusOne,
+          moParams: this.moParams,
+          eq: this.eq,
+          volume: this.volume,
+          normGain: this.normalize ? dbToGain(this.normGainDb) : 1,
+        },
+        signal: abort.signal,
+        onProgress: (p) => {
+          this.exportStage = p.stage;
+          this.exportFraction = p.fraction;
+        },
+      });
+      this.exportStage = null;
+      const result = await saveBytesAs(bytes, fileName);
+      this.exportMessage = result === 'saved' ? `${t.exportDone}: ${fileName}` : t.exportCancelled;
+      this.log.event('export', { fileName, bytes: bytes.length, result });
+    } catch (err) {
+      this.exportFailed = true;
+      if (err instanceof ExportError && err.code === 'cancelled') {
+        this.exportFailed = false;
+        this.exportMessage = t.exportCancelled;
+      } else if (err instanceof ExportError && err.code === 'too_long') {
+        this.exportMessage = t.exportTooLong;
+      } else {
+        this.exportMessage = t.exportFailed;
+        this.log.event('export:error', err instanceof Error ? err.message : String(err));
+      }
+    } finally {
+      void wake?.release().catch(() => undefined);
+      this.exportBusy = false;
+      this.exportStage = null;
+      this.exportAbort = null;
+    }
+  }
+  private normToken = 0;
+
+  private setNormGainDb(db: number): void {
+    this.normGainDb = db;
+    this.engine?.setNormGain(dbToGain(db));
+  }
+
+  private loudnessKey(song: SongMeta): string {
+    return `${song.fileName}:${song.size}`;
+  }
+
+  /**
+   * Analyse the song once in the background: loudness (to level it with the others) and key.
+   * Results are remembered per song, so playing it again costs nothing.
+   */
+  private async analyzeSong(song: SongMeta, file: File): Promise<void> {
+    const token = ++this.normToken;
+    this.setNormGainDb(0);
+    const key = this.loudnessKey(song);
+    let db = this.loudness[key];
+    let cached = this.keys[key];
+    if (db === undefined || cached === undefined) {
+      const result = await analyzeSongFile(file);
+      if (token !== this.normToken) return; // another song was loaded meanwhile
+      if (result.loudnessDb !== null && db === undefined) {
+        db = result.loudnessDb;
+        this.loudness[key] = db;
+        this.saveCache(LOUDNESS_KEY, this.loudness);
+      }
+      if (result.key && cached === undefined) {
+        cached = {
+          t: result.key.tonic,
+          m: result.key.mode === 'minor' ? 1 : 0,
+          c: result.key.confident ? 1 : 0,
+        };
+        this.keys[key] = cached;
+        this.saveCache(KEYS_KEY, this.keys);
+      }
+    }
+    if (token !== this.normToken) return;
+    this.detectedKey = cached
+      ? {
+          tonic: cached.t,
+          mode: cached.m === 1 ? 'minor' : 'major',
+          score: 0,
+          margin: 0,
+          confident: cached.c === 1,
+        }
+      : null;
+    if (this.detectedKey) this.log.event('key', this.detectedKey);
+    if (this.normalize && this.engine && db !== undefined) {
+      this.setNormGainDb(normalizeGainDb(db));
+      this.log.event('normalize:gain', {
+        title: song.title,
+        loudness: db,
+        gainDb: this.normGainDb,
+      });
+    }
+  }
+
+  /** Save a per-song cache, dropping the oldest entries beyond the limit. */
+  private saveCache(storageKey: string, cache: Record<string, unknown>): void {
+    const names = Object.keys(cache);
+    if (names.length > LOUDNESS_MAX_ENTRIES) {
+      for (const k of names.slice(0, names.length - LOUDNESS_MAX_ENTRIES)) delete cache[k];
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(cache));
+    } catch {
+      /* ignore */
+    }
   }
 
   setEngineKind(kind: RubberBandEngine): void {

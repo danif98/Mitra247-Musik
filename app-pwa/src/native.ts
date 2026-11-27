@@ -60,6 +60,10 @@ export interface MusikNative {
   requestAudioPermission(): Promise<{ granted: boolean }>;
   requestNotificationPermission(): Promise<{ granted: boolean }>;
   listAudio(): Promise<{ songs: NativeSong[]; volumes: NativeVolume[]; hidden?: number }>;
+  /** Android "save as" dialog; rejects with code "cancelled" when the user backs out. */
+  createDocument(opts: { name: string; mime: string }): Promise<{ uri: string }>;
+  /** Write a base64 chunk to a document from createDocument. */
+  writeDocument(opts: { uri: string; data: string; append: boolean }): Promise<void>;
   setNowPlaying(state: NowPlaying): Promise<void>;
   clearNowPlaying(): Promise<void>;
   addListener(

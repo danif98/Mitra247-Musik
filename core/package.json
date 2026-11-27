@@ -6,6 +6,7 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "rubberband-wasm": "3.3.0"
   }
 }

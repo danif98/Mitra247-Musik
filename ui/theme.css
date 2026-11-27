@@ -11,6 +11,10 @@
   --bad: #f87171;
   --radius: 12px;
   --tap: 48px;
+  /* Space taken by the status bar / notch / navigation bar. Capacitor (Android) fills the
+     --safe-area-inset-* variables; browsers with env() support need no help. */
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   font-family:
     system-ui,
     -apple-system,

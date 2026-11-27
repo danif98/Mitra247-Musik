@@ -80,6 +80,25 @@
     <p class="muted">{t.engineNote}</p>
   </div>
 
+  <div class="panel">
+    <h3>{t.normalize}</h3>
+    <div class="seg">
+      <button
+        type="button"
+        id="set-norm-on"
+        aria-pressed={player.normalize}
+        onclick={() => player.setNormalize(true)}>{t.normalizeOn}</button
+      >
+      <button
+        type="button"
+        id="set-norm-off"
+        aria-pressed={!player.normalize}
+        onclick={() => player.setNormalize(false)}>{t.normalizeOff}</button
+      >
+    </div>
+    <p class="muted">{t.normalizeNote}</p>
+  </div>
+
   <AccountPanel {player} />
 
   <PersonalSettings {server} />

@@ -16,6 +16,8 @@ import {
 import { MinusOne, type MinusOneParams } from './minus-one';
 import { Equalizer } from './eq';
 import { Metronome } from './metronome';
+import { VOLUME_MAX } from './loudness';
+import { createLimiter } from './limiter';
 
 export interface EngineAssets {
   /** URL of the bundled AudioWorklet module. */
@@ -89,6 +91,10 @@ export class MusikAudioEngine {
   readonly events: EngineEvents = {};
   /** Last node of the graph; tests attach analysers here. */
   output!: GainNode;
+  /** Per-song loudness correction (before the volume control). */
+  norm!: GainNode;
+  /** Catches peaks when volume or normalisation amplifies the signal. */
+  limiter!: DynamicsCompressorNode;
   minusOne!: MinusOne;
   eq!: Equalizer;
   metronome!: Metronome;
@@ -130,6 +136,8 @@ export class MusikAudioEngine {
     );
     this.source = this.context.createMediaElementSource(this.media);
     this.output = this.context.createGain();
+    this.norm = this.context.createGain();
+    this.limiter = createLimiter(this.context);
     this.minusOne = new MinusOne(this.context);
 
     try {
@@ -149,9 +157,11 @@ export class MusikAudioEngine {
     }
     this.eq = new Equalizer(this.context);
     this.minusOne.output.connect(this.eq.input);
-    this.eq.output.connect(this.output);
+    this.eq.output.connect(this.norm);
+    this.norm.connect(this.output);
     this.metronome = new Metronome(this.context, this.output);
-    this.output.connect(this.context.destination);
+    this.output.connect(this.limiter);
+    this.limiter.connect(this.context.destination);
 
     this.applyNow();
     this.startRenderCapacity();
@@ -198,8 +208,14 @@ export class MusikAudioEngine {
     if (this.context.state !== 'running') await this.context.resume();
   }
 
+  /** Volume 0..2 (1 = 100%; above 1 the sound is amplified, the limiter catches the peaks). */
   setVolume(volume: number): void {
-    this.output.gain.setTargetAtTime(clamp(volume, 0, 1), this.context.currentTime, 0.02);
+    this.output.gain.setTargetAtTime(clamp(volume, 0, VOLUME_MAX), this.context.currentTime, 0.02);
+  }
+
+  /** Linear gain that levels this song with the others (1 = unchanged). */
+  setNormGain(gain: number): void {
+    this.norm.gain.setTargetAtTime(clamp(gain, 0, 8), this.context.currentTime, 0.05);
   }
 
   setEq(gains: readonly number[]): void {

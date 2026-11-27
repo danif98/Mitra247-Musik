@@ -407,7 +407,7 @@
   }
   .preview {
     position: sticky;
-    top: 0;
+    top: var(--sat);
     z-index: 2;
     display: grid;
     gap: 8px;

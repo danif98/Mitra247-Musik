@@ -2,6 +2,14 @@
 
 Riwayat perubahan yang ditampilkan di layar Setelan, Tentang, pada edisi Google Play. Berkas ini ditulis terpisah dari `CHANGELOG.md` dan tidak memuat fitur edisi pribadi. Tiap entri memakai format `## <versi> (<tanggal>)`.
 
+## 0.6.0 (2026-11-27)
+
+- **Simpan sebagai MP3**: tombol MP3 di tab Latihan menyimpan lagu dengan tempo, kunci, volume, Minus One, dan equalizer yang sedang dipakai. Nama berkas default `Judul - Artis [Tempo 100 - Key +2]`, bisa diubah di dialog Simpan. Kualitas Tinggi (lebih lama) atau Cepat.
+- **Deteksi kunci lagu** (perkiraan): kunci asli tampil di layar Putar dan di samping kunci latihan, misalnya "C → D".
+- **Volume sampai 200%** dan opsi **Samakan volume lagu** (default hidup) di Setelan, supaya semua lagu terdengar sama keras.
+- Tombol Minus One kini berlabel dan menunjukkan statusnya.
+- Tampilan tidak lagi tertimpa status bar atau notch.
+
 ## 0.5.2 (2026-11-26)
 
 - Masuk dengan Google lebih andal untuk versi yang diunduh dari Google Play.

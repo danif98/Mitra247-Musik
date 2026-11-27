@@ -3,7 +3,16 @@
   import Icon from '@musik/ui/components/Icon.svelte';
   import Stepper from '@musik/ui/components/Stepper.svelte';
   import Waveform from '@musik/ui/components/Waveform.svelte';
-  import { EQ_BAND_LABELS, formatDuration, isSupportedAudio } from '@musik/core';
+  import {
+    EQ_BAND_LABELS,
+    VOLUME_MAX,
+    formatDuration,
+    formatKeyName,
+    formatKeyShort,
+    transposeKey,
+    formatVolumePercent,
+    isSupportedAudio,
+  } from '@musik/core';
   import { onMount, tick } from 'svelte';
   import type { Player } from './player.svelte';
 
@@ -17,11 +26,34 @@
   const TAB_KEY = 'musik.playtab';
 
   let infoOpen = $state(false);
-  let panel = $state<'eq' | 'metro' | null>(null);
+  let panel = $state<'eq' | 'metro' | 'export' | null>(null);
+  /** File name typed for "Simpan sebagai MP3"; follows tempo and key until the user edits it. */
+  let exportName = $state('');
+  let exportTouched = $state(false);
+  $effect(() => {
+    const proposed = player.exportDefaultName;
+    if (!exportTouched) exportName = proposed;
+  });
+  const exportStageText = $derived(
+    player.exportStage
+      ? t[
+          `export${player.exportStage[0]!.toUpperCase()}${player.exportStage.slice(1)}` as 'exportDecode'
+        ]
+      : '',
+  );
   let tab = $state<'queue' | 'practice'>('queue');
   let listEl = $state<HTMLElement | null>(null);
   /** Practice mode: a compact screen that fits a phone without scrolling. */
   const practice = $derived(tab === 'practice');
+  /** " · G → A": detected key of the song and what it becomes with the chosen transpose. */
+  const keyHint = $derived.by(() => {
+    const k = player.detectedKey;
+    if (!k) return '';
+    const sure = k.confident ? '' : '~';
+    const from = `${sure}${formatKeyShort(k)}`;
+    if (player.semitone === 0) return ` · ${from}`;
+    return ` · ${from} → ${sure}${formatKeyShort(transposeKey(k, player.semitone))}`;
+  });
   // In practice mode the current song repeats by default; the usual setting comes back after.
   $effect(() => {
     if (practice) player.enterPractice();
@@ -34,7 +66,7 @@
     { key: 'focus', label: t.moFocus, hint: t.moHintFocus },
   ] as const;
   const hint = $derived(MODES.find((m) => m.key === player.moParams.mode)?.hint ?? '');
-  const toggle = (name: 'eq' | 'metro') => (panel = panel === name ? null : name);
+  const toggle = (name: 'eq' | 'metro' | 'export') => (panel = panel === name ? null : name);
 
   onMount(() => {
     try {
@@ -141,6 +173,16 @@
             <span class="badge on">A-B</span>
           {/if}
           {#if player.minusOne}<span class="badge on">{t.minusOne}</span>{/if}
+          {#if player.detectedKey}
+            <span
+              class="badge"
+              id="key-badge"
+              title={player.detectedKey.confident ? t.keyOriginal : t.keyUnsure}
+              >{t.keyOriginal}: {player.detectedKey.confident ? '' : '~'}{formatKeyName(
+                player.detectedKey,
+              )}</span
+            >
+          {/if}
         </div>
       </div>
     </article>
@@ -351,6 +393,7 @@
           <Stepper
             compact
             label={t.key}
+            hint={keyHint}
             value={player.semitone}
             min={-12}
             max={12}
@@ -428,7 +471,84 @@
           >
             <Icon name="metronome" />
           </button>
+          <button
+            type="button"
+            id="export-toggle"
+            class="export-toggle"
+            class:on={panel === 'export' || player.exportBusy}
+            aria-pressed={panel === 'export'}
+            aria-label={t.exportToggle}
+            title={t.exportToggle}
+            onclick={() => toggle('export')}
+          >
+            <Icon name="save" size={18} /><span>MP3</span>
+          </button>
         </div>
+
+        {#if panel === 'export'}
+          <section class="panel" id="export-panel" aria-label={t.exportTitle}>
+            <p class="muted note">{t.exportNote}</p>
+            <label class="field">
+              <span>{t.exportName}</span>
+              <input
+                type="text"
+                id="export-name"
+                value={exportName}
+                disabled={player.exportBusy}
+                oninput={(e) => {
+                  exportName = (e.currentTarget as HTMLInputElement).value;
+                  exportTouched = true;
+                }}
+              />
+            </label>
+            <div class="field">
+              <span>{t.exportQuality}</span>
+              <div class="seg2">
+                <button
+                  type="button"
+                  id="export-q-high"
+                  aria-pressed={player.exportQuality === 'high'}
+                  disabled={player.exportBusy}
+                  onclick={() => (player.exportQuality = 'high')}>{t.exportHigh}</button
+                >
+                <button
+                  type="button"
+                  id="export-q-fast"
+                  aria-pressed={player.exportQuality === 'fast'}
+                  disabled={player.exportBusy}
+                  onclick={() => (player.exportQuality = 'fast')}>{t.exportFast}</button
+                >
+              </div>
+              <small class="muted">{t.exportQualityNote}</small>
+            </div>
+            {#if player.exportBusy}
+              <div class="export-progress" role="status" id="export-progress">
+                <progress max="1" value={player.exportFraction}></progress>
+                <span>{exportStageText} {Math.round(player.exportFraction * 100)}%</span>
+              </div>
+              <button type="button" id="export-cancel" onclick={() => player.cancelExport()}
+                >{t.exportCancel}</button
+              >
+            {:else}
+              <button
+                type="button"
+                id="export-start"
+                class="primary"
+                onclick={() => void player.exportMp3(exportName)}>{t.exportStart}</button
+              >
+            {/if}
+            {#if player.exportMessage}
+              <p
+                class="muted note"
+                class:bad={player.exportFailed}
+                id="export-message"
+                role="status"
+              >
+                {player.exportMessage}
+              </p>
+            {/if}
+          </section>
+        {/if}
 
         {#if panel === 'eq'}
           <section class="panel" id="eq-panel" aria-label={t.eqToggle}>
@@ -516,27 +636,42 @@
             </div>
           </section>
         {/if}
-        <div class="bottom">
+        <div class="bottom vol-row">
           <span class="vol-icon" aria-hidden="true"><Icon name="volume" /></span>
           <input
             type="range"
+            id="volume"
             aria-label={t.volume}
             min="0"
-            max="1"
+            max={VOLUME_MAX}
             step="0.01"
             value={player.volume}
             oninput={(e) => player.setVolume(Number((e.currentTarget as HTMLInputElement).value))}
           />
+          <span class="vol-pct" class:boost={player.volume > 1} id="volume-pct"
+            >{formatVolumePercent(player.volume)}</span
+          >
+        </div>
+        {#if player.volume > 1}
+          <p class="muted note" id="volume-boost">{t.volumeBoost}</p>
+        {/if}
+        <div class="bottom mo-row">
           <button
             type="button"
             id="mo"
+            class="mo-toggle"
             class:on={player.minusOne}
             aria-pressed={player.minusOne}
             aria-label={t.minusOneToggle}
             title={t.minusOneToggle}
             onclick={() => player.setMinusOne(!player.minusOne)}
           >
-            <Icon name={player.minusOne ? 'micOff' : 'mic'} />
+            <Icon name="mic" />
+            <span class="mo-text">
+              <strong>{t.minusOne}</strong>
+              <small>{t.minusOneHint}</small>
+            </span>
+            <span class="mo-state" id="mo-state">{player.minusOne ? t.on : t.off}</span>
           </button>
           <button
             type="button"
@@ -1003,8 +1138,46 @@
   /* practice */
   .tools {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 6px;
+  }
+  .tools button.export-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .field {
+    display: grid;
+    gap: 4px;
+  }
+  .field input {
+    width: 100%;
+    min-height: var(--tap);
+    padding: 0 12px;
+    border: 1px solid var(--panel);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+  }
+  .seg2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .export-progress {
+    display: grid;
+    gap: 4px;
+  }
+  .export-progress progress {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .bad {
+    color: var(--bad);
   }
   .tools button,
   .mrow button {
@@ -1086,6 +1259,51 @@
     align-items: center;
     gap: 6px;
   }
+  .vol-row {
+    grid-template-columns: auto 1fr 3.4rem;
+  }
+  .vol-pct {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+  .vol-pct.boost {
+    color: var(--warn);
+    font-weight: 700;
+  }
+  .mo-row {
+    grid-template-columns: 1fr var(--tap);
+  }
+  .mo-row button {
+    min-height: 40px;
+  }
+  .vol-row {
+    min-height: 32px;
+  }
+  .bottom button.mo-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 14px;
+    text-align: left;
+  }
+  .mo-state {
+    margin-left: auto;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: color-mix(in srgb, var(--fg) 14%, transparent);
+  }
+  .mo-text {
+    display: grid;
+    line-height: 1.15;
+  }
+  .mo-text small {
+    opacity: 0.8;
+  }
   .bottom button {
     padding: 0;
     display: grid;
@@ -1128,6 +1346,12 @@
   }
 
   /* practice mode: everything fits a phone screen without scrolling */
+  .screen.practice .mo-row button {
+    min-height: 36px;
+  }
+  .screen.practice .mo-text small {
+    display: none;
+  }
   .screen.practice {
     gap: 10px;
   }

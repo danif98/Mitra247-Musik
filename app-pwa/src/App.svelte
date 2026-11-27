@@ -21,7 +21,14 @@
   import { bindNative } from './native-bridge.svelte';
   import { account } from './account/account.svelte';
   import LoginGate from './account/LoginGate.svelte';
-  import { Equalizer, MinusOne } from '@musik/core';
+  import {
+    Equalizer,
+    MinusOne,
+    decodeForExport,
+    encodeMp3,
+    renderEffects,
+    stretchOffline,
+  } from '@musik/core';
 
   type Tab = 'play' | 'library' | 'search' | typeof PERSONAL_TAB | 'settings';
   const player = new Player();
@@ -51,6 +58,7 @@
         // classes exposed so e2e can render them offline and measure the DSP
         MinusOne,
         Equalizer,
+        exportSteps: { decodeForExport, encodeMp3, stretchOffline, renderEffects },
       };
     }
     // Personal edition, Share Target / extension: ?url=...&text=... carries a link.
@@ -133,7 +141,7 @@
   main {
     max-width: 560px;
     margin: 0 auto;
-    padding: 12px 12px 96px;
+    padding: calc(12px + var(--sat)) 12px calc(96px + var(--sab));
   }
   nav {
     position: fixed;
@@ -141,7 +149,7 @@
     display: grid;
     grid-template-columns: repeat(var(--tabs, 5), 1fr);
     gap: 4px;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    padding: 6px 6px calc(6px + var(--sab));
     background: var(--panel);
     border-top: 1px solid var(--panel-2);
   }

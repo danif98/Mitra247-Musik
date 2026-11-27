@@ -14,6 +14,8 @@
     resetLabel: string;
     /** Lower variant (practice mode on a phone). */
     compact?: boolean;
+    /** Extra text after the label (for example the detected key); not part of the button names. */
+    hint?: string;
   }
   let {
     label,
@@ -26,6 +28,7 @@
     onchange,
     resetLabel,
     compact = false,
+    hint = '',
   }: Props = $props();
 
   function set(v: number) {
@@ -36,7 +39,9 @@
 
 <section class="stepper" class:compact>
   <div class="head">
-    <h3>{label}</h3>
+    <h3>
+      {label}{#if hint}<span class="hint">{hint}</span>{/if}
+    </h3>
     <button
       type="button"
       class="reset"
@@ -82,6 +87,11 @@
     font-size: 0.9rem;
     color: var(--muted);
     font-weight: 500;
+  }
+  .hint {
+    color: var(--accent);
+    font-weight: 700;
+    white-space: nowrap;
   }
   .reset {
     padding: 0;

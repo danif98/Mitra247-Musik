@@ -1,6 +1,6 @@
 {
   "name": "musik",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "private": true,
   "description": "Musik Tools: personal music practice player (speed, transpose, minus one, YouTube to MP3).",
   "license": "GPL-3.0-only",
@@ -25,7 +25,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json && tsc -p server/tsconfig.json --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs && node e2e/minusone.mjs && node e2e/search.mjs && node e2e/ytsearch.mjs && node e2e/lazyqueue.mjs && node e2e/about.mjs && node e2e/playscreen.mjs && node e2e/account.mjs && node e2e/auth-server.mjs",
+    "test:e2e": "node e2e/run.mjs && node e2e/app.mjs && node e2e/practice.mjs && node e2e/minusone.mjs && node e2e/search.mjs && node e2e/ytsearch.mjs && node e2e/lazyqueue.mjs && node e2e/about.mjs && node e2e/playscreen.mjs && node e2e/volume.mjs && node e2e/export.mjs && node e2e/key.mjs && node e2e/account.mjs && node e2e/auth-server.mjs",
     "test:e2e:play": "node scripts/build-play.mjs && node e2e/play.mjs && node scripts/check-play-clean.mjs",
     "check:pure-js": "node scripts/check-pure-js.mjs",
     "deploy:prepare": "node scripts/deploy-prepare.mjs",

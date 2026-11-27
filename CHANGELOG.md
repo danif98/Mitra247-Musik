@@ -2,6 +2,14 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.6.0 (2026-11-27)
+
+- **Simpan sebagai MP3 (semua edisi).** Tombol MP3 di tab Latihan merender lagu dengan tempo, kunci, volume, Minus One, dan equalizer yang sedang dipakai, lalu menyimpannya lewat dialog Simpan (Android: Storage Access Framework lewat `createDocument` dan `writeDocument` di `MusikNative`; browser: `showSaveFilePicker` atau unduhan). Nama default `Judul - Artis [Tempo 100 - Key +2]`. Tempo dan kunci diubah dengan Rubber Band mode offline (R3 untuk kualitas Tinggi, R2 untuk Cepat; R2 melemahkan suara pada perubahan besar), lalu rantai Web Audio offline yang sama dengan pemutaran langsung, lalu lamejs (MP3 192 kbps). Batas 12 menit per lagu.
+- **Deteksi kunci** (`core/audio/key.ts`): chromagram dan profil Krumhansl-Schmuckler, hasil perkiraan yang ditampilkan di layar Putar dan di label Kunci. Dihitung sekali per lagu bersama pengukuran loudness dan disimpan.
+- **Volume sampai 200%** dengan limiter, dan **Samakan volume lagu** (default hidup, `core/audio/loudness.ts`).
+- Tombol Minus One berlabel; margin aman untuk status bar dan notch (variabel `--safe-area-inset-*` dari Capacitor).
+- Tes baru: `loudness`, `export`, `key` (unit), `volume`, `export`, `key` (e2e).
+
 ## 0.5.2 (2026-11-26)
 
 - `auth.php` menerima token dari **semua OAuth client di proyek Google Cloud ini**, lewat `client_id_prefixes` di `api/auth-config.php` (contoh: `['653398046329-']`), selain daftar `client_ids`. Client baru untuk kunci upload atau kunci Play App Signing tidak perlu mengubah konfigurasi server lagi. **Tambahkan baris `client_id_prefixes` ke `api/auth-config.php` di server** (lihat `auth-config.example.php`).
