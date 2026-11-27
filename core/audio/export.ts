@@ -76,16 +76,21 @@ export function formatTempoPercent(tempo: number): string {
   return String(Math.round(tempo * 100));
 }
 
-/** Default file name (no extension): "Idol - Yoasobi [Tempo 100 - Key +2]". */
+/**
+ * Default file name (no extension): "Idol - Yoasobi [Tempo 100 - Key +2 (D)]".
+ * `keyName` is the key the song has after the transpose (short form, "D" or "Em"); left out when unknown.
+ */
 export function practiceFileName(
   title: string,
   artist: string | undefined,
   tempo: number,
   semitone: number,
+  keyName?: string,
 ): string {
   const who = artist?.trim();
   const base = who ? `${title.trim()} - ${who}` : title.trim();
-  const tag = `[Tempo ${formatTempoPercent(tempo)} - Key ${formatKey(semitone)}]`;
+  const name = keyName?.trim();
+  const tag = `[Tempo ${formatTempoPercent(tempo)} - Key ${formatKey(semitone)}${name ? ` (${name})` : ''}]`;
   return sanitizeFileName(`${base || 'Lagu'} ${tag}`);
 }
 

@@ -94,11 +94,14 @@ try {
     p.setVolume(0.5);
     p.setNormalize(false);
   });
+  await page.waitForFunction(() => window.__musik.player.detectedKey !== null, null, {
+    timeout: 30000,
+  });
   await page.click('#export-toggle');
   const proposed = await page.inputValue('#export-name');
   check(
     'the proposed name follows the format',
-    proposed === 'Idol - Yoasobi [Tempo 50 - Key +12]',
+    /^Idol - Yoasobi \[Tempo 50 - Key \+12 \([A-G]#?m?\)\]$/.test(proposed),
     proposed,
   );
 
@@ -106,7 +109,9 @@ try {
   await page.waitForTimeout(100);
   check(
     'the name follows the key until it is edited',
-    (await page.inputValue('#export-name')) === 'Idol - Yoasobi [Tempo 50 - Key -3]',
+    /^Idol - Yoasobi \[Tempo 50 - Key -3 \([A-G]#?m?\)\]$/.test(
+      await page.inputValue('#export-name'),
+    ),
   );
   await page.evaluate(() => window.__musik.player.setSemitone(12));
   await page.waitForTimeout(100);
@@ -118,7 +123,9 @@ try {
   const download = await downloadPromise;
   check(
     'the file is offered with the .mp3 name',
-    download.suggestedFilename() === 'Idol - Yoasobi [Tempo 50 - Key +12].mp3',
+    /^Idol - Yoasobi \[Tempo 50 - Key \+12 \([A-G]#?m?\)\]\.mp3$/.test(
+      download.suggestedFilename(),
+    ),
     download.suggestedFilename(),
   );
   const file = path.join(artifacts, 'export.mp3');

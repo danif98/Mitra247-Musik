@@ -14,6 +14,8 @@ import {
   clampBpm,
   VOLUME_MAX,
   type DetectedKey,
+  formatKeyShort,
+  transposeKey,
   ExportError,
   exportPracticeMp3,
   practiceFileName,
@@ -899,7 +901,14 @@ export class Player {
   get exportDefaultName(): string {
     const c = this.current;
     if (!c) return '';
-    return practiceFileName(c.title, c.artist ?? c.credit?.creator, this.tempo, this.semitone);
+    const k = this.detectedKey;
+    return practiceFileName(
+      c.title,
+      c.artist ?? c.credit?.creator,
+      this.tempo,
+      this.semitone,
+      k ? formatKeyShort(transposeKey(k, this.semitone)) : undefined,
+    );
   }
 
   cancelExport(): void {

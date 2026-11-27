@@ -1,0 +1,1 @@
+• MP3 file names now include the key after transposing, for example [Tempo 100 - Key +2 (D)]

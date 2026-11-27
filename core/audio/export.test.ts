@@ -27,6 +27,19 @@ describe('practiceFileName', () => {
     expect(practiceFileName('Lagu', 'Band', 1.25, 0)).toBe('Lagu - Band [Tempo 125 - Key 0]');
   });
 
+  it('adds the key after the transpose when it is known', () => {
+    expect(practiceFileName('Idol', 'Yoasobi', 1, 2, 'D')).toBe(
+      'Idol - Yoasobi [Tempo 100 - Key +2 (D)]',
+    );
+    expect(practiceFileName('Lagu', 'Band', 0.75, -3, 'Em')).toBe(
+      'Lagu - Band [Tempo 75 - Key -3 (Em)]',
+    );
+    expect(practiceFileName('Lagu', 'Band', 1, 0, 'C#')).toBe(
+      'Lagu - Band [Tempo 100 - Key 0 (C#)]',
+    );
+    expect(practiceFileName('Lagu', 'Band', 1, 0, '  ')).toBe('Lagu - Band [Tempo 100 - Key 0]');
+  });
+
   it('leaves out the artist when there is none', () => {
     expect(practiceFileName('Idol', undefined, 1, 2)).toBe('Idol [Tempo 100 - Key +2]');
     expect(practiceFileName('Idol', '  ', 1, 2)).toBe('Idol [Tempo 100 - Key +2]');

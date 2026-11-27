@@ -2,6 +2,10 @@
 
 Satu pengguna, tanpa rilis publik; versi dipakai untuk tag repo deploy (`v<versi>`) dan rollback.
 
+## 0.6.1 (2026-11-27)
+
+- Nama default **Simpan sebagai MP3** menyertakan kunci lagu setelah transpose (bentuk singkat, `D` atau `Em`) bila kunci sudah terdeteksi: `practiceFileName(..., keyName)` di `core/audio/export.ts`. Tes unit dan e2e diperbarui.
+
 ## 0.6.0 (2026-11-27)
 
 - **Simpan sebagai MP3 (semua edisi).** Tombol MP3 di tab Latihan merender lagu dengan tempo, kunci, volume, Minus One, dan equalizer yang sedang dipakai, lalu menyimpannya lewat dialog Simpan (Android: Storage Access Framework lewat `createDocument` dan `writeDocument` di `MusikNative`; browser: `showSaveFilePicker` atau unduhan). Nama default `Judul - Artis [Tempo 100 - Key +2]`. Tempo dan kunci diubah dengan Rubber Band mode offline (R3 untuk kualitas Tinggi, R2 untuk Cepat; R2 melemahkan suara pada perubahan besar), lalu rantai Web Audio offline yang sama dengan pemutaran langsung, lalu lamejs (MP3 192 kbps). Batas 12 menit per lagu.

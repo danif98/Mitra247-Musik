@@ -2,6 +2,10 @@
 
 Riwayat perubahan yang ditampilkan di layar Setelan, Tentang, pada edisi Google Play. Berkas ini ditulis terpisah dari `CHANGELOG.md` dan tidak memuat fitur edisi pribadi. Tiap entri memakai format `## <versi> (<tanggal>)`.
 
+## 0.6.1 (2026-11-27)
+
+- Nama default MP3 kini menyertakan kunci hasil transpose, misalnya `Idol - Yoasobi [Tempo 100 - Key +2 (D)]`.
+
 ## 0.6.0 (2026-11-27)
 
 - **Simpan sebagai MP3**: tombol MP3 di tab Latihan menyimpan lagu dengan tempo, kunci, volume, Minus One, dan equalizer yang sedang dipakai. Nama berkas default `Judul - Artis [Tempo 100 - Key +2]`, bisa diubah di dialog Simpan. Kualitas Tinggi (lebih lama) atau Cepat.
